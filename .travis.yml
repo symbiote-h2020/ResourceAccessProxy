@@ -1,31 +1,23 @@
 language: java
-
 env:
   global:
-    secure: "jKuBB3MoaHw7sSD9RWacrXkPgnBE0194Tqj+zKPAjdAoBgunkq/rIJIq5NmgvpC6DPWbFC94aifJxaWLPulZHVEj+v9BjDs6Gkv9mfjyEb4qPm57vW2JDqJzCY46mnJcc46lNyL0MK0Q6fhVeWmi/flkJhewv+M3a/hqqMute48VuY10Tujbi6bmHDHQJjzlRiMJS3WuCQXdlvrpvNPZ8Gxz90mxX0PDNdfuHEkMjNePaNrcMlCJO7oiwqUv4E4Rewcpwej5s5c7/MHJzmaO4RZl3Fn8hqQ5vQ7GwphivThL4ZBB4d8HMqNiT9VQ+/+j0jDafeMj3czPwNTj2QKHgb9e7Uoq/3WLD+qbm97PqFdbkF9l7CC4V+sFM6c8WaS0SwbHOptK429ussAbCN7GcRcf+li84CYKhG7WUTZkZhwHtK1Wu+4wJJC1dO3eHwNCUBafIBgdH9JxfYTMX2yHLYVV6/dv9mvkP+IHI9vAZrJKCsFEK/UJf5DVzsA16rhihUv7rL3Ro1gJjGuoZsvRmEIW7zpQ+EKivq12aDGYpP8J8fK7r+3ccQ98Q3PmGtzvYIjfgOomNgn31PkmSqptKpROPGBehcZ4g+gkcWJRfydgQPllP020VRVFI8IPPxCn83uIPo6gh8zhIl1qaZmIvQPTfpzuhu/0GsTNSZspDlo="
-
+    secure: fpXUljkOYDPC4IpxC1JeKPJtCrcdet2G6gdVggUfowFm8auCQpYULcD72gZcmMNu9giTqhncjOTnNvU8PNf63uKKV00iIiY1TrC5h3stbrn7dOuIwA/ywgi5y/nUjKKilZQPNG6uaR/CHp/aykUplBcT86+nQ2pgcA3Ujyj9j/lOgD0xgefmpC5CID0z6mMUAF0OsqNeOFseVRzHJ7Pv6D0AK5iKfriJ2K4mvxpcGCQa1b6JY4ps3kyD6PkHjML808bCwEHs5AZPFWxbqNhWAZRs+xsBu42UCyxsIRaRKCaLO67qZJZ7msyhFKgU+T4J6byn9AbAMxe3T85ry7AjQSomt6raO9Aw7YlsrQCEfxBFaHWL4+Zqvo2o6AufY4Sws1DzL06RYKR9/QqmNwSKKPGucwyyZcUnEPiEjQMDx1bjVx+ut9OebCOU6UMEuSAnpq5l/zQLFyE0BEQtMuzb2pL3qBgA6RMtZjT6IevmFPs37l3a0d2tGRYL+TYHi8zRN0a9Si6gEgM8MQgEDMWGViETC0elPYTKUejhEiQndXFWgsGlGvLSurhIaEiWXOpRKxZD+MzLzW7A+CmLzZTGONuszeOByw/2kPU0Q/Iq1fOa4G0GiwNWmbZH7t2x42LOfwjYO8LzqvB9BrdzJF/hguADlKBJt3zSly00uyvKZk0=
 jdk:
 - oraclejdk8
-
 services:
-  - mongodb
-  - rabbitmq
-
+- mongodb
+- rabbitmq
 sudo: required
-
 branches:
   only:
   - staging
-
 before_cache:
 - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
 - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
-
 cache:
   directories:
   - "$HOME/.gradle/caches/"
   - "$HOME/.gradle/wrapper/"
-
 after_success:
 - chmod a+x merge_script.sh
 - BRANCHES_TO_MERGE_REGEX='staging' BRANCH_TO_MERGE_INTO=develop GITHUB_REPO=symbiote-h2020/ResourceAccessProxy
