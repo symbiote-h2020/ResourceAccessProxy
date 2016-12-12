@@ -1,0 +1,480 @@
+swagger: '2.0'
+info:
+  title: Resource Access Proxy
+  description: Enables symbIoTe-compliant access to resources within an IoT platform
+  version: "0.1"
+host: rap.cloud.symbiote
+# array of all schemes that your API supports
+schemes:
+  - http
+# will be prefixed to all paths
+basePath: /v1
+produces:
+  - application/json
+paths:
+  /resource-registration:
+    post:
+      summary: Resource registration (called by RH)
+      description: |
+        add to schedule check availability
+      parameters:
+        - name: resource
+          in: body
+          description: Identifier of the resource to monitor, specifies its monitor scheduling
+          required: true
+          schema: 
+              "$ref": "#/definitions/ResourceDescriptor"
+      tags:
+        - ResourceLifeCycle
+        - QueueBasedAPI
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            items:
+              $ref: '#/definitions/Success'
+        400:
+          description: ERROR
+          schema:
+            type: object
+            items:
+              $ref: '#/definitions/Error'
+  /resource-unregistration:
+    post:
+      summary: Resource unregistration (called by RH)
+      parameters:
+        - name: resource
+          in: body
+          description: Identifier of the resource to monitor, specifies its monitor scheduling
+          required: true
+          schema: {
+            "$ref": "#/definitions/ResourceId"
+          }
+      tags:
+        - ResourceLifeCycle
+        - QueueBasedAPI
+      responses:
+        200:
+          description: Successful removal from monitoring scheduler is implicit
+          schema:
+            type: object
+            items:
+              $ref: '#/definitions/Success'
+        400:
+          description: ERROR
+          schema:
+            type: object
+            items:
+              $ref: '#/definitions/Error'
+  /resource-update:
+    post:
+      summary: Resource update (called by RH)
+      parameters:
+        - name: resource
+          in: body
+          description: Identifier of the resource to monitor, specifies its monitor scheduling
+          required: true
+          schema: 
+              "$ref": "#/definitions/ResourceDescriptor"
+      tags:
+        - ResourceLifeCycle
+        - QueueBasedAPI
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            items:
+              $ref: '#/definitions/Success'
+        400:
+          description: ERROR
+          schema:
+            type: object
+            items:
+              $ref: '#/definitions/Error'
+
+  /checkResource:
+    post:
+      summary: Resource metrics query (called by CRM)
+      parameters:
+        - name: resources
+          in: body
+          description: List of resource ids to monitor
+          required: true
+          schema: 
+              "$ref": "#/definitions/ResourceIdSeqRequest"
+      tags:
+        - Monitoring
+        - HTTPBasedAPI
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            items:
+              $ref: '#/definitions/ResourceStatusSeq'
+        400:
+          description: ERROR
+          schema:
+            type: object
+            items:
+              $ref: '#/definitions/Error'
+    
+  /reserveResource:
+    post:
+      summary: Acknowledge or deny a reservation request upon a set of resources
+      parameters:
+        - name: resources
+          in: body
+          description: List of resource ids to reserve
+          required: true
+          schema: 
+              "$ref": "#/definitions/ResourceReservationRequest"
+      tags:
+        - ResourceReservation
+        - HTTPBasedAPI
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            items:
+              $ref: '#/definitions/ResourceReservationResp'
+        400:
+          description: ERROR
+          schema:
+            type: object
+            items:
+              $ref: '#/definitions/Error'
+  
+  /confirmReserveResource:
+    post:
+      summary: Confirm a reservation request upon a set of resources
+      parameters:
+        - name: resources
+          in: body
+          description: List of resource ids to reserve
+          required: true
+          schema: 
+              "$ref": "#/definitions/ResourceReservationConfirmRequest"
+      tags:
+        - ResourceReservation
+        - HTTPBasedAPI
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            items:
+              $ref: '#/definitions/ResourceReservationConfirmResp'
+        400:
+          description: ERROR
+          schema:
+            type: object
+            items:
+              $ref: '#/definitions/Error'
+
+  /resource/{resource_id}:
+    get:
+      summary: Instantaneous access, get latest resource status
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          type: string
+      tags:
+        - ResourceAccess
+        - HTTPBasedAPI
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            items:
+              $ref: '#/definitions/ResourceObservation'
+        400:
+          description: ERROR
+          schema:
+            type: object
+            items:
+              $ref: '#/definitions/Error'
+    post:
+      summary: Instantaneous access, set resource status (actuators)
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          type: string
+        - name: status
+          in: body
+          description: Actuator status change descriptor
+          required: true
+          schema: 
+              "$ref": "#/definitions/ResourceStatusChangeRequest"
+      tags:
+        - ResourceAccess
+        - HTTPBasedAPI
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            items:
+              $ref: '#/definitions/Success'
+        400:
+          description: ERROR
+          schema:
+            type: object
+            items:
+              $ref: '#/definitions/Error'
+  
+
+  /resource/{resource_id}/history:
+    get:
+      summary: Instantaneous access, get latest resource status
+      parameters:
+        - name: resource_id
+          in: path
+          required: true
+          type: string
+        - name: from
+          in: query
+          required: true
+          type: string
+        - name: to
+          in: query
+          required: true
+          type: string
+      tags:
+        - ResourceAccess
+        - HTTPBasedAPI
+      responses:
+        200:
+          description: OK
+          schema:
+            type: object
+            properties:
+              observations:
+                type: array
+                items:
+                  type: object
+                  items:
+                    $ref: '#/definitions/ResourceObservation'
+              continue_at_url:
+                type: string
+        400:
+          description: ERROR
+          schema:
+            type: object
+            items:
+              $ref: '#/definitions/Error'
+
+
+  
+definitions:
+  Success:
+    type: object
+    properties:
+      success:
+        type: boolean
+  Error:
+    type: object
+    properties:
+      success:
+        type: boolean
+      error_code:
+        type: string
+      error_txt:
+        type: string
+
+  ResourceDescriptor:
+    type: object
+    description: describes a specific platform resource and ties it to a global resource id
+    properties:
+      resource_id:
+        type: string
+        description: Unique identifier representing a specific resource (a monitored object and its scheduling)
+      reference:
+        type: object
+        properties:
+          platform:
+            type: string
+            description: identifies the platform plugin responsible for interfacing the platform to the RAP
+          resource_data:
+            type: object
+            description: opaque object / TBD - contains the data needed to correctly and completely address a specific resource in its platform context (internal IDs, bus and queue names, etc)
+
+  ResourceReservationRequest:
+    type: object
+    properties:
+      resources:
+        type: array
+        items:
+          $ref: "#/definitions/ResourceReservationQuery"
+      tokens:
+        type: object
+        items:
+          $ref: '#/definitions/AccessTokens'
+
+  ResourceReservationQuery:
+    type: object
+    properties:
+      resource:
+        type: object
+        items:
+          $ref: "#/definitions/ResourceId"
+      reservation_duration:
+        type: object
+        items:
+          $ref: "#/definitions/TimeStamp"
+
+  ResourceReservationResp:
+    type: array
+    items:
+      $ref: "#/definitions/ResourceReservationResult"
+
+  ResourceReservationResult:
+    type: object
+    properties:
+      resource:
+        type: object
+        items:
+          $ref: "#/definitions/ResourceId"
+      reservation_status:
+        type: object
+        items:
+          $ref: "#/definitions/ReservationStatus"
+      reservation_ticket:
+        type: string
+      reservation_ticket_validity:
+        type: object
+        items:
+          $ref: "#/definitions/TimeStamp"
+
+  ReservationStatus:
+    type: string
+    enum: ["acknowledged", "denied"]
+
+  ResourceReservationConfirmRequest:
+    type: object
+    properties:
+      confirmations:
+        type: array
+        items:
+          type: object
+          properties:
+            resource_id:
+              type: object
+              items:
+                $ref: "#/definitions/ResourceId"
+            reservation_ticket:
+              type: string
+      tokens:
+        type: object
+        items:
+          $ref: '#/definitions/AccessTokens'
+          
+
+  ResourceReservationConfirmResp:
+    type: array
+    items:
+      type: object
+      properties:
+        resource_id:
+          type: object
+          items:
+            $ref: "#/definitions/ResourceId"
+        reservation_validity:
+          type: object
+          items:
+            $ref: "#/definitions/TimeStamp"
+
+
+  ResourceStatusChangeRequest:
+    type: object
+    properties:
+      status:
+        type: object
+        description: opaque object / TBD - heavily dependent on Data Model
+      tokens:
+        type: object
+        items:
+          $ref: '#/definitions/AccessTokens'
+      
+  
+  ResourceObservation:
+    type: object
+    properties:
+      value:
+        type: object
+        items:
+          $ref: "#/definitions/ResourceValue"
+      unit:
+        type: object
+        items:
+          $ref: "#/definitions/ResourceValueUnit"
+      observation_time:
+        type: object
+        items:
+          $ref: "#/definitions/TimeStamp"
+        
+  ResourceValue:
+    type: object
+    description: opaque object / TBD - heavily dependent on Data Model
+
+  ResourceValueUnit:
+    type: object
+    description: opaque object / TBD - heavily dependent on Data Model
+
+  ResourceIdSeqRequest:
+    type: object
+    properties:
+      resources:
+        type: array
+        items:
+          $ref: "#/definitions/ResourceId"
+      tokens:
+        type: object
+        items:
+          $ref: '#/definitions/AccessTokens'
+          
+  ResourceId:
+    type: object
+    properties:
+      resource_id:
+        type: string
+        description: Unique identifier representing a specific resource (a monitored object and its scheduling)
+  
+  ResourceStatusSeq:
+    type: array
+    items:
+      type: object
+      properties:
+        resource_id:
+          type: string
+        status:
+          type: object
+          items:
+            $ref: '#/definitions/ResourceStatus'
+  ResourceStatus:
+    type: object
+    properties:
+      status:
+        type: object
+        items:
+          $ref: '#/definitions/StatusEnum'
+  StatusEnum:
+    type: string
+    enum: ["ok", "out_of_order"]
+  TimeStamp:
+    type: string
+    
+
+  AccessTokens:
+    type: object
+    description: opaque object / TBD
+    
+
+  
+  
