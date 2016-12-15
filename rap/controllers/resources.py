@@ -1,17 +1,21 @@
 import logging
 log = logging.getLogger(__name__)
 
-from utils.tornado_middleware import BaseHandler
+from rap.utils.tornado_middleware import BaseHandler
 
 
 class ResourceAccess(BaseHandler):
-    def get(self, resourceId):
+    def get(self, item_id=None, history=False):
         try:
-            log.info("handling request")
+            log.info("handling request for item with id %s", item_id)
             # if ok
             #self.send({
             #    "status": "accepted",
             #})
+            self.set_status(200)
+            if history:
+                log.info("is history")
+                self.set_status(201)
         except Exception as err:
             log.exception("Exception while handling request")
             self.set_status(400)
@@ -20,13 +24,14 @@ class ResourceAccess(BaseHandler):
             #    "error_msg": str(err)
             #})
 
-    def post(self, resourceId):
+    def post(self, item_id=None):
         try:
-            log.info("handling request")
+            log.info("handling request for item with id %s", item_id)
             # if ok
             #self.send({
             #    "status": "accepted",
             #})
+            self.set_status(200)
         except Exception as err:
             log.exception("Exception while handling request")
             self.set_status(400)
