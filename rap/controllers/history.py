@@ -1,17 +1,18 @@
 import logging
 log = logging.getLogger(__name__)
 
-from utils.tornado_middleware import BaseHandler
+from rap.utils.tornado_middleware import BaseHandler
 
 
 class HistoryAccess(BaseHandler):
-    def get(self, resourceId):
+    def get(self, *args, **kwargs):
         try:
             log.info("handling request")
             # if ok
             #self.send({
             #    "status": "accepted",
             #})
+            self.set_status(200)
         except Exception as err:
             log.exception("Exception while handling request")
             self.set_status(400)

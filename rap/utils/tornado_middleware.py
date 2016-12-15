@@ -3,6 +3,7 @@ __all__ = [
 ]
 
 import logging
+
 log = logging.getLogger(__name__)
 
 from tornado.web import RequestHandler
@@ -23,6 +24,7 @@ class BadArgumentError(ValueError):
 
 class BaseHandler(RequestHandler):
     """a Tornado RequesHandler which is tightly coupled with the Deseeo props and dynamic model architecture"""
+
     def prepare(self):
         """switch scope internal status at HTTP session request begin"""
         self.set_cors_headers()
@@ -151,7 +153,7 @@ class SwaggerUIHandler(StaticFileHandler):
         self.api_defs_url = ka.pop("api_defs_url")
         super(SwaggerUIHandler, self).initialize(*a, **ka)
         self.api_defs_url_set = {"/%s" % self.api_defs_url, self.api_defs_url}
-        self.default_filename_set = {"", "/", "/"+self.default_filename}
+        self.default_filename_set = {"", "/", "/" + self.default_filename}
 
     def get(self, path, include_body=True):
         print("path", path)

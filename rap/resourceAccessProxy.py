@@ -9,7 +9,8 @@ from threading import Thread
 
 from utils.tornado_middleware import SwaggerUIHandler
 from pkg_resources import resource_filename
-from . import handlers as hdl
+from rap.controllers import handlers as hdl
+from rap.utils.service_status import ServiceStatus
 
 import pika
 
@@ -17,20 +18,12 @@ RAP_QUEUE = 'rap-queue'
 RAP_EXCHANGE = "rap-exchange"
 RAP_BINDINGS = {"rap.register", "rap.unregister"}
 
+define("server_port", default=8080, type=int, help="HTTP web service port", metavar="TCP_PORT")
+define("server_addr", default="localhost", type=str, help="HTTP web service bind address", metavar="IP_ADDR")
+define("debug", default=False, type=bool, help="debug mode (not for production!!)", metavar="BOOL")
 
-def make_application():
-    handlers = [
-        (r"/v1/register/[/]{0,1}$", hdl.ResourceAccess),
-        (r"/v1/register/[/]{0,1}$/history", hdl.HistoryAccess)
-    ]
-    if options.debug:
-        SwaggerUIHandler.add_at(handlers, "/docs", resource_filename("doc", "api_rap_0.1.0.yaml"))
-    app = Application(handlers, debug=options.debug)
-    log.info("setting up web service HTTP server at %s, port %d", options.server_addr, options.server_port)
-    app.listen(options.server_port, options.server_addr)
 
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
-    channel = connection.channel()
+def configureQueue(channel, handler):
     channel.exchange_declare(exchange=RAP_EXCHANGE,
                              exchange_type='direct', auto_delete=False, durable=False)
     result = channel.queue_declare(queue=RAP_QUEUE, auto_delete=True)
@@ -39,15 +32,34 @@ def make_application():
         channel.queue_bind(exchange=RAP_EXCHANGE,
                            queue=queue_name,
                            routing_key=binding_key)
-    registration = hdl.ResourceRegistration()
-    channel.basic_consume(registration.receiveMessage,
+
+    channel.basic_consume(handler.receiveMessage,
                           queue=queue_name,
                           no_ack=True)
-    log.info('starting RabbitMQ service, waiting for messages on queue %s for topic %s', queue_name, SLA_EXCHANGE)
-    rabbit_thr = Thread(target=channel.start_consuming)
-    rabbit_thr.start()
+    return queue_name
 
-    service_status.new_event("Policy Maker service started")
+def make_application():
+    service_status = ServiceStatus()
+    handlers = [
+        (r"/v1/resource/([0-9]+$)", hdl.ResourceAccess),
+        (r"/v1/resource/([0-9]+)/(history)$", hdl.ResourceAccess)
+    ]
+    registration = hdl.ResourceRegistration()
+    if options.debug:
+        SwaggerUIHandler.add_at(handlers, "/docs", resource_filename("doc", "api_rap_0.1.0.yaml"))
+    app = Application(handlers, debug=options.debug)
+    log.info("Setting up web service HTTP server at %s, port %d", options.server_addr, options.server_port)
+    app.listen(options.server_port, options.server_addr)
+
+    # connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+    # channel = connection.channel()
+    # queue_name = configureQueue(registration)
+    # log.info('RabbitMQ service configured, waiting for messages on queue %s for topic %s', queue_name, RAP_EXCHANGE)
+    #
+    # rabbit_thr = Thread(target=channel.start_consuming)
+    # rabbit_thr.start()
+
+    service_status.new_event("Resource Access Proxy service started")
 
     return app
 

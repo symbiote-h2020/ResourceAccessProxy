@@ -8,14 +8,14 @@ __all__ = [
 from anyjson import loads as json_decode, dumps as __json_encode
 from json import dumps as python_json_encode
 from tornado.options import define
-from datetime import datetime, timezone
+from datetime import datetime
 from iso8601 import parse_date
 from calendar import timegm
 
 def utcnow():
-    return datetime.now(tz=timezone.utc)
+    return datetime.now()
 
-_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+_EPOCH = datetime(1970, 1, 1)
 
 def to_timet(txt):
     if isinstance(txt, datetime):
