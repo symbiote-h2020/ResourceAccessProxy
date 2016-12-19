@@ -14,7 +14,7 @@ class ResourceRegistration:
     def notify_monitoring(self, resource_id):
         log.debug("Sending monitoring notification for resource with id %s", id)
 
-
+    @staticmethod
     def receive_message(self, ch, method, properties, body):
         key = method.routing_key
         log.debug("Resource Registration message received.\nTopic: %s\nBody: %s", key, body)

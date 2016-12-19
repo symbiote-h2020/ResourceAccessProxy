@@ -1,3 +1,3 @@
 from .registration import ResourceRegistration
-from .history import HistoryAccess
-from .resources import ResourceAccess
+from .res_history import HistoryAccess
+from .res_access import ResourceAccess
