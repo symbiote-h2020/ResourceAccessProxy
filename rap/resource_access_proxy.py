@@ -6,7 +6,6 @@ from threading import Thread
 from utils.tornado_middleware import SwaggerUIHandler
 from pkg_resources import resource_filename
 from rap.controllers import handlers as hdl
-from rap.utils.service_status import ServiceStatus
 from rap.database.db import *
 
 import pika
@@ -41,7 +40,6 @@ def configure_queue(channel, handler):
 
 
 def make_application():
-    service_status = ServiceStatus()
     handlers = [
         (r"/v1/resource/([0-9]+$)", hdl.ResourceAccess),
         (r"/v1/resource/([0-9]+)/(history)$", hdl.ResourceAccess)
@@ -50,18 +48,18 @@ def make_application():
     if options.debug:
         SwaggerUIHandler.add_at(handlers, "/docs", resource_filename("doc", "api_rap_0.1.0.yaml"))
     app = Application(handlers, debug=options.debug)
-    log.info("Setting up web service HTTP server at %s, port %d", options.server_addr, options.server_port)
+    log.debug("Setting up web service HTTP server at %s, port %d", options.server_addr, options.server_port)
     app.listen(options.server_port, options.server_addr)
 
     connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
     channel = connection.channel()
     queue_name = configure_queue(channel, registration)
-    log.info('RabbitMQ service configured, waiting for messages on queue %s for topic %s', queue_name, RAP_EXCHANGE)
+    log.debug('RabbitMQ service configured, waiting for messages on queue %s for topic %s', queue_name, RAP_EXCHANGE)
 
     rabbit_thr = Thread(target=channel.start_consuming)
     rabbit_thr.start()
 
-    service_status.new_event("Resource Access Proxy service started")
+    log.info("Resource Access Proxy service started")
 
     return app
 
