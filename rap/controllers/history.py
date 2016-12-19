@@ -1,7 +1,7 @@
+from rap.utils.tornado_middleware import BaseHandler
+
 import logging
 log = logging.getLogger(__name__)
-
-from rap.utils.tornado_middleware import BaseHandler
 
 
 class HistoryAccess(BaseHandler):

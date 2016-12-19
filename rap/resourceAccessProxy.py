@@ -1,7 +1,3 @@
-#!/usr/bin/env python
-import logging
-log = logging.getLogger(__name__)
-
 from tornado.ioloop import IOLoop
 from tornado.options import define, options
 from tornado.web import Application
@@ -11,8 +7,13 @@ from utils.tornado_middleware import SwaggerUIHandler
 from pkg_resources import resource_filename
 from rap.controllers import handlers as hdl
 from rap.utils.service_status import ServiceStatus
+from rap.database.db import *
 
 import pika
+
+import logging
+log = logging.getLogger(__name__)
+
 
 RAP_QUEUE = 'rap-queue'
 RAP_EXCHANGE = "rap-exchange"
@@ -23,7 +24,7 @@ define("server_addr", default="localhost", type=str, help="HTTP web service bind
 define("debug", default=False, type=bool, help="debug mode (not for production!!)", metavar="BOOL")
 
 
-def configureQueue(channel, handler):
+def configure_queue(channel, handler):
     channel.exchange_declare(exchange=RAP_EXCHANGE,
                              exchange_type='direct', auto_delete=False, durable=False)
     result = channel.queue_declare(queue=RAP_QUEUE, auto_delete=True)
@@ -33,10 +34,11 @@ def configureQueue(channel, handler):
                            queue=queue_name,
                            routing_key=binding_key)
 
-    channel.basic_consume(handler.receiveMessage,
+    channel.basic_consume(handler.receive_message,
                           queue=queue_name,
                           no_ack=True)
     return queue_name
+
 
 def make_application():
     service_status = ServiceStatus()
@@ -51,13 +53,13 @@ def make_application():
     log.info("Setting up web service HTTP server at %s, port %d", options.server_addr, options.server_port)
     app.listen(options.server_port, options.server_addr)
 
-    # connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
-    # channel = connection.channel()
-    # queue_name = configureQueue(registration)
-    # log.info('RabbitMQ service configured, waiting for messages on queue %s for topic %s', queue_name, RAP_EXCHANGE)
-    #
-    # rabbit_thr = Thread(target=channel.start_consuming)
-    # rabbit_thr.start()
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+    channel = connection.channel()
+    queue_name = configure_queue(channel, registration)
+    log.info('RabbitMQ service configured, waiting for messages on queue %s for topic %s', queue_name, RAP_EXCHANGE)
+
+    rabbit_thr = Thread(target=channel.start_consuming)
+    rabbit_thr.start()
 
     service_status.new_event("Resource Access Proxy service started")
 
@@ -68,6 +70,20 @@ def main():
     from tornado.options import parse_config_file, parse_command_line
     define("config", type=str, help="path to config file", callback=lambda path: parse_config_file(path, final=False))
     parse_command_line()
+    connect_to_db()
+    log.info("Connecting to local database")
+    ###########################################
+    # these lines are only FOR TEST PURPOSES
+    # inizialize_table()
+    # initialize_resources()
+    # select_all()
+    # print("#### Get all resources of platform 'Works' ####")
+    # get_resources(None, None, "Works");
+    # print("#### Add resource 77 of platform 'Works' ####")
+    # add_resource(77, "Works");
+    # print("#### Get all resources of platform 'Works' ####")
+    # get_resources(None, None, "Works");
+    ###########################################
     app = make_application()
     IOLoop.instance().start()
 
