@@ -17,7 +17,7 @@ def initialize_table():
     with con:
         cur = con.cursor()
         cur.execute("DROP TABLE IF EXISTS " + TABLE_NAME)
-        cur.execute("CREATE TABLE Resources(GlobalId GUID PRIMARY KEY, PlatformId INT, Platform TEXT)")
+        cur.execute("CREATE TABLE Resources(GlobalId GUID PRIMARY KEY, PlatformResourceId INT, PlatformId TEXT)")
 
 
 def initialize_resources():
@@ -56,25 +56,28 @@ def connect():
     return conn
 
 
-def add_resource(platform_id, platform, global_id=None):
+def add_resource(platform_resource_id, platform_id, global_id=None):
     if not global_id:
         global_id = uuid.uuid4()
     con = connect()
     with con:
         cur = con.cursor()
-        cur.execute("INSERT INTO " + TABLE_NAME + " VALUES(?, ?, ?)", (global_id, platform_id, platform))
+        cur.execute("INSERT INTO " + TABLE_NAME + " VALUES(?, ?, ?)", (global_id, platform_resource_id, platform_id))
 
 
-def get_resources(global_id=None, platform_id=None, platform=None):
+def get_resources(global_id=None, platform_resource_id=None, platform_id=None):
     con = connect()
     with con:
         con.row_factory = lite.Row
         cur = con.cursor()
-        cur.execute("SELECT * FROM " + TABLE_NAME + " WHERE (GlobalId=? or ? is NULL) AND (PlatformId=? or ? is NULL) AND (Platform=? or ? is NULL)",
-                    (global_id, global_id, platform_id, platform_id, platform, platform))
+        cur.execute("SELECT * FROM " + TABLE_NAME +
+                    " WHERE (GlobalId=? or ? is NULL) AND "
+                    "(PlatformResourceId=? or ? is NULL) AND "
+                    "(PlatformId=? or ? is NULL)",
+                    (global_id, global_id, platform_resource_id, platform_resource_id, platform_id, platform_id))
         rows = cur.fetchall()
         for row in rows:
-            print "%s %i %s" %(row["GlobalId"], row["PlatformId"], row["Platform"])
+            print "%s %i %s" %(row["GlobalId"], row["PlatformResourceId"], row["PlatformId"])
 
 
 def select_all():
@@ -85,4 +88,4 @@ def select_all():
         cur.execute("SELECT * FROM "+ TABLE_NAME)
         rows = cur.fetchall()
         for row in rows:
-            print "%s %i %s" %(row["GlobalId"], row["PlatformId"], row["Platform"])
+            print "%s %i %s" %(row["GlobalId"], row["PlatformResourceId"], row["PlatformId"])
