@@ -57,11 +57,20 @@ def connect():
 
 
 def add_resource(platform_resource_id, platform_id, global_id=None):
-    if not global_id:
-        global_id = uuid.uuid4()
     con = connect()
     with con:
         cur = con.cursor()
+
+        cur.execute("SELECT * FROM " + TABLE_NAME +
+                    " WHERE (GlobalId=? or ? is NULL) AND "
+                    "(PlatformResourceId=? or ? is NULL) AND "
+                    "(PlatformId=? or ? is NULL)",
+                    (global_id, global_id, platform_resource_id, platform_resource_id, platform_id, platform_id))
+        rows = cur.fetchall()
+        if (rows.__len__() > 0):
+            raise Exception("This resource is already registered")
+        if not global_id:
+            global_id = uuid.uuid4()
         cur.execute("INSERT INTO " + TABLE_NAME + " VALUES(?, ?, ?)", (global_id, platform_resource_id, platform_id))
 
 
@@ -76,8 +85,45 @@ def get_resources(global_id=None, platform_resource_id=None, platform_id=None):
                     "(PlatformId=? or ? is NULL)",
                     (global_id, global_id, platform_resource_id, platform_resource_id, platform_id, platform_id))
         rows = cur.fetchall()
-        for row in rows:
-            print "%s %i %s" %(row["GlobalId"], row["PlatformResourceId"], row["PlatformId"])
+        return rows
+        #for row in rows:
+            #print "%s %i %s" %(row["GlobalId"], row["PlatformResourceId"], row["PlatformId"])
+
+
+
+
+def update_resources(global_id, platform_resource_id, platform_id):
+    con = connect()
+    with con:
+        con.row_factory = lite.Row
+        con.execute("UPDATE " + TABLE_NAME +
+                    " SET PlatformResourceId=?, PlatformId=?"
+                    " WHERE GlobalId=?",
+                    (platform_resource_id, platform_id, global_id))
+        con.commit
+        return con.total_changes > 0
+
+
+def delete_resource(global_id):
+    con = connect()
+    with con:
+        con.row_factory = lite.Row
+        con.execute("DELETE from " + TABLE_NAME +
+                    " WHERE GlobalId=?",
+                    (global_id,))
+        con.commit
+        return con.total_changes > 0
+
+
+def delete_resource_with_platform_id(platform_id):
+    con = connect()
+    with con:
+        con.row_factory = lite.Row
+        con.execute("DELETE from " + TABLE_NAME +
+                    " WHERE PlatformId=?",
+                    (platform_id,))
+        con.commit
+        return con.total_changes > 0
 
 
 def select_all():
@@ -89,3 +135,4 @@ def select_all():
         rows = cur.fetchall()
         for row in rows:
             print "%s %i %s" %(row["GlobalId"], row["PlatformResourceId"], row["PlatformId"])
+
