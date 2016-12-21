@@ -25,9 +25,9 @@ class ResourceRegistration:
         #    "wrong value, it must be string"
         #    return
 
-        if key == "rap.register":
-            print "register"
-        if key == "rap.unregister":
+        if key == "symbiote.rap.register":
+            print "symbiote.register"
+        if key == "symbiote.rap.unregister":
             print "unregister"
 
         #self.io_loop.add_callback(self.notify_monitoring, resource_id)

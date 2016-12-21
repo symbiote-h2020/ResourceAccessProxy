@@ -77,7 +77,24 @@ def get_resources(global_id=None, platform_resource_id=None, platform_id=None):
                     (global_id, global_id, platform_resource_id, platform_resource_id, platform_id, platform_id))
         rows = cur.fetchall()
         for row in rows:
-            print "%s %i %s" %(row["GlobalId"], row["PlatformResourceId"], row["PlatformId"])
+            log.debug("%s %i %s" % (row["GlobalId"], row["PlatformResourceId"], row["PlatformId"]))
+
+
+def get_resource(global_id=None):
+    con = connect()
+    with con:
+        con.row_factory = lite.Row
+        cur = con.cursor()
+        cur.execute("SELECT * FROM " + TABLE_NAME + " WHERE (GlobalId=?)"(global_id))
+        rows = cur.fetchall()
+        platform_id = None
+        platform_resource_id = None
+        for row in rows:
+            log.debug("%s %i %s" % (row["GlobalId"], row["PlatformResourceId"], row["PlatformId"]))
+            platform_id = row["PlatformId"]
+            platform_resource_id = row["PlatformResourceId"]
+
+    return [platform_id, platform_resource_id]
 
 
 def select_all():
@@ -88,4 +105,4 @@ def select_all():
         cur.execute("SELECT * FROM "+ TABLE_NAME)
         rows = cur.fetchall()
         for row in rows:
-            print "%s %i %s" %(row["GlobalId"], row["PlatformResourceId"], row["PlatformId"])
+            log.debug("%s %i %s" % (row["GlobalId"], row["PlatformResourceId"], row["PlatformId"]))
