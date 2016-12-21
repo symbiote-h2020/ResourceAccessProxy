@@ -1,5 +1,4 @@
 import sqlite3 as lite
-import sys
 import uuid
 
 import logging
@@ -14,7 +13,7 @@ lite.register_adapter(uuid.UUID, lambda u: buffer(u.bytes_le))
 
 def initialize_table():
     con = connect()
-    with con:
+    if con:
         cur = con.cursor()
         cur.execute("DROP TABLE IF EXISTS " + TABLE_NAME)
         cur.execute("CREATE TABLE Resources(GlobalId GUID PRIMARY KEY, PlatformResourceId INT, PlatformId TEXT)")
@@ -22,10 +21,10 @@ def initialize_table():
     con.close()
 
 
-#add fake resource for testing
+#add fake resources for testing
 def initialize_resources():
     con = connect()
-    with con:
+    if con:
         cur = con.cursor()
         resources = (
             (uuid.UUID('85558919-e375-4ca8-9f5f-b617813c211d'), 1, 'Next'),
@@ -45,9 +44,9 @@ def connect():
     return conn
 
 
-def add_resource(platform_resource_id, platform_id, global_id=None):
+def add_resource(global_id, platform_id, platform_resource_id):
     con = connect()
-    with con:
+    if con:
         cur = con.cursor()
 
         cur.execute("SELECT * FROM " + TABLE_NAME +
@@ -56,18 +55,18 @@ def add_resource(platform_resource_id, platform_id, global_id=None):
                     "(PlatformId=? or ? is NULL)",
                     (global_id, global_id, platform_resource_id, platform_resource_id, platform_id, platform_id))
         rows = cur.fetchall()
-        if (rows.__len__() > 0):
+        if rows.__len__() > 0:
             raise Exception("This resource is already registered")
         if not global_id:
             global_id = uuid.uuid4()
         cur.execute("INSERT INTO " + TABLE_NAME + " VALUES(?, ?, ?)", (global_id, platform_resource_id, platform_id))
         con.commit()
-    con.close()
+        con.close()
 
 
-def get_resources(global_id=None, platform_resource_id=None, platform_id=None):
+def get_resources(global_id=None, platform_id=None, platform_resource_id=None):
     con = connect()
-    with con:
+    if con:
         con.row_factory = lite.Row
         cur = con.cursor()
         cur.execute("SELECT * FROM " + TABLE_NAME +
@@ -76,17 +75,14 @@ def get_resources(global_id=None, platform_resource_id=None, platform_id=None):
                     "(PlatformId=? or ? is NULL)",
                     (global_id, global_id, platform_resource_id, platform_resource_id, platform_id, platform_id))
         rows = cur.fetchall()
-        return rows
-        #for row in rows:
-            #print "%s %i %s" %(row["GlobalId"], row["PlatformResourceId"], row["PlatformId"])
+        con.close()
+    return rows
 
 
-
-
-def update_resources(global_id, platform_resource_id, platform_id):
+def update_resources(global_id, platform_id, platform_resource_id):
     change = False
     con = connect()
-    with con:
+    if con:
         con.row_factory = lite.Row
         con.execute("UPDATE " + TABLE_NAME +
                     " SET PlatformResourceId=?, PlatformId=?"
@@ -95,14 +91,14 @@ def update_resources(global_id, platform_resource_id, platform_id):
         con.commit()
 
         change = con.total_changes > 0
-    con.close()
+        con.close()
     return change
 
 
 def delete_resource(global_id):
     change = False
     con = connect()
-    with con:
+    if con:
         con.row_factory = lite.Row
         con.execute("DELETE from " + TABLE_NAME +
                     " WHERE GlobalId=?",
@@ -110,14 +106,14 @@ def delete_resource(global_id):
         con.commit()
 
         change = con.total_changes > 0
-    con.close()
+        con.close()
     return change
 
 
 def delete_resource_with_platform_id(platform_id):
     change = False
     con = connect()
-    with con:
+    if con:
         con.row_factory = lite.Row
         con.execute("DELETE from " + TABLE_NAME +
                     " WHERE PlatformId=?",
@@ -125,13 +121,13 @@ def delete_resource_with_platform_id(platform_id):
         con.commit()
 
         change = con.total_changes > 0
-    con.close()
+        con.close()
     return change
 
 
-def get_resource(global_id=None):
+def get_resource(global_id):
     con = connect()
-    with con:
+    if con:
         con.row_factory = lite.Row
         cur = con.cursor()
         cur.execute("SELECT * FROM " + TABLE_NAME + " WHERE (GlobalId=?)"(global_id))
@@ -142,17 +138,18 @@ def get_resource(global_id=None):
             log.debug("%s %i %s" % (row["GlobalId"], row["PlatformResourceId"], row["PlatformId"]))
             platform_id = row["PlatformId"]
             platform_resource_id = row["PlatformResourceId"]
+        con.close()
 
     return [platform_id, platform_resource_id]
 
 
 def select_all():
     con = connect()
-    with con:
+    if con:
         con.row_factory = lite.Row
         cur = con.cursor()
         cur.execute("SELECT * FROM "+ TABLE_NAME)
         rows = cur.fetchall()
         for row in rows:
             log.debug("%s %i %s" % (row["GlobalId"], row["PlatformResourceId"], row["PlatformId"]))
-
+        con.close
