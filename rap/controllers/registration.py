@@ -22,13 +22,14 @@ class ResourceRegistration:
         decoded = body.decode("utf-8")
         data = json.loads(decoded)
         platform_id = data.get("platform_id")
-        resource_id = data.get("resource_id")
-        local_id = data.get("local_id")
 
         if key == "symbiote.rap.register":
+            resource_id = data.get("resource_id")
+            local_id = data.get("local_id")
             log.debug("Registering resource for platform %s with id %s", platform_id, resource_id)
             add_resource(resource_id, platform_id, local_id)
         elif key == "symbiote.rap.unregister":
+            resource_id = data.get("resource_id")
             log.debug("Unregistering resource for platform %s with id %s", platform_id, resource_id)
             delete_resource(resource_id)
 

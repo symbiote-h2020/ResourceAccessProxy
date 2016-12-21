@@ -1,14 +1,21 @@
 import pika
 from registration import ResourceRegistration
+from plugin_registration import PluginRegistration
 from threading import Thread
 
 import logging
 log = logging.getLogger(__name__)
 
 
-RAP_QUEUE = 'rap-queue'
-RAP_EXCHANGE = "rap-exchange"
-RAP_BINDINGS = {"symbiote.rap.register", "symbiote.rap.unregister"}
+RAP_EXCHANGE_IN = "rap-exchange"
+
+NORTHBOUND_KEYS = {"symbiote.rap.register", "symbiote.rap.unregister"}
+NORTHBOUND_QUEUE = "symbiote-queue"
+
+PLATFORM_KEYS = {"symbiote.rap.add-plugin"}
+PLATFORM_QUEUE = "platform-queue"
+
+PLUGINS_EXCHANGE_OUT = "plugins-exchange"
 
 connection = None
 channel = None
@@ -21,25 +28,35 @@ def connect_to_queue():
     channel = connection.channel()
 
 
-def configure_sender(exchange_name):
+def configure_sender():
     global channel
-    channel.exchange_declare(exchange=exchange_name, type='topic')
+    channel.exchange_declare(exchange=PLUGINS_EXCHANGE_OUT, type='topic')
 
 
-def configure_receiver(exchange, queue, keys):
+def configure_receiver():
     global channel
-    registration = ResourceRegistration
-    channel.exchange_declare(exchange=exchange, exchange_type='direct',
-                             auto_delete=False, durable=False)
-    result = channel.queue_declare(queue=queue, auto_delete=True)
-    queue_name = result.method.queue
-    for binding_key in keys:
-        channel.queue_bind(exchange=exchange,
-                           queue=queue_name,
+    channel.exchange_declare(exchange=RAP_EXCHANGE_IN, type='topic')
+
+    registration = ResourceRegistration()
+
+    result = channel.queue_declare(queue=NORTHBOUND_QUEUE, auto_delete=True)
+    north_queue_name = result.method.queue
+    for binding_key in NORTHBOUND_KEYS:
+        channel.queue_bind(exchange=RAP_EXCHANGE_IN,
+                           queue=NORTHBOUND_QUEUE,
                            routing_key=binding_key)
-
     channel.basic_consume(registration.receive_message,
-                          queue=queue_name,
+                          queue=north_queue_name,
+                          no_ack=True)
+
+    result = channel.queue_declare(queue=PLATFORM_QUEUE, auto_delete=True)
+    platform_queue_name = result.method.queue
+    for binding_key in PLATFORM_KEYS:
+        channel.queue_bind(exchange=RAP_EXCHANGE_IN,
+                           queue=PLATFORM_QUEUE,
+                           routing_key=binding_key)
+    channel.basic_consume(PluginRegistration.receive_message,
+                          queue=platform_queue_name,
                           no_ack=True)
 
     rabbit_thr = Thread(target=channel.start_consuming)

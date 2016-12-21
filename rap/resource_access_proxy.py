@@ -7,7 +7,6 @@ from pkg_resources import resource_filename
 from rap.controllers import handlers as hdl
 from rap.database.db import *
 import rap.controllers.messaging_queue as messaging_queue
-from rap.controllers.messaging_queue import RAP_BINDINGS, RAP_EXCHANGE, RAP_QUEUE
 
 import logging
 log = logging.getLogger(__name__)
@@ -29,9 +28,10 @@ def make_application():
     log.debug("Setting up web service HTTP server at %s, port %d", options.server_addr, options.server_port)
     app.listen(options.server_port, options.server_addr)
 
-    messaging_queue.configure_receiver(RAP_EXCHANGE, RAP_QUEUE, RAP_BINDINGS)
-    messaging_queue.configure_sender(RAP_EXCHANGE)
-    log.debug('RabbitMQ service configured, waiting for messages on queue %s for topic %s', RAP_QUEUE, RAP_EXCHANGE)
+    messaging_queue.connect_to_queue()
+    messaging_queue.configure_receiver()
+    messaging_queue.configure_sender()
+    log.debug("RabbitMQ service configured")
 
     log.info("Resource Access Proxy service started")
 
@@ -42,6 +42,7 @@ def main():
     from tornado.options import parse_config_file, parse_command_line
     define("config", type=str, help="path to config file", callback=lambda path: parse_config_file(path, final=False))
     parse_command_line()
+    initialize_tables()
     app = make_application()
     IOLoop.instance().start()
 

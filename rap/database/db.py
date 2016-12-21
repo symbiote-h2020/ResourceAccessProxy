@@ -5,18 +5,28 @@ import logging
 log = logging.getLogger(__name__)
 
 DATABASE_NAME = 'test.db'
-TABLE_NAME = 'Resources'
+RESOURCES_TABLE_NAME = 'Resources'
+PLUGINS_TABLE_NAME = 'Plugins'
 
 lite.register_converter('GUID', lambda b: uuid.UUID(bytes_le=b))
 lite.register_adapter(uuid.UUID, lambda u: buffer(u.bytes_le))
 
 
-def initialize_table():
+def initialize_tables():
     con = connect()
     if con:
         cur = con.cursor()
-        cur.execute("DROP TABLE IF EXISTS " + TABLE_NAME)
-        cur.execute("CREATE TABLE Resources(GlobalId GUID PRIMARY KEY, PlatformResourceId INT, PlatformId TEXT)")
+        cur.execute("DROP TABLE IF EXISTS " + PLUGINS_TABLE_NAME)
+        cur.execute(
+            "CREATE TABLE " +
+            PLUGINS_TABLE_NAME +
+            "(PlatformId TEXT PRIMARY KEY, Description TEXT)")
+
+        cur.execute("DROP TABLE IF EXISTS " + RESOURCES_TABLE_NAME)
+        cur.execute(
+            "CREATE TABLE " +
+            RESOURCES_TABLE_NAME +
+            "(GlobalId GUID PRIMARY KEY, PlatformResourceId INT, PlatformId TEXT)")
         con.commit()
     con.close()
 
@@ -33,7 +43,7 @@ def initialize_resources():
             (uuid.uuid4(), 1, 'Works'),
             (uuid.uuid4(), 2, 'Works')
         )
-        cur.executemany("INSERT INTO " + TABLE_NAME + " VALUES(?, ?, ?)", resources)
+        cur.executemany("INSERT INTO " + RESOURCES_TABLE_NAME + " VALUES(?, ?, ?)", resources)
         # cur.execute("INSERT INTO "+TableName+" VALUES("+(uuid.uuid4())+",1,'Next')")
         con.commit()
     con.close()
@@ -44,12 +54,32 @@ def connect():
     return conn
 
 
+def add_platform_plugin(platform_id, description=None):
+    con = connect()
+    if con:
+        cur = con.cursor()
+
+        cur.execute("SELECT * FROM " + PLUGINS_TABLE_NAME + " WHERE (PlatformId=?)", (platform_id,))
+        rows = cur.fetchall()
+        if rows.__len__() > 0:
+            log.debug("This platform is already registered")
+            con.close()
+            return
+
+        if not description:
+            description = ""
+        cur.execute("INSERT INTO " + PLUGINS_TABLE_NAME + " VALUES(?, ?)", (platform_id, description))
+        con.commit()
+        log.debug("Platform %s have been registered", platform_id)
+        con.close()
+
+
 def add_resource(global_id, platform_id, platform_resource_id):
     con = connect()
     if con:
         cur = con.cursor()
 
-        cur.execute("SELECT * FROM " + TABLE_NAME +
+        cur.execute("SELECT * FROM " + RESOURCES_TABLE_NAME +
                     " WHERE (GlobalId=? or ? is NULL) AND "
                     "(PlatformResourceId=? or ? is NULL) AND "
                     "(PlatformId=? or ? is NULL)",
@@ -59,7 +89,7 @@ def add_resource(global_id, platform_id, platform_resource_id):
             raise Exception("This resource is already registered")
         if not global_id:
             global_id = uuid.uuid4()
-        cur.execute("INSERT INTO " + TABLE_NAME + " VALUES(?, ?, ?)", (global_id, platform_resource_id, platform_id))
+        cur.execute("INSERT INTO " + RESOURCES_TABLE_NAME + " VALUES(?, ?, ?)", (global_id, platform_resource_id, platform_id))
         con.commit()
         con.close()
 
@@ -69,14 +99,14 @@ def get_resources(global_id=None, platform_id=None, platform_resource_id=None):
     if con:
         con.row_factory = lite.Row
         cur = con.cursor()
-        cur.execute("SELECT * FROM " + TABLE_NAME +
+        cur.execute("SELECT * FROM " + RESOURCES_TABLE_NAME +
                     " WHERE (GlobalId=? or ? is NULL) AND "
                     "(PlatformResourceId=? or ? is NULL) AND "
                     "(PlatformId=? or ? is NULL)",
                     (global_id, global_id, platform_resource_id, platform_resource_id, platform_id, platform_id))
         rows = cur.fetchall()
         con.close()
-    return rows
+        return rows
 
 
 def update_resources(global_id, platform_id, platform_resource_id):
@@ -84,7 +114,7 @@ def update_resources(global_id, platform_id, platform_resource_id):
     con = connect()
     if con:
         con.row_factory = lite.Row
-        con.execute("UPDATE " + TABLE_NAME +
+        con.execute("UPDATE " + RESOURCES_TABLE_NAME +
                     " SET PlatformResourceId=?, PlatformId=?"
                     " WHERE GlobalId=?",
                     (platform_resource_id, platform_id, global_id))
@@ -100,7 +130,7 @@ def delete_resource(global_id):
     con = connect()
     if con:
         con.row_factory = lite.Row
-        con.execute("DELETE from " + TABLE_NAME +
+        con.execute("DELETE from " + RESOURCES_TABLE_NAME +
                     " WHERE GlobalId=?",
                     (global_id,))
         con.commit()
@@ -115,7 +145,7 @@ def delete_resource_with_platform_id(platform_id):
     con = connect()
     if con:
         con.row_factory = lite.Row
-        con.execute("DELETE from " + TABLE_NAME +
+        con.execute("DELETE from " + RESOURCES_TABLE_NAME +
                     " WHERE PlatformId=?",
                     (platform_id,))
         con.commit()
@@ -130,7 +160,7 @@ def get_resource(global_id):
     if con:
         con.row_factory = lite.Row
         cur = con.cursor()
-        cur.execute("SELECT * FROM " + TABLE_NAME + " WHERE (GlobalId=?)"(global_id))
+        cur.execute("SELECT * FROM " + RESOURCES_TABLE_NAME + " WHERE (GlobalId=?)"(global_id))
         rows = cur.fetchall()
         platform_id = None
         platform_resource_id = None
@@ -148,8 +178,8 @@ def select_all():
     if con:
         con.row_factory = lite.Row
         cur = con.cursor()
-        cur.execute("SELECT * FROM "+ TABLE_NAME)
+        cur.execute("SELECT * FROM "+ RESOURCES_TABLE_NAME)
         rows = cur.fetchall()
         for row in rows:
             log.debug("%s %i %s" % (row["GlobalId"], row["PlatformResourceId"], row["PlatformId"]))
-        con.close
+        con.close()
