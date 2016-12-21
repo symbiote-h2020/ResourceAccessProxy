@@ -1,8 +1,7 @@
 import json
 from tornado.gen import coroutine
 from tornado.ioloop import IOLoop
-from rap.database.db import add_resource, delete_resource
-
+from rap.database.db import check_platform, add_resource, delete_resource
 import logging
 log = logging.getLogger(__name__)
 
@@ -19,6 +18,10 @@ class ResourceRegistration:
     def receive_message(self, ch, method, properties, body):
         key = method.routing_key
         log.debug("Resource Registration message received.\nTopic: %s\nBody: %s", key, body)
+
+        if not check_platform():
+            raise Exception("This platform has not any plugin registered")
+
         decoded = body.decode("utf-8")
         data = json.loads(decoded)
         platform_id = data.get("platform_id")

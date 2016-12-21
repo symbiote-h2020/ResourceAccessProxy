@@ -74,6 +74,19 @@ def add_platform_plugin(platform_id, description=None):
         con.close()
 
 
+def check_platform(platform_id):
+    con = connect()
+    if con:
+        con.row_factory = lite.Row
+        cur = con.cursor()
+        cur.execute("SELECT * FROM " + PLUGINS_TABLE_NAME + " WHERE (PlatformId=?)"(platform_id,))
+        rows = cur.fetchall()
+        con.close()
+        if rows.__len__() > 0:
+            return True
+    return False
+
+
 def add_resource(global_id, platform_id, platform_resource_id):
     con = connect()
     if con:
@@ -160,7 +173,7 @@ def get_resource(global_id):
     if con:
         con.row_factory = lite.Row
         cur = con.cursor()
-        cur.execute("SELECT * FROM " + RESOURCES_TABLE_NAME + " WHERE (GlobalId=?)"(global_id))
+        cur.execute("SELECT * FROM " + RESOURCES_TABLE_NAME + " WHERE (GlobalId=?)"(global_id,))
         rows = cur.fetchall()
         platform_id = None
         platform_resource_id = None
