@@ -19,7 +19,7 @@ def initialize_table():
         cur.execute("DROP TABLE IF EXISTS " + TABLE_NAME)
         cur.execute("CREATE TABLE Resources(GlobalId GUID PRIMARY KEY, PlatformResourceId INT, PlatformId TEXT)")
         con.commit()
-        con.close()
+    con.close()
 
 
 #add fake resource for testing
@@ -37,7 +37,7 @@ def initialize_resources():
         cur.executemany("INSERT INTO " + TABLE_NAME + " VALUES(?, ?, ?)", resources)
         # cur.execute("INSERT INTO "+TableName+" VALUES("+(uuid.uuid4())+",1,'Next')")
         con.commit()
-        con.close()
+    con.close()
 
 
 def connect():
@@ -62,7 +62,7 @@ def add_resource(platform_resource_id, platform_id, global_id=None):
             global_id = uuid.uuid4()
         cur.execute("INSERT INTO " + TABLE_NAME + " VALUES(?, ?, ?)", (global_id, platform_resource_id, platform_id))
         con.commit()
-        con.close()
+    con.close()
 
 
 def get_resources(global_id=None, platform_resource_id=None, platform_id=None):
@@ -84,6 +84,7 @@ def get_resources(global_id=None, platform_resource_id=None, platform_id=None):
 
 
 def update_resources(global_id, platform_resource_id, platform_id):
+    change = False
     con = connect()
     with con:
         con.row_factory = lite.Row
@@ -92,11 +93,14 @@ def update_resources(global_id, platform_resource_id, platform_id):
                     " WHERE GlobalId=?",
                     (platform_resource_id, platform_id, global_id))
         con.commit()
-        con.close()
-        return con.total_changes > 0
+
+        change = con.total_changes > 0
+    con.close()
+    return change
 
 
 def delete_resource(global_id):
+    change = False
     con = connect()
     with con:
         con.row_factory = lite.Row
@@ -104,11 +108,14 @@ def delete_resource(global_id):
                     " WHERE GlobalId=?",
                     (global_id,))
         con.commit()
-        con.close()
-        return con.total_changes > 0
+
+        change = con.total_changes > 0
+    con.close()
+    return change
 
 
 def delete_resource_with_platform_id(platform_id):
+    change = False
     con = connect()
     with con:
         con.row_factory = lite.Row
@@ -116,8 +123,10 @@ def delete_resource_with_platform_id(platform_id):
                     " WHERE PlatformId=?",
                     (platform_id,))
         con.commit()
-        con.close()
-        return con.total_changes > 0
+
+        change = con.total_changes > 0
+    con.close()
+    return change
 
 
 def get_resource(global_id=None):
