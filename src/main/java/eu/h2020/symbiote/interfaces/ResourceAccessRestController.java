@@ -13,8 +13,10 @@ import eu.h2020.symbiote.messages.ResourceAccessGetMessage;
 import eu.h2020.symbiote.messages.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.ResourceAccessMessage.AccessType;
 import eu.h2020.symbiote.messages.ResourceAccessSetMessage;
+import eu.h2020.symbiote.resources.PlatformInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.ResourceInfo;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
@@ -46,8 +48,14 @@ public class ResourceAccessRestController {
     private RabbitTemplate rabbitTemplate;
     
     @Autowired
-    @Qualifier(RapDefinitions.PLUGINS_EXCHANGE_OUT)
+    @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
     TopicExchange exchange;
+    
+    @Autowired
+    ResourcesRepository resourcesRepo;
+    
+    @Autowired
+    PluginRepository pluginRepo;
 
     /**
      * Used to retrieve the current value of a registered resource
@@ -56,14 +64,14 @@ public class ResourceAccessRestController {
      * @param resourceId    the id of the resource to query 
      * @return  the current value read from the resource
      */
-    @RequestMapping(value="/v1/resource/{resourceId}", method=RequestMethod.GET)
+    @RequestMapping(value="/rap/Sensor({resourceId})", method=RequestMethod.GET)
     public String readResource(@PathVariable String resourceId) {        
         log.info("Received read resource request for ID = " + resourceId);
         String res = "";
         try {
-            ResourceInfo info /*= getResourceInfo(resourceId)*/ = new ResourceInfo("test", "test", "test");
-            if(/*!checkPlatform()*/false)
-                throw new EntityNotFoundException("This platform has not any plugin registered");
+            ResourceInfo info = getResourceInfo(resourceId);
+            if(!checkPlatformPluginPresent(info.getPlatformId()))
+                throw new EntityNotFoundException("Plugin for platform " + info.getPlatformId() + " not found");
 
             ResourceAccessGetMessage msg = new ResourceAccessGetMessage(info);
             ObjectMapper mapper = new ObjectMapper();
@@ -87,16 +95,15 @@ public class ResourceAccessRestController {
      * @param resourceId    the id of the resource to query 
      * @return  the current value read from the resource
      */
-    @RequestMapping(value="/v1/resource/{resourceId}/history", method=RequestMethod.GET)
+    @RequestMapping(value="/rap/Sensor({resourceId})/history", method=RequestMethod.GET)
     public String readResourceHistory(@PathVariable String resourceId) {
         log.info("Received read resource request for ID = " + resourceId);
         String res = "";
         try {
-            ResourceInfo info /*= getResourceInfo(resourceId)*/ = new ResourceInfo("test", "test", "test");
-            if(/*!checkPlatform()*/false)
-                throw new EntityNotFoundException("");
-
-
+            ResourceInfo info = getResourceInfo(resourceId);
+            if(!checkPlatformPluginPresent(info.getPlatformId()))
+                throw new EntityNotFoundException("Plugin for platform " + info.getPlatformId() + " not found");
+            
             ResourceAccessHistoryMessage msg = new ResourceAccessHistoryMessage(info);
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
@@ -120,14 +127,14 @@ public class ResourceAccessRestController {
      * @param value         the value to write
      * @return              the http response code
      */
-    @RequestMapping(value="/v1/{resourceId}", method=RequestMethod.POST)
+    @RequestMapping(value="/rap/Resource({resourceId})", method=RequestMethod.POST)
     public ResponseEntity<?> writeResource(@PathVariable String resourceId, @RequestBody String value) {
         try {
             log.info("Received write resource request for ID = " + resourceId + " with value " + value);
 
-            ResourceInfo info /*= getResourceInfo(resourceId)*/ = new ResourceInfo("test", "test", "test");
-            if(/*!checkPlatform()*/false)
-                throw new EntityNotFoundException("");
+            ResourceInfo info = getResourceInfo(resourceId);
+            if(!checkPlatformPluginPresent(info.getPlatformId()))
+                throw new EntityNotFoundException("Plugin for platform " + info.getPlatformId() + " not found");
             
             ResourceAccessSetMessage msg = new ResourceAccessSetMessage(info, value);
             ObjectMapper mapper = new ObjectMapper();
@@ -146,4 +153,17 @@ public class ResourceAccessRestController {
         return new ResponseEntity<String>(HttpStatus.OK);
     }
 
+    private ResourceInfo getResourceInfo(String resourceId) {
+        Optional<ResourceInfo> resInfo = resourcesRepo.findByResourceId(resourceId);
+        if(!resInfo.isPresent())
+            throw new EntityNotFoundException("Resource " + resourceId + " not found");
+        
+        return resInfo.get();
+    }
+    
+    private boolean checkPlatformPluginPresent(String platformId) {
+        Optional<PlatformInfo> pluginInfo = pluginRepo.findByPlatformId(platformId);
+        
+        return pluginInfo.isPresent();
+    }
 }

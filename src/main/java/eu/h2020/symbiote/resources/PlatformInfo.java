@@ -6,7 +6,6 @@
 package eu.h2020.symbiote.resources;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import java.io.Serializable;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
