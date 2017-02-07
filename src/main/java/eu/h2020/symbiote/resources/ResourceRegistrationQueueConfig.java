@@ -18,11 +18,13 @@ import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
 /**
  *
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
+@Configuration
 public class ResourceRegistrationQueueConfig {
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN)
     TopicExchange resourceRegistrationExchangeIn() {

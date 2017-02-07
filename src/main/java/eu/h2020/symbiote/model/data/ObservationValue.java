@@ -5,17 +5,25 @@
  */
 package eu.h2020.symbiote.model.data;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  *
  * @author Aleksandar Antonic <aleksandar.antonic@fer.hr>
  */
 public class ObservationValue {
-    
-    private Object value;
-    private Property obsProperty;
-    private UnitOfMeasurement uom;
+    @JsonProperty("value")
+    private final Object value;
+    @JsonProperty("obsProperty")
+    private final Property obsProperty;
+    @JsonProperty("uom")
+    private final UnitOfMeasurement uom;
 
-    public ObservationValue(Object value, Property obsProperty, UnitOfMeasurement uom) {
+    @JsonCreator
+    public ObservationValue(@JsonProperty("value") Object value, 
+                            @JsonProperty("obsProperty") Property obsProperty, 
+                            @JsonProperty("uom") UnitOfMeasurement uom) {
         this.value = value;
         this.obsProperty = obsProperty;
         this.uom = uom;

@@ -7,7 +7,6 @@ package eu.h2020.symbiote.resources;
 
 import eu.h2020.symbiote.interfaces.ResourceRead;
 import eu.h2020.symbiote.interfaces.ResourceWrite;
-import eu.h2020.symbiote.resources.RapDefinitions;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.amqp.core.Binding;
@@ -24,6 +23,8 @@ import org.springframework.context.annotation.Configuration;
 /**
  *
  * @author Matteo Pardi <m.pardi@nextworks.it>
+ * 
+ * ATTENTION: This class is NOT USED anymore!!!!
  */
 @Configuration
 public class ResourceAccessQueueConfig {

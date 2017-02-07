@@ -6,6 +6,7 @@
 package eu.h2020.symbiote.resources;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
@@ -19,14 +20,23 @@ import javax.persistence.Table;
 public class ResourceInfo {
     
     @Id
+    @JsonProperty("resourceId")
     private final String resourceId;
+    @JsonProperty("platformResourceId")
     private final String platformResourceId;
+    @JsonProperty("platformId")
     private final String platformId;
     
+    public ResourceInfo() {
+        this.resourceId = "";
+        this.platformResourceId = "";
+        this.platformId = "";
+    }
+    
     @JsonCreator
-    public ResourceInfo(String resourceId, 
-                        String platformResourceId, 
-                        String platformId) {
+    public ResourceInfo(@JsonProperty("resourceId") String resourceId, 
+                        @JsonProperty("platformResourceId") String platformResourceId, 
+                        @JsonProperty("platformId") String platformId) {
         this.resourceId = resourceId;
         this.platformResourceId = platformResourceId;
         this.platformId = platformId;

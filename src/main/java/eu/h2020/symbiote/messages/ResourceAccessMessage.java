@@ -29,7 +29,9 @@ abstract public class ResourceAccessMessage {
         GET, HISTORY, SET
     }
     
+    @JsonProperty("type")
     AccessType accessType;
+    @JsonProperty("resourceInfo")
     ResourceInfo resInfo;
 
     @JsonProperty("type")

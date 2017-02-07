@@ -7,6 +7,7 @@ package eu.h2020.symbiote.messages;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import eu.h2020.symbiote.model.data.ObservationValue;
 import eu.h2020.symbiote.resources.ResourceInfo;
 
 /**
@@ -15,7 +16,7 @@ import eu.h2020.symbiote.resources.ResourceInfo;
  */
 public class ResourceAccessSetMessage extends ResourceAccessMessage {
     @JsonProperty("value")
-    private final String value;
+    private final ObservationValue value;
     /**
      * JSON Constructor
      * @param resInfo       the resource data information
@@ -23,13 +24,13 @@ public class ResourceAccessSetMessage extends ResourceAccessMessage {
      */
     @JsonCreator
     public ResourceAccessSetMessage(@JsonProperty("resourceInfo") ResourceInfo resInfo, 
-                                    @JsonProperty("value")String value) {
+                                    @JsonProperty("value")ObservationValue value) {
         this.accessType = AccessType.SET;
         this.resInfo = resInfo;
         this.value = value;
     }
     
-    public String getValue() {
+    public ObservationValue getValue() {
         return value;
     }
 }

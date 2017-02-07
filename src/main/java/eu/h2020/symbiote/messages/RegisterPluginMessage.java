@@ -13,10 +13,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
 public class RegisterPluginMessage extends PluginRegistrationMessage {
+    @JsonProperty("platformName") 
     private final String platformName;
     
     @JsonCreator
-    public RegisterPluginMessage(String platformId, String platformName) {
+    public RegisterPluginMessage(@JsonProperty("platformId") String platformId, 
+                                 @JsonProperty("platformName") String platformName) {
         this.actionType = RegistrationMessage.RegistrationAction.REGISTER_PLUGIN;
         this.platformId = platformId;
         this.platformName = platformName;

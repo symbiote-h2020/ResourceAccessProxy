@@ -5,8 +5,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 public class ResourceAccessProxyApplication {
-    
+        
     public static void main(String[] args) {
-            SpringApplication.run(ResourceAccessProxyApplication.class, args);
-    }
+        SpringApplication.run(ResourceAccessProxyApplication.class, args);
+    }   
 }

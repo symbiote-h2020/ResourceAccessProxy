@@ -58,9 +58,7 @@ public class PluginRegistration {
     
     private void addPlugin(String platformId, String platformName) {
         PlatformInfo platformInfo = new PlatformInfo(platformId, platformName);
-        ArrayList infos = new ArrayList();
-        infos.add(platformInfo);
-        pluginRepository.save(infos);
+        pluginRepository.saveAndFlush(platformInfo);
     }
     
     private void deletePlugin(String platformId) {

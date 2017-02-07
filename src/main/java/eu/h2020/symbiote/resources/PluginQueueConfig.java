@@ -6,7 +6,6 @@
 package eu.h2020.symbiote.resources;
 
 import eu.h2020.symbiote.interfaces.PluginRegistration;
-import eu.h2020.symbiote.resources.RapDefinitions;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.amqp.core.BindingBuilder;
@@ -14,8 +13,10 @@ import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,15 +28,15 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class PluginQueueConfig {
-
+    
     @Bean(name=RapDefinitions.PLUGIN_EXCHANGE_OUT)
     TopicExchange exchangeOut() {
-            return new TopicExchange(RapDefinitions.PLUGIN_EXCHANGE_OUT, false, false);
+        return new TopicExchange(RapDefinitions.PLUGIN_EXCHANGE_OUT, false, false);
     }
 
     @Bean(name=RapDefinitions.PLUGIN_REGISTRATION_EXCHANGE_IN)
     TopicExchange pluginRegistrationExchangeIn() {
-            return new TopicExchange(RapDefinitions.PLUGIN_REGISTRATION_EXCHANGE_IN, false, false);
+        return new TopicExchange(RapDefinitions.PLUGIN_REGISTRATION_EXCHANGE_IN, false, false);
     }
     
     @Bean(name=RapDefinitions.PLUGIN_REGISTRATION_QUEUE)
@@ -57,8 +58,7 @@ public class PluginQueueConfig {
     List<Binding> pluginBindings(@Qualifier(RapDefinitions.PLUGIN_REGISTRATION_QUEUE) Queue queue,
                                  @Qualifier(RapDefinitions.PLUGIN_REGISTRATION_EXCHANGE_IN) TopicExchange exchange) {
         ArrayList bindings = new ArrayList();
-        for(String key : RapDefinitions.PLUGIN_REGISTRATION_KEYS)
-            bindings.add(BindingBuilder.bind(queue).to(exchange).with(key));
+        bindings.add(BindingBuilder.bind(queue).to(exchange).with(RapDefinitions.PLUGIN_REGISTRATION_KEY));
 
         return bindings;
     }

@@ -5,17 +5,26 @@
  */
 package eu.h2020.symbiote.model.data;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  *
  * @author Aleksandar Antonic <aleksandar.antonic@fer.hr>
  */
 public class UnitOfMeasurement {
     
-    private String symbol;
-    private String label;
-    private String comment;
+    @JsonProperty("symbol")
+    private final String symbol;
+    @JsonProperty("label")
+    private final String label;
+    @JsonProperty("comment")
+    private final String comment;
 
-    public UnitOfMeasurement(String symbol, String label, String comment) {
+    @JsonCreator
+    public UnitOfMeasurement(@JsonProperty("symbol") String symbol, 
+                             @JsonProperty("label") String label, 
+                             @JsonProperty("comment") String comment) {
         this.symbol = symbol;
         this.label = label;
         this.comment = comment;

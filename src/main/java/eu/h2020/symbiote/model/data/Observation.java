@@ -5,19 +5,34 @@
  */
 package eu.h2020.symbiote.model.data;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  *
  * @author Aleksandar Antonic <aleksandar.antonic@fer.hr>
  */
 public class Observation {
     
-    private String resourceId;
-    private Location location;
-    private long resultTime;
-    private long samplingTime;
-    private ObservationValue obsValue;    
+    @JsonProperty("resourceId")
+    private final String resourceId;
+    @JsonProperty("location")
+    private final Location location;
+    @JsonProperty("resultTime")
+    private final long resultTime;
+    @JsonProperty("samplingTime")
+    private final long samplingTime;
+    @JsonProperty("obsValue")
+    private final ObservationValue obsValue;    
 
-    public Observation(String resourceId, Location location, long resultTime, long samplingTime, ObservationValue obsValue) {
+    @JsonCreator
+    public Observation(@JsonProperty("resourceId")String resourceId, 
+                       @JsonProperty("location")Location location, 
+                       @JsonProperty("resultTime")long resultTime, 
+                       @JsonProperty("samplingTime")long samplingTime, 
+                       @JsonProperty("obsValue")ObservationValue obsValue) {
         this.resourceId = resourceId;
         this.location = location;
         this.resultTime = resultTime;
@@ -46,13 +61,17 @@ public class Observation {
     }
     
     
-    public static void main (String[] args) {
+    public static Observation observationExampleValue () {
+        Logger log = LoggerFactory.getLogger(Observation.class);
+        
         String sensorId = "symbIoTeID1";
         WGS84Location loc = new WGS84Location(15.9, 45.8, 145, "Spansko", "City of Zagreb");
         long timestamp = System.currentTimeMillis();
         ObservationValue obsval = new ObservationValue((double)7, new Property("Temperature", "Air temperature"), new UnitOfMeasurement("C", "degree Celsius", ""));
-        Observation o = new Observation(sensorId, loc, timestamp, timestamp-1000 , obsval);
+        Observation obs = new Observation(sensorId, loc, timestamp, timestamp-1000 , obsval);
         
-        System.out.println(o);
+        log.debug("Observation: \n" + obs.toString());
+        
+        return obs;
     }
 }
