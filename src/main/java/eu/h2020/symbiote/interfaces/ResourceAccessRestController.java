@@ -11,7 +11,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.exceptions.*;
 import eu.h2020.symbiote.messages.ResourceAccessGetMessage;
 import eu.h2020.symbiote.messages.ResourceAccessHistoryMessage;
-import eu.h2020.symbiote.messages.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.ResourceAccessMessage.AccessType;
 import eu.h2020.symbiote.messages.ResourceAccessSetMessage;
 import eu.h2020.symbiote.model.data.Observation;
@@ -19,6 +18,7 @@ import eu.h2020.symbiote.model.data.ObservationValue;
 import eu.h2020.symbiote.resources.PlatformInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.ResourceInfo;
+import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,11 +67,12 @@ public class ResourceAccessRestController {
      * @param resourceId    the id of the resource to query 
      * @return  the current value read from the resource
      */
-    @RequestMapping(value="/rap/Sensor({resourceId})", method=RequestMethod.GET)
+    @RequestMapping(value="/rap/Sensor('{resourceId}')", method=RequestMethod.GET)
     public Observation readResource(@PathVariable String resourceId) {        
-        log.info("Received read resource request for ID = " + resourceId);
-        Observation observation = null;
         try {
+            log.info("Received read resource request for ID = " + resourceId);
+        
+            Observation observation = null;        
             ResourceInfo info = getResourceInfo(resourceId);
             if(!checkPlatformPluginPresent(info.getPlatformId()))
                 throw new EntityNotFoundException("Plugin for platform " + info.getPlatformId() + " not found");
@@ -85,12 +86,15 @@ public class ResourceAccessRestController {
             String routingKey = info.getPlatformId() + "." + AccessType.GET.toString().toLowerCase();
             String response = (String)rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             observation = mapper.readValue(response, Observation.class);
+            
+            return observation;
+        } catch(EntityNotFoundException enf) {
+            throw enf;
         } catch (Exception e) {
             String err = "Unable to read resource with id: " + resourceId;
             log.error(err + "\n" + e.getMessage());
             throw new GenericException(err);
-        }
-        return observation;
+        }        
     }
     
     /**
@@ -100,11 +104,13 @@ public class ResourceAccessRestController {
      * @param resourceId    the id of the resource to query 
      * @return  the current value read from the resource
      */
-    @RequestMapping(value="/rap/Sensor({resourceId})/history", method=RequestMethod.GET)
-    public Observation readResourceHistory(@PathVariable String resourceId) {
-        log.info("Received read resource request for ID = " + resourceId);
-        Observation observation = null;
+    @RequestMapping(value="/rap/Sensor('{resourceId}')/history", method=RequestMethod.GET)
+    public List<Observation> readResourceHistory(@PathVariable String resourceId) {
         try {
+            log.info("Received read resource request for ID = " + resourceId);
+
+            List<Observation> observationList = null;
+        
             ResourceInfo info = getResourceInfo(resourceId);
             if(!checkPlatformPluginPresent(info.getPlatformId()))
                 throw new EntityNotFoundException("Plugin for platform " + info.getPlatformId() + " not found");
@@ -117,12 +123,18 @@ public class ResourceAccessRestController {
             
             String routingKey = info.getPlatformId() + "." + AccessType.HISTORY.toString().toLowerCase();
             String response = (String)rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-            observation = mapper.readValue(response, Observation.class);
+            observationList = mapper.readValue(response, List.class);
+            if(observationList == null)
+                throw new Exception("Plugin error");
+            
+            return observationList;
+        } catch(EntityNotFoundException enf) {
+            throw enf;
         } catch (Exception e) {
-            log.error("Unable to read resource with id [" + resourceId + "]\n" + e.getMessage());
-            throw new GenericException(e.getMessage());
-        }
-        return observation;
+            String err = "Unable to read history of resource with id: " + resourceId;
+            log.error(err + "\n" + e.getMessage());
+            throw new GenericException(err);
+        }        
     }
     
     /**
@@ -133,7 +145,7 @@ public class ResourceAccessRestController {
      * @param value         the value to write
      * @return              the http response code
      */
-    @RequestMapping(value="/rap/Resource({resourceId})", method=RequestMethod.POST)
+    @RequestMapping(value="/rap/Resource('{resourceId}')", method=RequestMethod.POST)
     public ResponseEntity<?> writeResource(@PathVariable String resourceId, @RequestBody ObservationValue value) {
         try {
             log.info("Received write resource request for ID = " + resourceId + " with value " + value);
@@ -149,14 +161,16 @@ public class ResourceAccessRestController {
             String json = mapper.writeValueAsString(msg);
             
             String routingKey = info.getPlatformId() + "." + AccessType.SET.toString().toLowerCase();
-            rabbitTemplate.convertAndSend(exchange.getName(), routingKey, json);
+            rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             
+            return new ResponseEntity<>(HttpStatus.OK);
+        } catch(EntityNotFoundException enf) {
+            throw enf;
         } catch (Exception e) {
-            log.error("Unable to write resource with id [" + resourceId + "]\n" + e.getMessage());        
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            String err = "Unable to write resource with id: " + resourceId;
+            log.error(err + "\n" + e.getMessage());
+            throw new GenericException(err);
         }
-        
-        return new ResponseEntity<String>(HttpStatus.OK);
     }
 
     private ResourceInfo getResourceInfo(String resourceId) {

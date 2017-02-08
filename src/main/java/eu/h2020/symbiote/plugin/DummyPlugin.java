@@ -16,12 +16,11 @@ import eu.h2020.symbiote.model.data.Observation;
 import eu.h2020.symbiote.model.data.ObservationValue;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.ResourceInfo;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 
 /**
  *
@@ -64,8 +63,8 @@ public class DummyPlugin {
         // TODO    
     }
     
-    public Observation readResourceHistory(String resourceId) {
-        Observation value = null;
+    public List<Observation> readResourceHistory(String resourceId) {
+        List<Observation> value = null;
         // TODO
         return value;
     }
@@ -73,31 +72,29 @@ public class DummyPlugin {
     public String receiveMessage(String message) {
         String json = "";
         try {            
-            Observation observation = null;
             ObjectMapper mapper = new ObjectMapper();
             ResourceAccessMessage msg = mapper.readValue(message, ResourceAccessMessage.class);
             ResourceInfo info = msg.getResourceInfo();
             ResourceAccessMessage.AccessType access = msg.getAccessType();
+            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             switch(access) {
                 case GET:                    
-                    observation = readResource(info.getPlatformResourceId());
+                    Observation observation = readResource(info.getPlatformResourceId());
+                    json = mapper.writeValueAsString(observation);
                     break;
                 case HISTORY:
-                    observation = readResourceHistory(info.getPlatformResourceId());
+                    List<Observation> observationLst = readResourceHistory(info.getPlatformResourceId());
+                    json = mapper.writeValueAsString(observationLst);
                     throw new Exception("Access type " + access.toString() + " not yet supported");
                 case SET:
                     ResourceAccessSetMessage mess = (ResourceAccessSetMessage)msg;
                     writeResource(info.getPlatformResourceId(), mess.getValue());
                     throw new Exception("Access type " + access.toString() + " not yet supported");
-            }            
-            
-            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-            json = mapper.writeValueAsString(observation);            
+            }
         } catch (Exception e) {
             log.error("Error while processing message:\n" + message + "\n" + e);
         }
-        
         return json;
     }
     
