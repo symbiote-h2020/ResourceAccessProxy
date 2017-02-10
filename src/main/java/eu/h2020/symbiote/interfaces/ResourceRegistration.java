@@ -29,7 +29,6 @@ public class ResourceRegistration {
      * Receive messages from Rabbit queue 
      * @param message 
      */
-    
     public void receiveRegistrationMessage(String message) {
         try {
             log.info("Resource Registration message received: \n" + message + "");

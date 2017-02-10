@@ -6,8 +6,6 @@
 package eu.h2020.symbiote.resources;
 
 import eu.h2020.symbiote.interfaces.ResourceRegistration;
-import java.util.ArrayList;
-import java.util.List;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
@@ -46,32 +44,23 @@ public class ResourceRegistrationQueueConfig {
     }
 
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_QUEUE + "Bindings")
-    List<Binding> resourceRegistrationBindings(@Qualifier(RapDefinitions.RESOURCE_REGISTRATION_QUEUE) Queue queue,
+    Binding resourceRegistrationBindings(@Qualifier(RapDefinitions.RESOURCE_REGISTRATION_QUEUE) Queue queue,
                              @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN) DirectExchange exchange) {
-        ArrayList bindings = new ArrayList();
-        bindings.add(BindingBuilder.bind(queue).to(exchange));
-
-        return bindings;
+        return BindingBuilder.bind(queue).to(exchange).with(queue.getName());
     }
     
     
     @Bean(name=RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE + "Bindings")
-    List<Binding> resourceUnregistrationBindings(@Qualifier(RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE) Queue queue,
+    Binding resourceUnregistrationBindings(@Qualifier(RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE) Queue queue,
                              @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN) DirectExchange exchange) {
-        ArrayList bindings = new ArrayList();
-        bindings.add(BindingBuilder.bind(queue).to(exchange));
-
-        return bindings;
+        return BindingBuilder.bind(queue).to(exchange).with(queue.getName());
     }
     
     
     @Bean(name=RapDefinitions.RESOURCE_UPDATE_QUEUE + "Bindings")
-    List<Binding> resourceUpdatedBindings(@Qualifier(RapDefinitions.RESOURCE_UPDATE_QUEUE) Queue queue,
+    Binding resourceUpdatedBindings(@Qualifier(RapDefinitions.RESOURCE_UPDATE_QUEUE) Queue queue,
                              @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN) DirectExchange exchange) {
-        ArrayList bindings = new ArrayList();
-        bindings.add(BindingBuilder.bind(queue).to(exchange));
-
-        return bindings;
+        return BindingBuilder.bind(queue).to(exchange).with(queue.getName());
     }
 
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_QUEUE + "Container")
