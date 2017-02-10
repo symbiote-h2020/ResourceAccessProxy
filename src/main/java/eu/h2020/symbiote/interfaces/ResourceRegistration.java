@@ -8,9 +8,9 @@ package eu.h2020.symbiote.interfaces;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.messages.RegisterResourceMessage;
 import eu.h2020.symbiote.messages.RegistrationMessage.RegistrationAction;
-import eu.h2020.symbiote.messages.ResourceRegistrationMessage;
+import eu.h2020.symbiote.messages.UnregisterResourceMessage;
+import eu.h2020.symbiote.messages.UpdateResourceMessage;
 import eu.h2020.symbiote.resources.ResourceInfo;
-import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +29,59 @@ public class ResourceRegistration {
      * Receive messages from Rabbit queue 
      * @param message 
      */
+    
+    public void receiveRegistrationMessage(String message) {
+        try {
+            log.info("Resource Registration message received: \n" + message + "");
+        
+            ObjectMapper mapper = new ObjectMapper();
+            RegisterResourceMessage msg = mapper.readValue(message, RegisterResourceMessage.class);
+            String resourceId = msg.getResourceId();
+            String platformResourceId = msg.getPlatformResourceId();
+            //String platformId = msg.getPlatformId();
+            String platformId = "platform";
+            
+            log.debug("Registering resource with id " + resourceId);
+            addResource(resourceId, platformResourceId, platformId);
+        } catch (Exception e) {
+            log.info("Error during registration process\n" + e.getMessage());
+        }
+    }
+    
+    public void receiveUnregistrationMessage(String message) {
+        try {
+            log.info("Resource Unregistration message received: \n" + message + "");
+        
+            ObjectMapper mapper = new ObjectMapper();
+            UnregisterResourceMessage msg = mapper.readValue(message, UnregisterResourceMessage.class);
+            String resourceId = msg.getResourceId();
+            
+            log.debug("Unregistering resource with id %s" + resourceId);
+            deleteResource(resourceId);
+                    
+        } catch (Exception e) {
+            log.info("Error during unregistration process\n" + e.getMessage());
+        }
+    }
+    
+    public void receiveUpdateMessage(String message) {
+        try {
+            log.info("Resource Update message received: \n" + message + "");
+        
+            ObjectMapper mapper = new ObjectMapper();
+            UpdateResourceMessage msg = mapper.readValue(message, UpdateResourceMessage.class);
+            String resourceId = msg.getResourceId();
+            String platformResourceId = msg.getPlatformResourceId();
+            //String platformId = msg.getPlatformId();
+            String platformId = "platform";
+
+            log.debug("Updating resource with id " + resourceId);
+            addResource(resourceId, platformResourceId, platformId);
+        } catch (Exception e) {
+            log.info("Error during registration process\n" + e.getMessage());
+        }
+    }    
+    /*
     public void receiveMessage(String message) {
         try {
             log.info("Resource Registration message received: \n" + message + "");
@@ -59,11 +112,10 @@ public class ResourceRegistration {
         } catch (Exception e) {
             log.info("Error during registration process\n" + e.getMessage());
         }
-    }
+    }*/
 
     public void notifyMonitoring(String resourceId, RegistrationAction action) {
-        log.debug("Sending monitoring notification to " + action.toString() + " resource with id " + resourceId);
-        
+        log.debug("Sending monitoring notification to " + action.toString() + " resource with id " + resourceId);        
         //TODO
     }
     
@@ -74,5 +126,6 @@ public class ResourceRegistration {
     
     private void deleteResource(String resourceId) {
         resourcesRepository.delete(resourceId);
-    }
+    }  
+    
 }

@@ -18,12 +18,13 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 @JsonSubTypes({
 	@JsonSubTypes.Type(value = RegisterResourceMessage.class,   name = "REGISTER_RESOURCE"),
         @JsonSubTypes.Type(value = UnregisterResourceMessage.class, name = "UNREGISTER_RESOURCE"),
+        @JsonSubTypes.Type(value = UpdateResourceMessage.class, name = "UPDATE_RESOURCE")
 })
 abstract public class ResourceRegistrationMessage extends RegistrationMessage {
     
     String resourceId;
     
-    @JsonProperty("resourceId")
+    @JsonProperty("symbiote_id")
     public String getResourceId() {
         return resourceId;
     }

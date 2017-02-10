@@ -6,6 +6,7 @@
 package eu.h2020.symbiote.messages;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  *
@@ -14,7 +15,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 public class UnregisterResourceMessage extends ResourceRegistrationMessage {
     
     @JsonCreator
-    public UnregisterResourceMessage(String resourceId) {
+    public UnregisterResourceMessage(@JsonProperty("symbiote_id") String resourceId) {
         this.actionType = RegistrationAction.UNREGISTER_RESOURCE;
         this.resourceId = resourceId;
     }

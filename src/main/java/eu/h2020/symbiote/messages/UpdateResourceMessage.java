@@ -13,7 +13,7 @@ import eu.h2020.symbiote.model.data.Location;
  *
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
-public class RegisterResourceMessage extends ResourceRegistrationMessage {
+public class UpdateResourceMessage extends ResourceRegistrationMessage {
     @JsonProperty("internal_id")
     private final String platformResourceId;
     //private final String platformId;
@@ -23,10 +23,10 @@ public class RegisterResourceMessage extends ResourceRegistrationMessage {
     private final Location location;
     
     @JsonCreator
-    public RegisterResourceMessage(@JsonProperty("symbiote_id") String resourceId, 
-                                   @JsonProperty("internal_id") String platformResourceId, 
-                                   @JsonProperty("name") String resourceName, 
-                                   @JsonProperty("location") Location location) {
+    public UpdateResourceMessage(@JsonProperty("symbiote_id") String resourceId, 
+                                 @JsonProperty("internal_id") String platformResourceId, 
+                                 @JsonProperty("name") String resourceName, 
+                                 @JsonProperty("location") Location location) {
         this.actionType = RegistrationAction.REGISTER_RESOURCE;
         this.resourceId = resourceId;
         this.platformResourceId = platformResourceId;

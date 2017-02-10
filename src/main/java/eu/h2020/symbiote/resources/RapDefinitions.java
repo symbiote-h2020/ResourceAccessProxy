@@ -10,12 +10,12 @@ package eu.h2020.symbiote.resources;
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
 public class RapDefinitions {
-    
-    public static final String      RESOURCE_REGISTRATION_EXCHANGE_IN = "symbIoTe.platformExchange";
-    public static final String[]    RESOURCE_REGISTRATION_KEYS  = { "symbIoTe.platformexchange.rh.rap.register_resources", 
-                                                                    "symbIoTe.platformexchange.rh.rap.unregister_resources",
-                                                                    "symbIoTe.platformexchange.rh.rap.update_resources"};
-    public static final String      RESOURCE_REGISTRATION_QUEUE = "symbIoTe-rap-queue";
+        
+    public static final String      RESOURCE_REGISTRATION_EXCHANGE_IN = "symbIoTe.rap";
+    public static final String      RESOURCE_REGISTRATION_QUEUE = "symbIoTe.rap.registrationHandler.register_resources";
+    public static final String      RESOURCE_UNREGISTRATION_QUEUE = "symbIoTe.rap.registrationHandler.unregister_resources";
+    public static final String      RESOURCE_UPDATE_QUEUE = "symbIoTe.rap.registrationHandler.update_resources";
+
     
     public static final String      RESOURCE_ACCESS_EXCHANGE_IN = "symbIoTe.rap";
     public static final String[]    RESOURCE_READ_KEYS  = {"symbIoTe.rap.readResource.*"};

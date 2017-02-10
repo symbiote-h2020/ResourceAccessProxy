@@ -32,12 +32,19 @@ public class DummyPlugin {
     private static final String PLUGIN_PLATFORM_ID = "platform_01";
     private static final String PLUGIN_PLATFORM_NAME = "platform_name_01";
     
-    public static final String PLUGIN_RES_ACCESS_QUEUE = PLUGIN_PLATFORM_ID + "-rap-platform-queue";
-    public static final String[] PLUGIN_RES_ACCESS_KEYS = {PLUGIN_PLATFORM_ID + ".get", 
-                                                           PLUGIN_PLATFORM_ID + ".set", 
-                                                           PLUGIN_PLATFORM_ID + ".history" ,
-                                                           PLUGIN_PLATFORM_ID + ".subscribe",
-                                                           PLUGIN_PLATFORM_ID + ".unsubscribe"};
+    //public static final String PLUGIN_RES_ACCESS_QUEUE = PLUGIN_PLATFORM_ID + "-rap-platform-queue";
+    public static final String PLUGIN_RES_ACCESS_QUEUE = "rap-platform-queue";
+    //public static final String[] PLUGIN_RES_ACCESS_KEYS = {PLUGIN_PLATFORM_ID + ".get", 
+    //                                                       PLUGIN_PLATFORM_ID + ".set", 
+    //                                                       PLUGIN_PLATFORM_ID + ".history" ,
+    //                                                       PLUGIN_PLATFORM_ID + ".subscribe",
+    //                                                       PLUGIN_PLATFORM_ID + ".unsubscribe"};
+    
+    public static final String[] PLUGIN_RES_ACCESS_KEYS = {"get", 
+                                                           "set", 
+                                                           "history" ,
+                                                           "subscribe",
+                                                           "unsubscribe"};
     
     private final RabbitTemplate rabbitTemplate;
     private final TopicExchange exchange;

@@ -35,19 +35,48 @@ public class ResourceRegistrationQueueConfig {
     Queue resourceRegistrationQueue() {
         return new Queue(RapDefinitions.RESOURCE_REGISTRATION_QUEUE, false);
     }
+    
+    @Bean(name=RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE)
+    Queue resourceUnregistrationQueue() {
+        return new Queue(RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE, false);
+    }
+    
+    @Bean(name=RapDefinitions.RESOURCE_UPDATE_QUEUE)
+    Queue resourceUpdateQueue() {
+        return new Queue(RapDefinitions.RESOURCE_UPDATE_QUEUE, false);
+    }
 
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_QUEUE + "Bindings")
     List<Binding> resourceRegistrationBindings(@Qualifier(RapDefinitions.RESOURCE_REGISTRATION_QUEUE) Queue queue,
                              @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN) TopicExchange exchange) {
         ArrayList bindings = new ArrayList();
-        for(String key : RapDefinitions.RESOURCE_REGISTRATION_KEYS)
-            bindings.add(BindingBuilder.bind(queue).to(exchange).with(key));
+        bindings.add(BindingBuilder.bind(queue).to(exchange));
+
+        return bindings;
+    }
+    
+    
+    @Bean(name=RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE + "Bindings")
+    List<Binding> resourceUnregistrationBindings(@Qualifier(RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE) Queue queue,
+                             @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN) TopicExchange exchange) {
+        ArrayList bindings = new ArrayList();
+        bindings.add(BindingBuilder.bind(queue).to(exchange));
+
+        return bindings;
+    }
+    
+    
+    @Bean(name=RapDefinitions.RESOURCE_UPDATE_QUEUE + "Bindings")
+    List<Binding> resourceUpdateBindings(@Qualifier(RapDefinitions.RESOURCE_UPDATE_QUEUE) Queue queue,
+                             @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN) TopicExchange exchange) {
+        ArrayList bindings = new ArrayList();
+        bindings.add(BindingBuilder.bind(queue).to(exchange));
 
         return bindings;
     }
 
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_QUEUE + "Container")
-    SimpleMessageListenerContainer resourceContainer(ConnectionFactory connectionFactory,
+    SimpleMessageListenerContainer resourceRegContainer(ConnectionFactory connectionFactory,
                                              @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_QUEUE + "Listener") MessageListenerAdapter listenerAdapter) {
         SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
@@ -55,7 +84,27 @@ public class ResourceRegistrationQueueConfig {
         container.setMessageListener(listenerAdapter);
         return container;
     }
+    
+    @Bean(name=RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE + "Container")
+    SimpleMessageListenerContainer resourceUnregContainer(ConnectionFactory connectionFactory,
+                                             @Qualifier(RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE + "Listener") MessageListenerAdapter listenerAdapter) {
+        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
+        container.setConnectionFactory(connectionFactory);
+        container.setQueueNames(RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE);
+        container.setMessageListener(listenerAdapter);
+        return container;
+    }
 
+    @Bean(name=RapDefinitions.RESOURCE_UPDATE_QUEUE + "Container")
+    SimpleMessageListenerContainer resourceUpdContainer(ConnectionFactory connectionFactory,
+                                             @Qualifier(RapDefinitions.RESOURCE_UPDATE_QUEUE + "Listener") MessageListenerAdapter listenerAdapter) {
+        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
+        container.setConnectionFactory(connectionFactory);
+        container.setQueueNames(RapDefinitions.RESOURCE_UPDATE_QUEUE);
+        container.setMessageListener(listenerAdapter);
+        return container;
+    }
+    
     @Bean
     ResourceRegistration resourceReceiver() {
         return new ResourceRegistration();
@@ -63,6 +112,16 @@ public class ResourceRegistrationQueueConfig {
 
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_QUEUE + "Listener")
     MessageListenerAdapter resourceRegistrationListenerAdapter(ResourceRegistration receiver) {
-        return new MessageListenerAdapter(receiver, "receiveMessage");
+        return new MessageListenerAdapter(receiver, "receiveRegistrationMessage");
+    }
+    
+    @Bean(name=RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE + "Listener")
+    MessageListenerAdapter resourceUnRegistrationListenerAdapter(ResourceRegistration receiver) {
+        return new MessageListenerAdapter(receiver, "receiveUnregistrationMessage");
+    }
+    
+    @Bean(name=RapDefinitions.RESOURCE_UPDATE_QUEUE + "Listener")
+    MessageListenerAdapter resourceUpdatedListenerAdapter(ResourceRegistration receiver) {
+        return new MessageListenerAdapter(receiver, "receiveUpdateMessage");
     }
 }

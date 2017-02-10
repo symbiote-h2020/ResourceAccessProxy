@@ -83,7 +83,7 @@ public class ResourceAccessRestController {
             mapper.setSerializationInclusion(Include.NON_EMPTY);
             String json = mapper.writeValueAsString(msg);
             
-            String routingKey = info.getPlatformId() + "." + AccessType.GET.toString().toLowerCase();
+            String routingKey = /*info.getPlatformId() + "." +*/ AccessType.GET.toString().toLowerCase();
             String response = (String)rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             observation = mapper.readValue(response, Observation.class);
             
@@ -121,7 +121,7 @@ public class ResourceAccessRestController {
             mapper.setSerializationInclusion(Include.NON_EMPTY);
             String json = mapper.writeValueAsString(msg);
             
-            String routingKey = info.getPlatformId() + "." + AccessType.HISTORY.toString().toLowerCase();
+            String routingKey = /*info.getPlatformId() + "." + */AccessType.HISTORY.toString().toLowerCase();
             String response = (String)rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             observationList = mapper.readValue(response, List.class);
             if(observationList == null)
@@ -160,7 +160,7 @@ public class ResourceAccessRestController {
             mapper.setSerializationInclusion(Include.NON_EMPTY);
             String json = mapper.writeValueAsString(msg);
             
-            String routingKey = info.getPlatformId() + "." + AccessType.SET.toString().toLowerCase();
+            String routingKey = /*info.getPlatformId() + "." + */AccessType.SET.toString().toLowerCase();
             rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             
             return new ResponseEntity<>(HttpStatus.OK);
