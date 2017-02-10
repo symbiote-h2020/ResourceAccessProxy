@@ -31,7 +31,7 @@ public class ResourceRegistration {
      */
     public void receiveRegistrationMessage(byte[] message) {
         try {
-            log.info("Resource Registration message received: \n" + message + "");
+            log.info("Resource Registration message received: \n" + new String(message) + "");
         
             ObjectMapper mapper = new ObjectMapper();
             RegisterResourceMessage msg = mapper.readValue(message, RegisterResourceMessage.class);

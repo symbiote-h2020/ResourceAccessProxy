@@ -14,7 +14,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type")
+@JsonTypeInfo(use = JsonTypeInfo.Id.NONE)
 @JsonSubTypes({
 	@JsonSubTypes.Type(value = RegisterResourceMessage.class,   name = "REGISTER_RESOURCE"),
         @JsonSubTypes.Type(value = UnregisterResourceMessage.class, name = "UNREGISTER_RESOURCE"),

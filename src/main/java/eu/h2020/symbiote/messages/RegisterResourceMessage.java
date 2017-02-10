@@ -8,6 +8,7 @@ package eu.h2020.symbiote.messages;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import eu.h2020.symbiote.model.data.Location;
+import eu.h2020.symbiote.model.data.WGS84Location;
 
 /**
  *
@@ -20,13 +21,13 @@ public class RegisterResourceMessage extends ResourceRegistrationMessage {
     @JsonProperty("name")
     private final String resourceName;
     @JsonProperty("location")
-    private final Location location;
+    private final WGS84Location location;
     
     @JsonCreator
     public RegisterResourceMessage(@JsonProperty("id") String resourceId, 
                                    @JsonProperty("internal_id") String platformResourceId, 
                                    @JsonProperty("name") String resourceName, 
-                                   @JsonProperty("location") Location location) {
+                                   @JsonProperty("location") WGS84Location location) {
         this.actionType = RegistrationAction.REGISTER_RESOURCE;
         this.resourceId = resourceId;
         this.platformResourceId = platformResourceId;

@@ -13,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
  *
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "type")
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
 @JsonSubTypes({
         @JsonSubTypes.Type(value = RegisterPluginMessage.class,   name = "REGISTER_PLUGIN"),
         @JsonSubTypes.Type(value = UnregisterPluginMessage.class, name = "UNREGISTER_PLUGIN")

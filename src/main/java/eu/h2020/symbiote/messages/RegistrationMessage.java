@@ -5,7 +5,7 @@
  */
 package eu.h2020.symbiote.messages;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  *
@@ -16,9 +16,9 @@ public class RegistrationMessage {
         REGISTER_RESOURCE, UNREGISTER_RESOURCE, REGISTER_PLUGIN, UNREGISTER_PLUGIN
     }
     
+    @JsonIgnore
     RegistrationAction actionType;
     
-    @JsonProperty("type")
     public RegistrationAction getActionType() {
         return actionType;
     }
