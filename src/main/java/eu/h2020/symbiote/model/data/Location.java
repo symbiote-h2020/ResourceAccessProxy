@@ -19,9 +19,9 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = WGS84Location.class,   name = "WGS84Location")
 })
 abstract public class Location {
-    @JsonProperty("label")
+    @JsonProperty("name")
     String label;
-    @JsonProperty("comment")
+    @JsonProperty("description")
     String comment;
 
     /*
