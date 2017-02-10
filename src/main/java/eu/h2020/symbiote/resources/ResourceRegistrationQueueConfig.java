@@ -25,7 +25,7 @@ import org.springframework.context.annotation.Configuration;
 public class ResourceRegistrationQueueConfig {
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN)
     DirectExchange resourceRegistrationExchangeIn() {
-            return new DirectExchange(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN, false, false);
+        return new DirectExchange(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN, false, false);
     }
     
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_QUEUE)

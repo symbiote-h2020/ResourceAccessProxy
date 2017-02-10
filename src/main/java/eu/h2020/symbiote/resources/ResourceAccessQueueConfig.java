@@ -24,7 +24,31 @@ import org.springframework.context.annotation.Configuration;
  *
  * @author Matteo Pardi <m.pardi@nextworks.it>
  * 
+ * 
+ */
+/******************************************************************************
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
  * ATTENTION: This class is NOT USED anymore!!!!
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
  */
 @Configuration
 public class ResourceAccessQueueConfig {

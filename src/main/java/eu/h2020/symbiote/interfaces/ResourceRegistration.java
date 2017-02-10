@@ -29,7 +29,7 @@ public class ResourceRegistration {
      * Receive messages from Rabbit queue 
      * @param message 
      */
-    public void receiveRegistrationMessage(String message) {
+    public void receiveRegistrationMessage(byte[] message) {
         try {
             log.info("Resource Registration message received: \n" + message + "");
         
@@ -47,7 +47,7 @@ public class ResourceRegistration {
         }
     }
     
-    public void receiveUnregistrationMessage(String message) {
+    public void receiveUnregistrationMessage(byte[] message) {
         try {
             log.info("Resource Unregistration message received: \n" + message + "");
         
@@ -63,7 +63,7 @@ public class ResourceRegistration {
         }
     }
     
-    public void receiveUpdateMessage(String message) {
+    public void receiveUpdateMessage(byte[] message) {
         try {
             log.info("Resource Update message received: \n" + message + "");
         
