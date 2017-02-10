@@ -23,7 +23,7 @@ public class RegisterResourceMessage extends ResourceRegistrationMessage {
     private final Location location;
     
     @JsonCreator
-    public RegisterResourceMessage(@JsonProperty("symbiote_id") String resourceId, 
+    public RegisterResourceMessage(@JsonProperty("id") String resourceId, 
                                    @JsonProperty("internal_id") String platformResourceId, 
                                    @JsonProperty("name") String resourceName, 
                                    @JsonProperty("location") Location location) {

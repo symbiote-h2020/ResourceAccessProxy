@@ -6,13 +6,12 @@
 package eu.h2020.symbiote.resources;
 
 import eu.h2020.symbiote.interfaces.ResourceRegistration;
-import eu.h2020.symbiote.resources.RapDefinitions;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
-import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
@@ -27,8 +26,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ResourceRegistrationQueueConfig {
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN)
-    TopicExchange resourceRegistrationExchangeIn() {
-            return new TopicExchange(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN, false, false);
+    DirectExchange resourceRegistrationExchangeIn() {
+            return new DirectExchange(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN, false, false);
     }
     
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_QUEUE)
@@ -42,13 +41,13 @@ public class ResourceRegistrationQueueConfig {
     }
     
     @Bean(name=RapDefinitions.RESOURCE_UPDATE_QUEUE)
-    Queue resourceUpdateQueue() {
+    Queue resourceUpdatedQueue() {
         return new Queue(RapDefinitions.RESOURCE_UPDATE_QUEUE, false);
     }
 
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_QUEUE + "Bindings")
     List<Binding> resourceRegistrationBindings(@Qualifier(RapDefinitions.RESOURCE_REGISTRATION_QUEUE) Queue queue,
-                             @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN) TopicExchange exchange) {
+                             @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN) DirectExchange exchange) {
         ArrayList bindings = new ArrayList();
         bindings.add(BindingBuilder.bind(queue).to(exchange));
 
@@ -58,7 +57,7 @@ public class ResourceRegistrationQueueConfig {
     
     @Bean(name=RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE + "Bindings")
     List<Binding> resourceUnregistrationBindings(@Qualifier(RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE) Queue queue,
-                             @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN) TopicExchange exchange) {
+                             @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN) DirectExchange exchange) {
         ArrayList bindings = new ArrayList();
         bindings.add(BindingBuilder.bind(queue).to(exchange));
 
@@ -67,8 +66,8 @@ public class ResourceRegistrationQueueConfig {
     
     
     @Bean(name=RapDefinitions.RESOURCE_UPDATE_QUEUE + "Bindings")
-    List<Binding> resourceUpdateBindings(@Qualifier(RapDefinitions.RESOURCE_UPDATE_QUEUE) Queue queue,
-                             @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN) TopicExchange exchange) {
+    List<Binding> resourceUpdatedBindings(@Qualifier(RapDefinitions.RESOURCE_UPDATE_QUEUE) Queue queue,
+                             @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN) DirectExchange exchange) {
         ArrayList bindings = new ArrayList();
         bindings.add(BindingBuilder.bind(queue).to(exchange));
 

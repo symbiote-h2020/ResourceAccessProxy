@@ -15,7 +15,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class UnregisterResourceMessage extends ResourceRegistrationMessage {
     
     @JsonCreator
-    public UnregisterResourceMessage(@JsonProperty("symbiote_id") String resourceId) {
+    public UnregisterResourceMessage(@JsonProperty("id") String resourceId) {
         this.actionType = RegistrationAction.UNREGISTER_RESOURCE;
         this.resourceId = resourceId;
     }

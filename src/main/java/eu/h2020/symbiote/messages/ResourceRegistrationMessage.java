@@ -22,9 +22,10 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 })
 abstract public class ResourceRegistrationMessage extends RegistrationMessage {
     
+    @JsonProperty("id")
     String resourceId;
     
-    @JsonProperty("symbiote_id")
+    @JsonProperty("id")
     public String getResourceId() {
         return resourceId;
     }

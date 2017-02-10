@@ -17,11 +17,11 @@ public class RapDefinitions {
     public static final String      RESOURCE_UPDATE_QUEUE = "symbIoTe.rap.registrationHandler.update_resources";
 
     
-    public static final String      RESOURCE_ACCESS_EXCHANGE_IN = "symbIoTe.rap";
-    public static final String[]    RESOURCE_READ_KEYS  = {"symbIoTe.rap.readResource.*"};
-    public static final String      RESOURCE_READ_QUEUE = "symbiote-rap-readResource";   
-    public static final String[]    RESOURCE_WRITE_KEYS  = {"symbIoTe.rap.writeResource.*"};
-    public static final String      RESOURCE_WRITE_QUEUE = "symbIoTe-rap-writeResource";
+    public static final String      RESOURCE_ACCESS_EXCHANGE_IN = "symbIoTe.rap.accessResource";
+    public static final String[]    RESOURCE_READ_KEYS  = {"symbIoTe.rap.accessResource.readResource.*"};
+    public static final String      RESOURCE_READ_QUEUE = "symbiote-rap-accessResource-readResource";   
+    public static final String[]    RESOURCE_WRITE_KEYS  = {"symbIoTe.rap.accessResource.writeResource.*"};
+    public static final String      RESOURCE_WRITE_QUEUE = "symbIoTe-rap-accessResource-writeResource";
     
     public static final String      PLUGIN_REGISTRATION_EXCHANGE_IN = "symbIoTe.rapPluginExchange";
     public static final String      PLUGIN_REGISTRATION_KEY = "symbIoTe.rapPluginExchange.add-plugin";
