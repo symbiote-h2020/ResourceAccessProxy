@@ -19,7 +19,7 @@ public class Observation {
     @JsonProperty("resourceId")
     private final String resourceId;
     @JsonProperty("location")
-    private final Location location;
+    private final WGS84Location location;
     @JsonProperty("resultTime")
     private final long resultTime;
     @JsonProperty("samplingTime")
@@ -29,7 +29,7 @@ public class Observation {
 
     @JsonCreator
     public Observation(@JsonProperty("resourceId")String resourceId, 
-                       @JsonProperty("location")Location location, 
+                       @JsonProperty("location")WGS84Location location, 
                        @JsonProperty("resultTime")long resultTime, 
                        @JsonProperty("samplingTime")long samplingTime, 
                        @JsonProperty("obsValue")ObservationValue obsValue) {

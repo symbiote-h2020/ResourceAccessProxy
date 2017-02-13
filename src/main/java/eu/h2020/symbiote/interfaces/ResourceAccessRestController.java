@@ -74,8 +74,8 @@ public class ResourceAccessRestController {
         
             Observation observation = null;        
             ResourceInfo info = getResourceInfo(resourceId);
-            if(!checkPlatformPluginPresent(info.getPlatformId()))
-                throw new EntityNotFoundException("Plugin for platform " + info.getPlatformId() + " not found");
+        //   if(!checkPlatformPluginPresent(info.getPlatformId()))
+        //        throw new EntityNotFoundException("Plugin for platform " + info.getPlatformId() + " not found");
 
             ResourceAccessGetMessage msg = new ResourceAccessGetMessage(info);
             ObjectMapper mapper = new ObjectMapper();
@@ -112,8 +112,8 @@ public class ResourceAccessRestController {
             List<Observation> observationList = null;
         
             ResourceInfo info = getResourceInfo(resourceId);
-            if(!checkPlatformPluginPresent(info.getPlatformId()))
-                throw new EntityNotFoundException("Plugin for platform " + info.getPlatformId() + " not found");
+        //    if(!checkPlatformPluginPresent(info.getPlatformId()))
+        //        throw new EntityNotFoundException("Plugin for platform " + info.getPlatformId() + " not found");
             
             ResourceAccessHistoryMessage msg = new ResourceAccessHistoryMessage(info);
             ObjectMapper mapper = new ObjectMapper();
@@ -151,8 +151,8 @@ public class ResourceAccessRestController {
             log.info("Received write resource request for ID = " + resourceId + " with value " + value);
 
             ResourceInfo info = getResourceInfo(resourceId);
-            if(!checkPlatformPluginPresent(info.getPlatformId()))
-                throw new EntityNotFoundException("Plugin for platform " + info.getPlatformId() + " not found");
+        //    if(!checkPlatformPluginPresent(info.getPlatformId()))
+        //        throw new EntityNotFoundException("Plugin for platform " + info.getPlatformId() + " not found");
             
             ResourceAccessSetMessage msg = new ResourceAccessSetMessage(info, value);
             ObjectMapper mapper = new ObjectMapper();
