@@ -1,0 +1,5 @@
+<map id="eu.h2020.symbiote.messages.PluginRegistrationMessage" name="eu.h2020.symbiote.messages.PluginRegistrationMessage">
+<area shape="rect" id="node3" href="$classeu_1_1h2020_1_1symbiote_1_1messages_1_1RegisterPluginMessage.html" title="{eu.h2020.symbiote.messages.\lRegisterPluginMessage\n||+ RegisterPluginMessage()\l+ getPlatformName()\l}" alt="" coords="5,285,205,392"/>
+<area shape="rect" id="node4" href="$classeu_1_1h2020_1_1symbiote_1_1messages_1_1UnregisterPluginMessage.html" title="{eu.h2020.symbiote.messages.\lUnregisterPluginMessage\n||+ UnregisterPluginMessage()\l}" alt="" coords="229,293,429,385"/>
+<area shape="rect" id="node2" href="$classeu_1_1h2020_1_1symbiote_1_1messages_1_1RegistrationMessage.html" title="{eu.h2020.symbiote.messages.\lRegistrationMessage\n|~ actionType\l|+ getActionType()\l}" alt="" coords="117,5,317,97"/>
+</map>

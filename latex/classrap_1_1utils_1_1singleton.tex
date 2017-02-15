@@ -1,0 +1,52 @@
+\hypertarget{classrap_1_1utils_1_1singleton}{}\section{rap.\+utils.\+singleton Class Reference}
+\label{classrap_1_1utils_1_1singleton}\index{rap.\+utils.\+singleton@{rap.\+utils.\+singleton}}
+
+
+Collaboration diagram for rap.\+utils.\+singleton\+:
+% FIG 0
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classrap_1_1utils_1_1singleton_a95e6da4ecb56d4e8704fad01d658ede1}\label{classrap_1_1utils_1_1singleton_a95e6da4ecb56d4e8704fad01d658ede1}} 
+def {\bfseries \+\_\+\+\_\+init\+\_\+\+\_\+} (self, decorated)
+\item 
+def \hyperlink{classrap_1_1utils_1_1singleton_a73cd49c901fb1b01c3afe3cefd773e00}{instance} (self)
+\item 
+\mbox{\Hypertarget{classrap_1_1utils_1_1singleton_a11f303f7a146fd6a80af178970397bc9}\label{classrap_1_1utils_1_1singleton_a11f303f7a146fd6a80af178970397bc9}} 
+def {\bfseries \+\_\+\+\_\+call\+\_\+\+\_\+} (self)
+\item 
+\mbox{\Hypertarget{classrap_1_1utils_1_1singleton_a8621a6e410a03d568b483692fa4f196a}\label{classrap_1_1utils_1_1singleton_a8621a6e410a03d568b483692fa4f196a}} 
+def {\bfseries \+\_\+\+\_\+instancecheck\+\_\+\+\_\+} (self, inst)
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\begin{DoxyVerb}A non-thread-safe helper class to ease implementing singletons.
+This should be used as a decorator -- not a metaclass -- to the
+class that should be a singleton.
+
+The decorated class can define one `__init__` function that
+takes only the `self` argument. Other than that, there are
+no restrictions that apply to the decorated class.
+
+To get the singleton instance, use the `Instance` method. Trying
+to use `__call__` will result in a `TypeError` being raised.
+
+Limitations: The decorated class cannot be inherited from.\end{DoxyVerb}
+ 
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classrap_1_1utils_1_1singleton_a73cd49c901fb1b01c3afe3cefd773e00}\label{classrap_1_1utils_1_1singleton_a73cd49c901fb1b01c3afe3cefd773e00}} 
+\index{rap\+::utils\+::singleton@{rap\+::utils\+::singleton}!instance@{instance}}
+\index{instance@{instance}!rap\+::utils\+::singleton@{rap\+::utils\+::singleton}}
+\subsubsection{\texorpdfstring{instance()}{instance()}}
+{\footnotesize\ttfamily def rap.\+utils.\+singleton.\+instance (\begin{DoxyParamCaption}\item[{}]{self }\end{DoxyParamCaption})}
+
+\begin{DoxyVerb}Returns the singleton instance. Upon its first call, it creates a
+new instance of the decorated class and calls its `__init__` method.
+On all subsequent calls, the already created instance is returned.\end{DoxyVerb}
+ 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+rap/utils/\+\_\+\+\_\+init\+\_\+\+\_\+.\+py\end{DoxyCompactItemize}

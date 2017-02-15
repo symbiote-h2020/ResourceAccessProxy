@@ -1,0 +1,5 @@
+<map id="eu.h2020.symbiote.messages.ResourceAccessMessage" name="eu.h2020.symbiote.messages.ResourceAccessMessage">
+<area shape="rect" id="node2" href="$classeu_1_1h2020_1_1symbiote_1_1messages_1_1ResourceAccessGetMessage.html" title="{eu.h2020.symbiote.messages.\lResourceAccessGetMessage\n||+ ResourceAccessGetMessage()\l}" alt="" coords="5,182,220,274"/>
+<area shape="rect" id="node3" href="$classeu_1_1h2020_1_1symbiote_1_1messages_1_1ResourceAccessHistoryMessage.html" title="{eu.h2020.symbiote.messages.\lResourceAccessHistoryMessage\n||+ ResourceAccessHistoryMessage()\l}" alt="" coords="245,182,479,274"/>
+<area shape="rect" id="node4" href="$classeu_1_1h2020_1_1symbiote_1_1messages_1_1ResourceAccessSetMessage.html" title="{eu.h2020.symbiote.messages.\lResourceAccessSetMessage\n||+ ResourceAccessSetMessage()\l+ getValue()\l}" alt="" coords="504,175,719,281"/>
+</map>

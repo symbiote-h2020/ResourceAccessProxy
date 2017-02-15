@@ -1,0 +1,79 @@
+\hypertarget{classeu_1_1h2020_1_1symbiote_1_1interfaces_1_1ResourceAccessRestController}{}\section{eu.\+h2020.\+symbiote.\+interfaces.\+Resource\+Access\+Rest\+Controller Class Reference}
+\label{classeu_1_1h2020_1_1symbiote_1_1interfaces_1_1ResourceAccessRestController}\index{eu.\+h2020.\+symbiote.\+interfaces.\+Resource\+Access\+Rest\+Controller@{eu.\+h2020.\+symbiote.\+interfaces.\+Resource\+Access\+Rest\+Controller}}
+
+
+Collaboration diagram for eu.\+h2020.\+symbiote.\+interfaces.\+Resource\+Access\+Rest\+Controller\+:
+% FIG 0
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classeu_1_1h2020_1_1symbiote_1_1model_1_1data_1_1Observation}{Observation} \hyperlink{classeu_1_1h2020_1_1symbiote_1_1interfaces_1_1ResourceAccessRestController_af09022a743a07f59f9fbc3d3d04d249f}{read\+Resource} (@Path\+Variable String resource\+Id)
+\item 
+List$<$ \hyperlink{classeu_1_1h2020_1_1symbiote_1_1model_1_1data_1_1Observation}{Observation} $>$ \hyperlink{classeu_1_1h2020_1_1symbiote_1_1interfaces_1_1ResourceAccessRestController_a64f70338dddf8ca8114af95b811efd42}{read\+Resource\+History} (@Path\+Variable String resource\+Id)
+\item 
+Response\+Entity$<$?$>$ \hyperlink{classeu_1_1h2020_1_1symbiote_1_1interfaces_1_1ResourceAccessRestController_a46fcbc0ec97cc5d9a62f5e12f39cd8e2}{write\+Resource} (@Path\+Variable String resource\+Id, @Request\+Body \hyperlink{classeu_1_1h2020_1_1symbiote_1_1model_1_1data_1_1ObservationValue}{Observation\+Value} value)
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+\begin{DoxyAuthor}{Author}
+Matteo Pardi \href{mailto:m.pardi@nextworks.it}{\tt m.\+pardi@nextworks.\+it}
+\end{DoxyAuthor}
+R\+E\+ST controller which exposes the V\+N\+FM northbound A\+P\+Is used by the N\+F\+VO to interact with the V\+N\+FM 
+
+\subsection{Member Function Documentation}
+\mbox{\Hypertarget{classeu_1_1h2020_1_1symbiote_1_1interfaces_1_1ResourceAccessRestController_af09022a743a07f59f9fbc3d3d04d249f}\label{classeu_1_1h2020_1_1symbiote_1_1interfaces_1_1ResourceAccessRestController_af09022a743a07f59f9fbc3d3d04d249f}} 
+\index{eu\+::h2020\+::symbiote\+::interfaces\+::\+Resource\+Access\+Rest\+Controller@{eu\+::h2020\+::symbiote\+::interfaces\+::\+Resource\+Access\+Rest\+Controller}!read\+Resource@{read\+Resource}}
+\index{read\+Resource@{read\+Resource}!eu\+::h2020\+::symbiote\+::interfaces\+::\+Resource\+Access\+Rest\+Controller@{eu\+::h2020\+::symbiote\+::interfaces\+::\+Resource\+Access\+Rest\+Controller}}
+\subsubsection{\texorpdfstring{read\+Resource()}{readResource()}}
+{\footnotesize\ttfamily \hyperlink{classeu_1_1h2020_1_1symbiote_1_1model_1_1data_1_1Observation}{Observation} eu.\+h2020.\+symbiote.\+interfaces.\+Resource\+Access\+Rest\+Controller.\+read\+Resource (\begin{DoxyParamCaption}\item[{@Path\+Variable String}]{resource\+Id }\end{DoxyParamCaption})}
+
+Used to retrieve the current value of a registered resource
+
+
+\begin{DoxyParams}{Parameters}
+{\em resource\+Id} & the id of the resource to query \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the current value read from the resource 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classeu_1_1h2020_1_1symbiote_1_1interfaces_1_1ResourceAccessRestController_a64f70338dddf8ca8114af95b811efd42}\label{classeu_1_1h2020_1_1symbiote_1_1interfaces_1_1ResourceAccessRestController_a64f70338dddf8ca8114af95b811efd42}} 
+\index{eu\+::h2020\+::symbiote\+::interfaces\+::\+Resource\+Access\+Rest\+Controller@{eu\+::h2020\+::symbiote\+::interfaces\+::\+Resource\+Access\+Rest\+Controller}!read\+Resource\+History@{read\+Resource\+History}}
+\index{read\+Resource\+History@{read\+Resource\+History}!eu\+::h2020\+::symbiote\+::interfaces\+::\+Resource\+Access\+Rest\+Controller@{eu\+::h2020\+::symbiote\+::interfaces\+::\+Resource\+Access\+Rest\+Controller}}
+\subsubsection{\texorpdfstring{read\+Resource\+History()}{readResourceHistory()}}
+{\footnotesize\ttfamily List$<$\hyperlink{classeu_1_1h2020_1_1symbiote_1_1model_1_1data_1_1Observation}{Observation}$>$ eu.\+h2020.\+symbiote.\+interfaces.\+Resource\+Access\+Rest\+Controller.\+read\+Resource\+History (\begin{DoxyParamCaption}\item[{@Path\+Variable String}]{resource\+Id }\end{DoxyParamCaption})}
+
+Used to retrieve the history values of a registered resource
+
+
+\begin{DoxyParams}{Parameters}
+{\em resource\+Id} & the id of the resource to query \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the current value read from the resource 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classeu_1_1h2020_1_1symbiote_1_1interfaces_1_1ResourceAccessRestController_a46fcbc0ec97cc5d9a62f5e12f39cd8e2}\label{classeu_1_1h2020_1_1symbiote_1_1interfaces_1_1ResourceAccessRestController_a46fcbc0ec97cc5d9a62f5e12f39cd8e2}} 
+\index{eu\+::h2020\+::symbiote\+::interfaces\+::\+Resource\+Access\+Rest\+Controller@{eu\+::h2020\+::symbiote\+::interfaces\+::\+Resource\+Access\+Rest\+Controller}!write\+Resource@{write\+Resource}}
+\index{write\+Resource@{write\+Resource}!eu\+::h2020\+::symbiote\+::interfaces\+::\+Resource\+Access\+Rest\+Controller@{eu\+::h2020\+::symbiote\+::interfaces\+::\+Resource\+Access\+Rest\+Controller}}
+\subsubsection{\texorpdfstring{write\+Resource()}{writeResource()}}
+{\footnotesize\ttfamily Response\+Entity$<$?$>$ eu.\+h2020.\+symbiote.\+interfaces.\+Resource\+Access\+Rest\+Controller.\+write\+Resource (\begin{DoxyParamCaption}\item[{@Path\+Variable String}]{resource\+Id,  }\item[{@Request\+Body \hyperlink{classeu_1_1h2020_1_1symbiote_1_1model_1_1data_1_1ObservationValue}{Observation\+Value}}]{value }\end{DoxyParamCaption})}
+
+Used to write a value in a registered resource
+
+
+\begin{DoxyParams}{Parameters}
+{\em resource\+Id} & the id of the resource to query \\
+\hline
+{\em value} & the value to write \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+the http response code 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+src/main/java/eu/h2020/symbiote/interfaces/Resource\+Access\+Rest\+Controller.\+java\end{DoxyCompactItemize}

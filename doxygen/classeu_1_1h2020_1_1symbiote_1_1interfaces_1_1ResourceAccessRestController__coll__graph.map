@@ -1,0 +1,4 @@
+<map id="eu.h2020.symbiote.interfaces.ResourceAccessRestController" name="eu.h2020.symbiote.interfaces.ResourceAccessRestController">
+<area shape="rect" id="node2" href="$interfaceeu_1_1h2020_1_1symbiote_1_1interfaces_1_1ResourcesRepository.html" title="{eu.h2020.symbiote.interfaces.\lResourcesRepository\n||+ findByResourceId()\l+ findByPlatformId()\l+ findByPlatformResourceId()\l}" alt="" coords="10,176,206,297"/>
+<area shape="rect" id="node4" href="$interfaceeu_1_1h2020_1_1symbiote_1_1interfaces_1_1PluginRepository.html" title="{eu.h2020.symbiote.interfaces.\lPluginRepository\n||+ findByPlatformId()\l+ findByPlatformName()\l}" alt="" coords="231,183,427,290"/>
+</map>
