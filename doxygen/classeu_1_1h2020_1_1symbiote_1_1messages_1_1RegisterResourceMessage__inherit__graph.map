@@ -1,4 +1,0 @@
-<map id="eu.h2020.symbiote.messages.RegisterResourceMessage" name="eu.h2020.symbiote.messages.RegisterResourceMessage">
-<area shape="rect" id="node2" href="$classeu_1_1h2020_1_1symbiote_1_1messages_1_1ResourceRegistrationMessage.html" title="{eu.h2020.symbiote.messages.\lResourceRegistrationMessage\n|~ resourceId\l|+ getResourceId()\l}" alt="" coords="5,145,205,237"/>
-<area shape="rect" id="node3" href="$classeu_1_1h2020_1_1symbiote_1_1messages_1_1RegistrationMessage.html" title="{eu.h2020.symbiote.messages.\lRegistrationMessage\n|~ actionType\l|+ getActionType()\l}" alt="" coords="5,5,205,97"/>
-</map>

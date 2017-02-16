@@ -1,6 +1,0 @@
-<map id="eu.h2020.symbiote.messages.ResourceRegistrationMessage" name="eu.h2020.symbiote.messages.ResourceRegistrationMessage">
-<area shape="rect" id="node3" href="$classeu_1_1h2020_1_1symbiote_1_1messages_1_1RegisterResourceMessage.html" title="{eu.h2020.symbiote.messages.\lRegisterResourceMessage\n||+ RegisterResourceMessage()\l+ getPlatformResourceId()\l+ getResourceName()\l+ getLocation()\l+ getObsProps()\l+ getUrl()\l+ getDescription()\l+ getOwner()\l}" alt="" coords="5,285,205,480"/>
-<area shape="rect" id="node4" href="$classeu_1_1h2020_1_1symbiote_1_1messages_1_1UnregisterResourceMessage.html" title="{eu.h2020.symbiote.messages.\lUnregisterResourceMessage\n||+ UnregisterResourceMessage()\l}" alt="" coords="230,337,439,429"/>
-<area shape="rect" id="node5" href="$classeu_1_1h2020_1_1symbiote_1_1messages_1_1UpdateResourceMessage.html" title="{eu.h2020.symbiote.messages.\lUpdateResourceMessage\n||+ UpdateResourceMessage()\l+ getPlatformResourceId()\l+ getResourceName()\l+ getLocation()\l+ getObsProps()\l+ getUrl()\l+ getDescription()\l+ getOwner()\l}" alt="" coords="464,285,664,480"/>
-<area shape="rect" id="node2" href="$classeu_1_1h2020_1_1symbiote_1_1messages_1_1RegistrationMessage.html" title="{eu.h2020.symbiote.messages.\lRegistrationMessage\n|~ actionType\l|+ getActionType()\l}" alt="" coords="235,5,435,97"/>
-</map>

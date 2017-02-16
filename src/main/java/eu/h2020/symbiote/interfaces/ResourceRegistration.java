@@ -10,6 +10,7 @@ import eu.h2020.symbiote.messages.RegisterResourceMessage;
 import eu.h2020.symbiote.messages.RegistrationMessage.RegistrationAction;
 import eu.h2020.symbiote.messages.UnregisterResourceMessage;
 import eu.h2020.symbiote.messages.UpdateResourceMessage;
+import eu.h2020.symbiote.plugin.PlatformSpecificPlugin;
 import eu.h2020.symbiote.resources.ResourceInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +39,7 @@ public class ResourceRegistration {
             String resourceId = msg.getResourceId();
             String platformResourceId = msg.getPlatformResourceId();
             //String platformId = msg.getPlatformId();
-            String platformId = "platform";
+            String platformId = PlatformSpecificPlugin.getPluginPlatformId();
             
             log.debug("Registering resource with id " + resourceId);
             addResource(resourceId, platformResourceId, platformId);
@@ -72,7 +73,7 @@ public class ResourceRegistration {
             String resourceId = msg.getResourceId();
             String platformResourceId = msg.getPlatformResourceId();
             //String platformId = msg.getPlatformId();
-            String platformId = "platform";
+            String platformId = PlatformSpecificPlugin.getPluginPlatformId();
 
             log.debug("Updating resource with id " + resourceId);
             addResource(resourceId, platformResourceId, platformId);

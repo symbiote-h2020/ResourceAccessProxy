@@ -1,4 +1,0 @@
-<map id="eu.h2020.symbiote.messages.ResourceAccessMessage" name="eu.h2020.symbiote.messages.ResourceAccessMessage">
-<area shape="rect" id="node2" href="$enumeu_1_1h2020_1_1symbiote_1_1messages_1_1ResourceAccessMessage_1_1AccessType.html" title="{eu.h2020.symbiote.messages.\lResourceAccessMessage.AccessType\n|+ GET\l+ HISTORY\l+ SET\l|}" alt="" coords="5,20,256,141"/>
-<area shape="rect" id="node3" href="$classeu_1_1h2020_1_1symbiote_1_1resources_1_1ResourceInfo.html" title="{eu.h2020.symbiote.resources.\lResourceInfo\n||+ ResourceInfo()\l+ ResourceInfo()\l+ getResourceId()\l+ getPlatformResourceId()\l+ getPlatformId()\l}" alt="" coords="280,5,477,156"/>
-</map>
