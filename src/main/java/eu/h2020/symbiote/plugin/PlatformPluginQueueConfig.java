@@ -27,7 +27,7 @@ import org.springframework.context.annotation.DependsOn;
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
 @Configuration
-public class DummyPluginQueueConfig {   
+public class PlatformPluginQueueConfig {   
     
     @Autowired
     private RabbitTemplate rabbitTemplate;
@@ -37,39 +37,39 @@ public class DummyPluginQueueConfig {
     TopicExchange exchange;
     
     
-    @Bean(name=DummyPlugin.PLUGIN_RES_ACCESS_QUEUE)
+    @Bean(name=PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE)
     Queue dummyPluginQueue() {
-        return new Queue(DummyPlugin.PLUGIN_RES_ACCESS_QUEUE, false);
+        return new Queue(PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE, false);
     }
 
-    @Bean(name=DummyPlugin.PLUGIN_RES_ACCESS_QUEUE + "Bindings")
-    List<Binding> dummyPluginBindings(@Qualifier(DummyPlugin.PLUGIN_RES_ACCESS_QUEUE) Queue queue,
+    @Bean(name=PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE + "Bindings")
+    List<Binding> dummyPluginBindings(@Qualifier(PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE) Queue queue,
                              @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT) TopicExchange exchange) {
         ArrayList bindings = new ArrayList();
-        for(String key : DummyPlugin.PLUGIN_RES_ACCESS_KEYS)
+        for(String key : PlatformSpecificPlugin.PLUGIN_RES_ACCESS_KEYS)
             bindings.add(BindingBuilder.bind(queue).to(exchange).with(key));
 
         return bindings;
     }
 
-    @Bean(name=DummyPlugin.PLUGIN_RES_ACCESS_QUEUE + "Container")
+    @Bean(name=PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE + "Container")
     SimpleMessageListenerContainer dummyPluginContainer(ConnectionFactory connectionFactory,
-                                             @Qualifier(DummyPlugin.PLUGIN_RES_ACCESS_QUEUE + "Listener") MessageListenerAdapter listenerAdapter) {
+                                             @Qualifier(PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE + "Listener") MessageListenerAdapter listenerAdapter) {
         SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
-        container.setQueueNames(DummyPlugin.PLUGIN_RES_ACCESS_QUEUE);
+        container.setQueueNames(PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE);
         container.setMessageListener(listenerAdapter);
         return container;
     }
 
     @DependsOn(RapDefinitions.PLUGIN_REGISTRATION_EXCHANGE_IN)
     @Bean
-    DummyPlugin dummyPluginReceiver() {
-        return new DummyPlugin(rabbitTemplate, exchange);
+    PlatformSpecificPlugin dummyPluginReceiver() {
+        return new PlatformSpecificPlugin(rabbitTemplate, exchange);
     }
 
-    @Bean(name=DummyPlugin.PLUGIN_RES_ACCESS_QUEUE + "Listener")
-    MessageListenerAdapter dummyPluginListenerAdapter(DummyPlugin receiver) {
+    @Bean(name=PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE + "Listener")
+    MessageListenerAdapter dummyPluginListenerAdapter(PlatformSpecificPlugin receiver) {
         return new MessageListenerAdapter(receiver, "receiveMessage");
     }
 }

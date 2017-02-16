@@ -26,10 +26,11 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
  *
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
-public class DummyPlugin {
+public class PlatformSpecificPlugin {
     private static final Logger log = LoggerFactory.getLogger(ResourceAccessRestController.class);
 
     private static final String PLUGIN_PLATFORM_ID = "platform_01";
+
     private static final String PLUGIN_PLATFORM_NAME = "platform_name_01";
     
     //public static final String PLUGIN_RES_ACCESS_QUEUE = PLUGIN_PLATFORM_ID + "-rap-platform-queue";
@@ -50,11 +51,16 @@ public class DummyPlugin {
     private final TopicExchange exchange;
     
     
-    public DummyPlugin(RabbitTemplate rabbitTemplate, TopicExchange exchange) {
+    public PlatformSpecificPlugin(RabbitTemplate rabbitTemplate, TopicExchange exchange) {
         this.rabbitTemplate = rabbitTemplate;
         this.exchange = exchange; 
         registerPlugin();
     }
+    
+    public static String getPluginPlatformId() {
+        return PLUGIN_PLATFORM_ID;
+    }
+    
     
     public Observation readResource(String resourceId) {
         Observation value;
