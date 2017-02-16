@@ -7,10 +7,12 @@ jdk:
 services:
 - mongodb
 - rabbitmq
+- mysql
 sudo: required
 branches:
   only:
   - staging
+  - travis_test
 before_cache:
 - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
 - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
@@ -18,6 +20,9 @@ cache:
   directories:
   - "$HOME/.gradle/caches/"
   - "$HOME/.gradle/wrapper/"
+before_script:
+  - mysql -u root -e 'CREATE DATABASE IF NOT EXISTS resources_db;'
+  - echo "USE mysql;\nUPDATE user SET password=PASSWORD('password') WHERE user='root';\nFLUSH PRIVILEGES;\n" | mysql -u root
 after_success:
 - chmod a+x merge_script.sh
 - BRANCHES_TO_MERGE_REGEX='staging' BRANCH_TO_MERGE_INTO=develop GITHUB_REPO=symbiote-h2020/ResourceAccessProxy
