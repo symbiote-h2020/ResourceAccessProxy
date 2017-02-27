@@ -7,16 +7,12 @@ package eu.h2020.symbiote.resources;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import org.springframework.data.annotation.Id;
 
 /**
  *
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
-@Entity
-@Table(name = "resources")
 public class ResourceInfo {
     
     @Id

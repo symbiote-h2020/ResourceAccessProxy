@@ -13,9 +13,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -64,7 +62,7 @@ public class ResourceAccessProxyApplicationTests {
         //this.resourceRepo.deleteAll();
         
         ResourceInfo resourceTest = new ResourceInfo("test_resource", "test_res", PlatformSpecificPlugin.getPluginPlatformId());
-        resourceRepo.saveAndFlush(resourceTest);
+        resourceRepo.save(resourceTest);
     }
 	
 	

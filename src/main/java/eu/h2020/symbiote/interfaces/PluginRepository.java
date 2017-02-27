@@ -7,16 +7,16 @@ package eu.h2020.symbiote.interfaces;
 
 import eu.h2020.symbiote.resources.PlatformInfo;
 import java.util.Optional;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.stereotype.Repository;
+import org.springframework.data.mongodb.repository.MongoRepository;
 
 /**
  *
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
 
-@Transactional
-public interface PluginRepository extends JpaRepository<PlatformInfo, String> {
+@Repository
+public interface PluginRepository extends MongoRepository<PlatformInfo, String> {
     /**
      * This method will find a Plugin in the database 
      * by its platformId.

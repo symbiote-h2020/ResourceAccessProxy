@@ -139,3 +139,5 @@ target
 # Logs
 logs
 *.log
+db
+/nbproject

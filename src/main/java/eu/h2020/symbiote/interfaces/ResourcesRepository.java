@@ -8,15 +8,15 @@ package eu.h2020.symbiote.interfaces;
 import eu.h2020.symbiote.resources.ResourceInfo;
 import java.util.Optional;
 import java.util.List;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.stereotype.Repository;
+import org.springframework.data.mongodb.repository.MongoRepository;
 
 /**
  *
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
-@Transactional
-public interface ResourcesRepository extends JpaRepository<ResourceInfo, String> {
+@Repository
+public interface ResourcesRepository extends MongoRepository<ResourceInfo, String> {
     
     /**
      * This method will find a Resource instance in the database by 

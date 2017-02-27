@@ -121,7 +121,7 @@ public class ResourceRegistration {
     
     private void addResource(String resourceId, String platformResourceId, String platformId) {
         ResourceInfo resourceInfo = new ResourceInfo(resourceId, platformResourceId, platformId);
-        resourcesRepository.saveAndFlush(resourceInfo);
+        resourcesRepository.save(resourceInfo);
     }
     
     private void deleteResource(String resourceId) {
