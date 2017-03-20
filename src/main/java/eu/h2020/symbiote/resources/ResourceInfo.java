@@ -8,45 +8,50 @@ package eu.h2020.symbiote.resources;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  *
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
+@Document(collection="resources")
 public class ResourceInfo {
     
     @Id
     @JsonProperty("resourceId")
-    private final String resourceId;
+    private final String resource_Id;
     @JsonProperty("platformResourceId")
-    private final String platformResourceId;
+    private final String platformResource_Id;
     @JsonProperty("platformId")
-    private final String platformId;
+    private final String platform_Id;
     
     public ResourceInfo() {
-        this.resourceId = "";
-        this.platformResourceId = "";
-        this.platformId = "";
+        this.resource_Id = "";
+        this.platformResource_Id = "";
+        this.platform_Id = "";
     }
     
     @JsonCreator
     public ResourceInfo(@JsonProperty("resourceId") String resourceId, 
                         @JsonProperty("platformResourceId") String platformResourceId, 
                         @JsonProperty("platformId") String platformId) {
-        this.resourceId = resourceId;
-        this.platformResourceId = platformResourceId;
-        this.platformId = platformId;
+        this.resource_Id = resourceId;
+        this.platformResource_Id = platformResourceId;
+        this.platform_Id = platformId;
     }
     
+    @JsonProperty("resourceId")
     public String getResourceId() {
-        return resourceId;
+        return resource_Id;
     }
     
+    @JsonProperty("platformResourceId")
     public String getPlatformResourceId() {
-        return platformResourceId;
+        return platformResource_Id;
     }
     
+    @JsonProperty("platformId")
     public String getPlatformId() {
-        return platformId;
+        return platform_Id;
     }
 }

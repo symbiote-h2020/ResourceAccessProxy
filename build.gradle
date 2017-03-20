@@ -28,14 +28,7 @@ apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: 'spring-boot'
 apply plugin: 'jacoco'
-/*
-repositories {
-    mavenCentral()
-    // You may define additional repositories, or even remove "mavenCentral()".
-    // Read more about repositories here:
-    //   http://www.gradle.org/docs/current/userguide/dependency_management.html#sec:repositories
-    
-}*/
+
 
 jar {
     baseName = 'ResourceAccessProxy'
@@ -70,8 +63,9 @@ dependencies {
     compile ("org.springframework.boot:spring-boot-configuration-processor")
     compile ("org.springframework.boot:spring-boot-starter-amqp")
     testCompile ("com.jayway.jsonpath:json-path")
-    //compile ("org.springframework.boot:spring-boot-starter-data-jpa")
     compile("org.springframework.boot:spring-boot-starter-data-mongodb")
+    compile("org.apache.olingo:odata-commons-api:${'4.3.0'}")
+    compile("org.apache.olingo:odata-commons-core:${'4.3.0'}")
 }
 
 dependencyManagement {
