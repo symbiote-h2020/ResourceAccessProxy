@@ -20,6 +20,9 @@ import org.apache.olingo.commons.api.edm.provider.CsdlProperty;
 import org.apache.olingo.commons.api.edm.provider.CsdlPropertyRef;
 import org.apache.olingo.commons.api.edm.provider.CsdlSchema;
 import org.apache.olingo.commons.api.ex.ODataException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.stereotype.Component;
 
 /**
  * this class is supposed to declare the metadata of the OData service
@@ -28,7 +31,13 @@ import org.apache.olingo.commons.api.ex.ODataException;
  * 
  *  @author Matteo Pardi m.pardi@nextworks.it
  */
+
+@Component
 public class ResourceAccessProxyEdmProvider extends CsdlAbstractEdmProvider {
+    
+    @Autowired
+    private ApplicationContext ctx;
+    
     // Service Namespace
     public static final String NAMESPACE = "OData.Demo";
     // EDM Container

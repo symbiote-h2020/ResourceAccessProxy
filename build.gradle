@@ -66,6 +66,9 @@ dependencies {
     compile("org.springframework.boot:spring-boot-starter-data-mongodb")
     compile("org.apache.olingo:odata-commons-api:${'4.3.0'}")
     compile("org.apache.olingo:odata-commons-core:${'4.3.0'}")
+    
+    compile("org.apache.olingo:odata-server-api:${'4.3.0'}")
+    compile("org.apache.olingo:odata-server-core:${'4.3.0'}")
 }
 
 dependencyManagement {

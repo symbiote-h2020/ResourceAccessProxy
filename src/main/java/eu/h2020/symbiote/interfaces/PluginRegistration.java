@@ -27,8 +27,9 @@ public class PluginRegistration {
     PluginRepository pluginRepository;
     
     
-    public void receiveMessage(String message) {
+    public void receiveMessage(byte[] messageByte) {
         try {
+            String message = new String(messageByte, "UTF-8");
             log.debug("Plugin Registration message received.\n" + message);
 
             ObjectMapper mapper = new ObjectMapper();
