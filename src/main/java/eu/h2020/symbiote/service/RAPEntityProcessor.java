@@ -13,6 +13,7 @@ import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
+import org.apache.olingo.commons.api.edm.EdmNavigationProperty;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveType;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeException;
 import org.apache.olingo.commons.api.edm.EdmProperty;
@@ -31,6 +32,7 @@ import org.apache.olingo.server.api.uri.UriInfo;
 import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
+import org.apache.olingo.server.api.uri.UriResourceNavigation;
 import org.apache.olingo.server.api.serializer.ODataSerializer;
 import org.apache.olingo.server.api.serializer.EntitySerializerOptions;
 import org.apache.olingo.server.api.serializer.SerializerResult;
@@ -44,7 +46,7 @@ import org.springframework.stereotype.Component;
  */
 
 @Component
-public class DemoEntityProcessor implements EntityProcessor{
+public class RAPEntityProcessor implements EntityProcessor{
 
     @Autowired
     private ApplicationContext ctx;
@@ -52,10 +54,14 @@ public class DemoEntityProcessor implements EntityProcessor{
     private OData odata;
     private ServiceMetadata serviceMetadata;
     
+    private StorageHelper storageHelper;
+    
     @Override
     public void init(OData odata, ServiceMetadata sm) {
         this.odata = odata;
         this.serviceMetadata = sm;
+        
+        storageHelper = new StorageHelper();
     }
     
     @Override
@@ -63,13 +69,50 @@ public class DemoEntityProcessor implements EntityProcessor{
             throws ODataApplicationException, ODataLibraryException {
         // 1. retrieve the Entity Type
         List<UriResource> resourcePaths = uriInfo.getUriResourceParts();
+        int segmentCount = resourcePaths.size();
+        
+        
         // Note: only in our example we can assume that the first segment is the EntitySet
         UriResourceEntitySet uriResourceEntitySet = (UriResourceEntitySet) resourcePaths.get(0);
         EdmEntitySet edmEntitySet = uriResourceEntitySet.getEntitySet();
 
+        
+        
         // 2. retrieve the data from backend
         List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
-        Entity entity = readEntityData(edmEntitySet, keyPredicates);
+        Entity entity = storageHelper.readEntityData(edmEntitySet, keyPredicates);
+        
+        
+        if(segmentCount == 1){ // this is the case for: DemoService/DemoService.svc/Categories
+            ////responseEdmEntitySet = edmEntitySet; // first (and only) entitySet
+            // 2nd: fetch the data from backend for this requested EntitySetName
+            ////responseEntityCollection = storage.readEntitySetData(edmEntitySet);
+        }else if (segmentCount == 2){ //navigation: e.g. DemoService.svc/Categories(3)/Products
+            UriResource lastSegment = resourcePaths.get(1); // don't support more complex URIs
+            if(lastSegment instanceof UriResourceNavigation){
+                UriResourceNavigation uriResourceNavigation = (UriResourceNavigation)lastSegment;
+                EdmNavigationProperty edmNavigationProperty = uriResourceNavigation.getProperty();
+                EdmEntityType targetEntityType = edmNavigationProperty.getType();
+                ////responseEdmEntitySet = Util.getNavigationTargetEntitySet(edmEntitySet, edmNavigationProperty);
+
+                // 2nd: fetch the data from backend
+                // first fetch the entity where the first segment of the URI points to
+                // e.g. Categories(3)/Products first find the single entity: Category(3)
+                
+                Entity sourceEntity = storageHelper.readEntityData(edmEntitySet, keyPredicates);
+                // error handling for e.g.  DemoService.svc/Categories(99)/Products
+                if(sourceEntity == null) {
+                    throw new ODataApplicationException("Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+                }
+                // then fetch the entity collection where the entity navigates to
+                //responseEntityCollection = getRelatedEntityCollection(sourceEntity, targetEntityType);
+            }
+        }else{ // this would be the case for e.g. Products(1)/Category/Products
+            throw new ODataApplicationException("Not supported", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(),Locale.ROOT);
+        }
+        
+        
+        
 
         // 3. serialize
         EdmEntityType entityType = edmEntitySet.getEntityType();
@@ -104,17 +147,17 @@ public class DemoEntityProcessor implements EntityProcessor{
     }
     
     
-    
+    /*
     private Entity readEntityData(EdmEntitySet edmEntitySet, List<UriParameter> keyParams) throws ODataApplicationException{
 
         EdmEntityType edmEntityType = edmEntitySet.getEntityType();
 
         // actually, this is only required if we have more than one Entity Type
-        if(edmEntityType.getName().equals(DemoEdmProvider.ET_PRODUCT_NAME)){
+        if(edmEntityType.getName().equals(ResourceAccessProxyEdmProvider.ET_RESOURCE_NAME)){
             // the list of entities at runtime
-            EntityCollection entitySet = DemoEntityCollectionProcessor.getData(edmEntitySet);
+            EntityCollection entitySet = RAPEntityCollectionProcessor.getData(edmEntitySet);
 
-            /*  generic approach  to find the requested entity */
+            // generic approach  to find the requested entity 
             Entity requestedEntity = findEntity(edmEntityType, entitySet, keyParams);
 
             if(requestedEntity == null){
@@ -157,6 +200,9 @@ public class DemoEntityProcessor implements EntityProcessor{
             // key
             String keyName = key.getName();
             String keyText = key.getText();
+            
+            //remove cuotes
+            keyText = keyText.replaceAll("'", "");
 
             // Edm: we need this info for the comparison below
             EdmProperty edmKeyProperty = (EdmProperty )edmEntityType.getProperty(keyName);
@@ -197,4 +243,6 @@ public class DemoEntityProcessor implements EntityProcessor{
 
         return true;
     }
+     
+     */
 }

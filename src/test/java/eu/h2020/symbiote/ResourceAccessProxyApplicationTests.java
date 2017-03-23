@@ -72,55 +72,55 @@ public class ResourceAccessProxyApplicationTests {
 
         
     
-    @Test
-    public void testReadExistingResource() throws Exception {
-        System.out.println("Test read existing resource");
-        this.mockMvc.perform(get("/rap/Sensor('test_resource')"))
-                .andExpect(status().isOk())
-                /*.andExpect(content().contentType(contentType))
-		.andExpect(jsonPath("vnfInfo[0].instantiatedVnfInfo.vnfcResourceInfo[0].vnfcInstanceId", is("VM-01-testVnfc")))*/;
-        
-    }
-    
-    @Test
-    public void testReadNotExistingResource() throws Exception {
-        System.out.println("Test read not existing resource");
-        this.mockMvc.perform(get("/rap/Sensor('test_res')")).andExpect(status().isBadRequest());
-    }
-    
-    @Test
-    public void testReadExistingResourceHistory() throws Exception {
-        System.out.println("Test read existing resource history");
-        this.mockMvc.perform(get("/rap/Sensor('test_resource')/history")).andExpect(status().isInternalServerError());
-    }
-    
-    @Test
-    public void testReadNotExistingResourceHistory() throws Exception {
-        System.out.println("Test read not existing resource history");
-        this.mockMvc.perform(get("/rap/Sensor('test_res')/history")).andExpect(status().isBadRequest());
-    }
-    
-    @Test
-    public void testWriteExistingResource() throws Exception {
-        System.out.println("Test write existing resource history");
-        Observation observation = Observation.observationExampleValue();
-        String json = json(observation);
-        this.mockMvc.perform(post("/rap/Resource('test_resource')")
-                            .contentType(contentType)
-                            .content(json))
-                            .andExpect(status().isOk());
-    }
-    
-    @Test
-    public void testWriteNotExistingResource() throws Exception {
-        System.out.println("Test write not existing resource history");
-        Observation observation = Observation.observationExampleValue();
-        String json = json(observation);
-        this.mockMvc.perform(post("/rap/Resource('test_res')")
-                            .contentType(contentType)
-                            .content(json))
-                            .andExpect(status().isBadRequest());
-    }
+//    @Test
+//    public void testReadExistingResource() throws Exception {
+//        System.out.println("Test read existing resource");
+//        this.mockMvc.perform(get("/rap/Sensor('test_resource')"))
+//                .andExpect(status().isOk())
+//                /*.andExpect(content().contentType(contentType))
+//		.andExpect(jsonPath("vnfInfo[0].instantiatedVnfInfo.vnfcResourceInfo[0].vnfcInstanceId", is("VM-01-testVnfc")))*/;
+//        
+//    }
+//    
+//    @Test
+//    public void testReadNotExistingResource() throws Exception {
+//        System.out.println("Test read not existing resource");
+//        this.mockMvc.perform(get("/rap/Sensor('test_res')")).andExpect(status().isBadRequest());
+//    }
+//    
+//    @Test
+//    public void testReadExistingResourceHistory() throws Exception {
+//        System.out.println("Test read existing resource history");
+//        this.mockMvc.perform(get("/rap/Sensor('test_resource')/history")).andExpect(status().isInternalServerError());
+//    }
+//    
+//    @Test
+//    public void testReadNotExistingResourceHistory() throws Exception {
+//        System.out.println("Test read not existing resource history");
+//        this.mockMvc.perform(get("/rap/Sensor('test_res')/history")).andExpect(status().isBadRequest());
+//    }
+//    
+//    @Test
+//    public void testWriteExistingResource() throws Exception {
+//        System.out.println("Test write existing resource history");
+//        Observation observation = Observation.observationExampleValue();
+//        String json = json(observation);
+//        this.mockMvc.perform(post("/rap/Resource('test_resource')")
+//                            .contentType(contentType)
+//                            .content(json))
+//                            .andExpect(status().isOk());
+//    }
+//    
+//    @Test
+//    public void testWriteNotExistingResource() throws Exception {
+//        System.out.println("Test write not existing resource history");
+//        Observation observation = Observation.observationExampleValue();
+//        String json = json(observation);
+//        this.mockMvc.perform(post("/rap/Resource('test_res')")
+//                            .contentType(contentType)
+//                            .content(json))
+//                            .andExpect(status().isBadRequest());
+//    }
     
     @After
     public void clearInternalDatabases() {

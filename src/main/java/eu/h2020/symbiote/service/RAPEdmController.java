@@ -40,10 +40,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("odata")
-public class EDMController {
+@RequestMapping("rap")
+public class RAPEdmController {
 
-    private static String URI = "odata/";
+    private static String URI = "rap/";
 
     /**
      * The split.
@@ -59,16 +59,16 @@ public class EDMController {
      * The edm provider.
      */
     @Autowired 
-    private DemoEdmProvider edmProvider;
+    private ResourceAccessProxyEdmProvider edmProvider;
     
     /**
      * The enity collection processor.
      */
     @Autowired
-    private DemoEntityCollectionProcessor entityCollectionProcessor;
+    private RAPEntityCollectionProcessor entityCollectionProcessor;
     
     @Autowired
-    private DemoEntityProcessor entityProcessor;
+    private RAPEntityProcessor entityProcessor;
 
     /**
      * Process.
@@ -78,7 +78,7 @@ public class EDMController {
      */
     @RequestMapping(value = "*")
     public ResponseEntity<String> process(HttpServletRequest req) throws Exception {
-
+        split = 0;
         try {
             OData odata = OData.newInstance();
             ServiceMetadata edm = odata.createServiceMetadata(edmProvider,
@@ -115,6 +115,98 @@ public class EDMController {
 
     }
 
+    
+    @RequestMapping(value = "Subscribe/*")
+    public ResponseEntity<String> processSubscribe(HttpServletRequest req) throws Exception {
+        split = 1;
+        try {
+            OData odata = OData.newInstance();
+            ServiceMetadata edm = odata.createServiceMetadata(edmProvider,
+                    new ArrayList<EdmxReference>());
+            
+            //ODataHandler handler = new ODataHandler(odata, edm);
+            //handler.register(entityCollectionProcessor);
+
+//            ServiceMetadata edm = odata.createServiceMetadata(new DemoEdmProvider(), new ArrayList<EdmxReference>());
+//            ODataHttpHandler handler = odata.createHandler(edm);
+//            handler.register(new DemoEntityCollectionProcessor());
+
+            ODataHttpHandler handler = odata.createHandler(edm);
+            handler.register(entityCollectionProcessor);
+            handler.register(entityProcessor);
+
+
+            ODataResponse response = handler.process(createODataRequest(req,split));
+            String responseStr = StreamUtils.copyToString(
+                    response.getContent(), Charset.defaultCharset());
+            MultiValueMap<String, String> headers = new HttpHeaders();
+//          for (String key : response.getHeaders().keySet()) {
+//              headers.add(key, response.getHeaders().get(key).toString());
+//          }
+//            for (String key : response.getHeaders(URI)) {
+//                headers.add(key, response.getHeaders(URI).get(key).toString());
+//            }
+            return new ResponseEntity<String>(responseStr, headers,
+                    HttpStatus.valueOf(response.getStatusCode()));
+        } catch (Exception ex) {
+            //throw new EdmException();
+            throw ex;
+        }
+
+    }
+    
+    
+    
+    @RequestMapping(value="Resources('{resourceId}')/*")
+    public ResponseEntity<String> processResources(HttpServletRequest req) throws Exception {
+        split = 0;
+        try {
+            OData odata = OData.newInstance();
+            ServiceMetadata edm = odata.createServiceMetadata(edmProvider,
+                    new ArrayList<EdmxReference>());
+            
+            //ODataHandler handler = new ODataHandler(odata, edm);
+            //handler.register(entityCollectionProcessor);
+
+//            ServiceMetadata edm = odata.createServiceMetadata(new DemoEdmProvider(), new ArrayList<EdmxReference>());
+//            ODataHttpHandler handler = odata.createHandler(edm);
+//            handler.register(new DemoEntityCollectionProcessor());
+
+            ODataHttpHandler handler = odata.createHandler(edm);
+            handler.register(entityCollectionProcessor);
+            handler.register(entityProcessor);
+
+
+            ODataResponse response = handler.process(createODataRequest(req,split));
+            String responseStr = StreamUtils.copyToString(
+                    response.getContent(), Charset.defaultCharset());
+            MultiValueMap<String, String> headers = new HttpHeaders();
+//          for (String key : response.getHeaders().keySet()) {
+//              headers.add(key, response.getHeaders().get(key).toString());
+//          }
+//            for (String key : response.getHeaders(URI)) {
+//                headers.add(key, response.getHeaders(URI).get(key).toString());
+//            }
+            return new ResponseEntity<String>(responseStr, headers,
+                    HttpStatus.valueOf(response.getStatusCode()));
+        } catch (Exception ex) {
+            //throw new EdmException();
+            throw ex;
+        }
+
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     /**
      * Creates the o data request.
      *
