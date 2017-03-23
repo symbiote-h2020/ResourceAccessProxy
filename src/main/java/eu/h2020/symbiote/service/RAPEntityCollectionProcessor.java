@@ -5,21 +5,20 @@
  */
 package eu.h2020.symbiote.service;
 
-import java.io.InputStream;
-import java.net.URI;
-import java.net.URISyntaxException;
+import com.google.common.collect.Lists;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
-import org.apache.olingo.commons.api.data.ComplexValue;
+import java.util.Map;
 import org.apache.olingo.commons.api.data.ContextURL;
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
-import org.apache.olingo.commons.api.data.Property;
-import org.apache.olingo.commons.api.data.ValueType;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
 import org.apache.olingo.commons.api.edm.EdmNavigationProperty;
-import org.apache.olingo.commons.api.ex.ODataRuntimeException;
 import org.apache.olingo.commons.api.format.ContentType;
 import org.apache.olingo.commons.api.http.HttpHeader;
 import org.apache.olingo.commons.api.http.HttpStatusCode;
@@ -41,6 +40,8 @@ import org.apache.olingo.server.api.serializer.SerializerResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
+import org.apache.olingo.server.api.uri.queryoption.FilterOption;
+import org.apache.olingo.server.api.uri.queryoption.expression.Expression;
 
 /**
  *
@@ -51,6 +52,8 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
 
     @Autowired
     private ApplicationContext ctx;
+    
+    private static final Logger log = LoggerFactory.getLogger(RAPEntityCollectionProcessor.class);
 
     private OData odata;
     private ServiceMetadata serviceMetadata;
@@ -107,6 +110,25 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
         EdmEntitySet responseEdmEntitySet = null; // for building ContextURL
         EntityCollection responseEntityCollection = null; // for the response body
 
+        
+        FilterOption filter = uriInfo.getFilterOption();
+        List<String> operatorsIn =  new ArrayList<String>();
+        List<String> operatorsOut =  new ArrayList<String>();
+        Map<String, Object> filters = new LinkedHashMap<String, Object>();
+        if(filter != null){
+            Expression expression = filter.getExpression();
+            storageHelper.calculateFilter(expression,operatorsIn,operatorsOut,filters);
+            List<String> reverseView = Lists.reverse(operatorsOut); 
+        }
+        String operatorsInStr = "operatorsIn: " + operatorsIn.toString();
+        String operatorsOutStr = "operatorsOut: " + operatorsOut.toString();
+        String filtersStr = "filters: " + filters.toString();
+        
+        log.info(operatorsInStr);
+        log.info(operatorsOutStr);
+        log.info(filtersStr);
+        
+        
         // 1st retrieve the requested EntitySet from the uriInfo
         List<UriResource> resourceParts = uriInfo.getUriResourceParts();
         int segmentCount = resourceParts.size();

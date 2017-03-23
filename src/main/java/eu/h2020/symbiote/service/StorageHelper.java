@@ -10,6 +10,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import org.apache.olingo.commons.api.data.ComplexValue;
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
@@ -32,6 +33,12 @@ import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeException;
 import org.apache.olingo.commons.api.edm.EdmProperty;
 import org.apache.olingo.commons.api.edm.EdmType;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
+import org.apache.olingo.commons.core.edm.primitivetype.EdmString;
+import org.apache.olingo.server.api.uri.queryoption.expression.Binary;
+import org.apache.olingo.server.api.uri.queryoption.expression.BinaryOperatorKind;
+import org.apache.olingo.server.api.uri.queryoption.expression.Expression;
+import org.apache.olingo.server.api.uri.queryoption.expression.Literal;
+import org.apache.olingo.server.api.uri.queryoption.expression.Member;
 
 /**
  *
@@ -187,8 +194,7 @@ public class StorageHelper {
         } else if (sourceEntityType.getName().equals(ResourceAccessProxyEdmProvider.ET_RESOURCE_NAME)
                 && relatedEntityFqn.equals(ResourceAccessProxyEdmProvider.ET_OBSERVATION_FQN)) {
             // relation Category->Products (result all products)
-            Object a = sourceEntity.getProperty("resourceId");
-            Object b = sourceEntity.getProperty("resourceId").getValue();
+            
             String resourceID = (String) sourceEntity.getProperty("resourceId").getValue();
             if (resourceID.equals("res1")) {
                 // the first 2 products are notebooks
@@ -322,5 +328,37 @@ public class StorageHelper {
         }
 
         return (UriResourceNavigation) resourcePaths.get(--navigationCount);
+    }
+    
+    public static void calculateFilter (Expression expression, List<String> operatorsIn,
+        List<String> operatorsOut, Map<String, Object> map) throws ODataApplicationException{
+        
+        if(expression instanceof Binary){
+            Expression left = ((Binary) expression).getLeftOperand();
+            BinaryOperatorKind operator = ((Binary) expression).getOperator();
+            Expression right = ((Binary) expression).getRightOperand();
+            
+            if(left instanceof Binary && right instanceof Binary){
+                operatorsOut.add(operator.name());
+                calculateFilter(left,operatorsIn,operatorsOut,map);
+                calculateFilter(right,operatorsIn,operatorsOut,map);
+            }
+            else if (left instanceof Member && right instanceof Literal){
+                operatorsIn.add(operator.name());
+                
+                Member member = (Member) left;
+                String key = member.toString();      
+                                
+                Literal literal = (Literal) right;
+                String value = literal.getText();
+                if(literal.getType() instanceof EdmString)
+                    value = value.substring(1, value.length() - 1);
+                
+                map.put(key, value);
+            }
+            else{
+                throw new ODataApplicationException("Not implement", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
+            }
+        }
     }
 }
