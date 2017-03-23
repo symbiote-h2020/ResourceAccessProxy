@@ -84,7 +84,10 @@ public class ResourceAccessRestController {
             String json = mapper.writeValueAsString(msg);
             
             String routingKey = /*info.getPlatformId() + "." +*/ AccessType.GET.toString().toLowerCase();
-            String response = (String)rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+            Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+            String response = null;
+            if(obj != null)
+                response = new String((byte[]) obj, "UTF-8");
             observation = mapper.readValue(response, Observation.class);
             
             return observation;
@@ -173,12 +176,21 @@ public class ResourceAccessRestController {
         }
     }
 
+    /*
     private ResourceInfo getResourceInfo(String resourceId) {
         Optional<ResourceInfo> resInfo = resourcesRepo.findByResourceId(resourceId);
         if(!resInfo.isPresent())
             throw new EntityNotFoundException("Resource " + resourceId + " not found");
         
         return resInfo.get();
+    }*/
+    
+    private ResourceInfo getResourceInfo(String resourceId) {
+        List<ResourceInfo> resInfo2 = resourcesRepo.findAll();
+        //Optional<ResourceInfo> resInfo = resourcesRepo.findByResourceId(resourceId);
+        ResourceInfo resInfo = resInfo2.get(1);
+        
+        return resInfo;
     }
     
     private boolean checkPlatformPluginPresent(String platformId) {
