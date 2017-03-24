@@ -42,6 +42,7 @@ public class PluginRegistration {
                     String platformName = mess.getPlatformName();
                     log.debug("Registering plugin for platform " + platformId + " with name " + platformName);
                     addPlugin(platformId, platformName);
+                    log.info("AddPlugin: platformId=" + platformId + " platformName="+platformName);
                     break;
                 }
                 case UNREGISTER_PLUGIN: {
