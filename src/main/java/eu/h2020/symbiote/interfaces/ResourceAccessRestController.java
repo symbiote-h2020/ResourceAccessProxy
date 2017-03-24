@@ -9,7 +9,6 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.exceptions.*;
-import eu.h2020.symbiote.interfaces.conditions.NBInterfaceRESTCondition;
 import eu.h2020.symbiote.messages.ResourceAccessGetMessage;
 import eu.h2020.symbiote.messages.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.ResourceAccessMessage.AccessType;
@@ -27,7 +26,6 @@ import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -44,7 +42,6 @@ import org.springframework.web.bind.annotation.RestController;
  * used by the NFVO to interact with the VNFM
  * 
  */
-@Conditional(NBInterfaceRESTCondition.class)
 @RestController
 public class ResourceAccessRestController {
 
@@ -76,24 +73,22 @@ public class ResourceAccessRestController {
             log.info("Received read resource request for ID = " + resourceId);
         
             Observation observation = null;        
-            //ResourceInfo info = getResourceInfo(resourceId);
+            ResourceInfo info = getResourceInfo(resourceId);
         //   if(!checkPlatformPluginPresent(info.getPlatformId()))
         //        throw new EntityNotFoundException("Plugin for platform " + info.getPlatformId() + " not found");
 
-            ResourceInfo info = new ResourceInfo("resId", "id", "platId");
             ResourceAccessGetMessage msg = new ResourceAccessGetMessage(info);
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             mapper.setSerializationInclusion(Include.NON_EMPTY);
             String json = mapper.writeValueAsString(msg);
             
-            String routingKey = AccessType.GET.toString().toLowerCase();
-            Object response = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-            if(response == null)
-                throw new EntityNotFoundException(resourceId);
-            
-            String val = new String((byte[])response, "UTF-8");
-            observation = mapper.readValue(val, Observation.class);
+            String routingKey = /*info.getPlatformId() + "." +*/ AccessType.GET.toString().toLowerCase();
+            Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+            String response = null;
+            if(obj != null)
+                response = new String((byte[]) obj, "UTF-8");
+            observation = mapper.readValue(response, Observation.class);
             
             return observation;
         } catch(EntityNotFoundException enf) {
@@ -181,12 +176,21 @@ public class ResourceAccessRestController {
         }
     }
 
+    /*
     private ResourceInfo getResourceInfo(String resourceId) {
         Optional<ResourceInfo> resInfo = resourcesRepo.findByResourceId(resourceId);
         if(!resInfo.isPresent())
             throw new EntityNotFoundException("Resource " + resourceId + " not found");
         
         return resInfo.get();
+    }*/
+    
+    private ResourceInfo getResourceInfo(String resourceId) {
+        List<ResourceInfo> resInfo2 = resourcesRepo.findAll();
+        //Optional<ResourceInfo> resInfo = resourcesRepo.findByResourceId(resourceId);
+        ResourceInfo resInfo = resInfo2.get(1);
+        
+        return resInfo;
     }
     
     private boolean checkPlatformPluginPresent(String platformId) {
