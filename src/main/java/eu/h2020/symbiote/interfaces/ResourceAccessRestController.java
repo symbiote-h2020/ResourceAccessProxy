@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.exceptions.*;
+import eu.h2020.symbiote.interfaces.conditions.NBInterfaceRESTCondition;
 import eu.h2020.symbiote.messages.ResourceAccessGetMessage;
 import eu.h2020.symbiote.messages.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.ResourceAccessMessage.AccessType;
@@ -26,6 +27,7 @@ import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,6 +44,7 @@ import org.springframework.web.bind.annotation.RestController;
  * used by the NFVO to interact with the VNFM
  * 
  */
+@Conditional(NBInterfaceRESTCondition.class)
 @RestController
 public class ResourceAccessRestController {
 
