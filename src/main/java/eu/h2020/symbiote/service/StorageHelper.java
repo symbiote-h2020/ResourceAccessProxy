@@ -5,12 +5,23 @@
  */
 package eu.h2020.symbiote.service;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import eu.h2020.symbiote.interfaces.ResourcesRepository;
+import eu.h2020.symbiote.messages.ResourceAccessGetMessage;
+import eu.h2020.symbiote.messages.ResourceAccessMessage;
+import eu.h2020.symbiote.model.data.Observation;
+import eu.h2020.symbiote.resources.RapDefinitions;
+import eu.h2020.symbiote.resources.ResourceInfo;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import static java.util.Locale.filter;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.olingo.commons.api.data.ComplexValue;
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
@@ -39,6 +50,10 @@ import org.apache.olingo.server.api.uri.queryoption.expression.BinaryOperatorKin
 import org.apache.olingo.server.api.uri.queryoption.expression.Expression;
 import org.apache.olingo.server.api.uri.queryoption.expression.Literal;
 import org.apache.olingo.server.api.uri.queryoption.expression.Member;
+import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 /**
  *
@@ -46,14 +61,93 @@ import org.apache.olingo.server.api.uri.queryoption.expression.Member;
  */
 public class StorageHelper {
 
+    
+    private ResourcesRepository resourcesRepo;
+    private RabbitTemplate rabbitTemplate;
+    private TopicExchange exchange;
+    
     private List<Entity> resourceList;
     private List<Entity> observationList;
 
-    public StorageHelper() {
+    public StorageHelper(ResourcesRepository resourcesRepository, RabbitTemplate rabbit, TopicExchange topicExchange) {
         resourceList = new ArrayList<Entity>();
         observationList = new ArrayList<Entity>();
         initSampleData();
+        resourcesRepo = resourcesRepository;
+        rabbitTemplate = rabbit;
+        exchange = topicExchange;
     }
+    
+    
+    public ResourceInfo getResourceInfo(EdmEntitySet edmEntitySet, List<UriParameter> keyParams) {
+        ResourceInfo resInfo = null;
+        for (final UriParameter key : keyParams) {
+            // key
+            String keyName = key.getName();
+            String keyText = key.getText();
+
+            //remove quote
+            keyText = keyText.replaceAll("'", "");
+            
+            try{
+                if(keyName.equals("resourceId")){
+                    Optional<ResourceInfo> resInfoOptional = resourcesRepo.findByResourceId(keyText);
+                    if(resInfoOptional.isPresent())
+                        resInfo = resInfoOptional.get();
+                }
+            }catch(Exception e){
+                int a = 0;
+            }
+            
+            //SOLO MOMENTANEO
+            if(resInfo == null){
+                List<ResourceInfo> resInfo2 = resourcesRepo.findAll();
+                resInfo = resInfo2.get(1);
+            }
+        }
+        
+        return resInfo;
+    }
+    
+    
+    public Object getRelatedObject(ResourceInfo resourceInfo, EdmEntityType sourceEntityType, EdmEntityType targetEntityType) throws ODataApplicationException {
+        FullQualifiedName relatedEntityFqn = targetEntityType.getFullQualifiedName();
+        if (sourceEntityType.getName().equals(ResourceAccessProxyEdmProvider.ET_RESOURCE_NAME)
+                && relatedEntityFqn.equals(ResourceAccessProxyEdmProvider.ET_OBSERVATION_FQN)) {
+
+            try{
+            Observation observation = null;
+
+            ResourceAccessGetMessage msg = new ResourceAccessGetMessage(resourceInfo);
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+            String json = mapper.writeValueAsString(msg);
+            
+            String routingKey = /*info.getPlatformId() + "." +*/ ResourceAccessMessage.AccessType.GET.toString().toLowerCase();
+            Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+            String response = null;
+            if(obj != null)
+                response = new String((byte[]) obj, "UTF-8");
+            observation = mapper.readValue(response, Observation.class);
+            
+            return observation;
+            }
+            catch(Exception e){
+                String err = "Unable to read resource with id: " + resourceInfo.getResourceId();
+                //log.error(err + "\n" + e.getMessage());
+                throw new ODataApplicationException(err,HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+            }
+        }
+        return null;         
+    }
+    
+    
+    
+    
+    
+    
+    
 
     /* PUBLIC FACADE */
     public EntityCollection readEntitySetData(EdmEntitySet edmEntitySet) throws ODataApplicationException {
@@ -360,5 +454,130 @@ public class StorageHelper {
                 throw new ODataApplicationException("Not implement", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
             }
         }
+    }
+    
+    public static Filter calculateFilter (Expression expression) throws ODataApplicationException{
+        Filter f = new Filter();
+        Object obj = calculateFilterRecursive(expression);
+        if(obj instanceof Expr){
+            FilterIn filterIn = new FilterIn();
+            filterIn.expr = (Expr) obj;
+            ArrayList<FilterIn> filters = new ArrayList<FilterIn>();
+            filters.add(filterIn);
+            f.filter = filters;
+        }
+        else if (obj instanceof List){
+            f.filter = (List<FilterIn>) obj;
+        }
+        return f;
+    }
+    
+    
+    private static Object calculateFilterRecursive (Expression expression) throws ODataApplicationException{
+        
+        if(expression instanceof Binary){
+            Expression left = ((Binary) expression).getLeftOperand();
+            BinaryOperatorKind operator = ((Binary) expression).getOperator();
+            Expression right = ((Binary) expression).getRightOperand();
+            
+            if(left instanceof Binary && right instanceof Binary){
+                Filter f = new Filter();
+                f.filter = new ArrayList<FilterIn>();
+                FilterIn filterInLeft = new FilterIn();
+                FilterIn filterInLop = new FilterIn();
+                FilterIn filterInRight = new FilterIn();
+                
+                Lop lop = new Lop();
+                lop.lop = operator.name();
+                //filterInLop.lop = lop;
+                filterInLop.lop = operator.name();
+                
+                Object leftObj = calculateFilterRecursive(left);
+                if(leftObj instanceof Expr){
+                    filterInLeft.expr = (Expr) leftObj;
+                }
+                else if(leftObj instanceof List){
+                    filterInLeft.filter = (List<FilterIn>) leftObj;
+                }
+                /*else if(leftObj instanceof Filter){
+                    filterInLeft.filter = (Filter) leftObj;
+                }*/
+                
+                Object rightObj = calculateFilterRecursive(right);
+                if(rightObj instanceof Expr){
+                    filterInRight.expr = (Expr) rightObj;
+                }
+                else if(rightObj instanceof List){
+                    filterInRight.filter = (List<FilterIn>) rightObj;
+                }
+                /*
+                else if(rightObj instanceof Filter){
+                    filterInRight.filter = (Filter) rightObj;
+                }*/
+                
+                f.filter.add(0, filterInLeft);
+                f.filter.add(1, filterInLop);
+                f.filter.add(2, filterInRight);
+                
+                return f.filter;
+            }
+            else if (left instanceof Member && right instanceof Literal){               
+                Member member = (Member) left;
+                String key = member.toString();      
+                                
+                Literal literal = (Literal) right;
+                String value = literal.getText();
+                if(literal.getType() instanceof EdmString)
+                    value = value.substring(1, value.length() - 1);
+                
+                Expr expr = new Expr();
+                expr.param = key;
+                expr.cmp = operator.name();
+                expr.val = value;
+                
+                return expr;
+            }
+            else{
+                throw new ODataApplicationException("Not implement", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
+            }
+        }
+        return null;
+    }
+}
+
+class Expr{
+    public String param;
+    public String cmp;
+    public String val;
+    
+    public Expr(){
+        
+    }
+}
+
+class Lop{
+    public String lop;  
+    
+    public Lop(){
+        
+    }
+}
+
+class FilterIn{
+    public Expr expr;
+    public String lop;
+    public List<FilterIn> filter;
+    
+    public FilterIn(){
+        
+    }
+}
+
+
+class Filter{
+    public List<FilterIn> filter;
+    
+    public Filter(){
+        
     }
 }

@@ -44,4 +44,6 @@ public interface ResourcesRepository extends MongoRepository<ResourceInfo, Strin
      * @return                      the Resource instance(s)
      */
     public List<ResourceInfo> findByPlatformResourceId(String platformResourceId);
+    
+    public List<ResourceInfo> findAll();
 }

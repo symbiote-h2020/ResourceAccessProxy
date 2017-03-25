@@ -5,6 +5,8 @@
  */
 package eu.h2020.symbiote.service;
 
+import eu.h2020.symbiote.interfaces.ResourcesRepository;
+import eu.h2020.symbiote.resources.RapDefinitions;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Locale;
@@ -31,7 +33,10 @@ import org.apache.olingo.server.api.uri.UriResourceNavigation;
 import org.apache.olingo.server.api.serializer.ODataSerializer;
 import org.apache.olingo.server.api.serializer.EntitySerializerOptions;
 import org.apache.olingo.server.api.serializer.SerializerResult;
+import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
@@ -46,6 +51,15 @@ public class RAPEntityProcessor implements EntityProcessor{
     @Autowired
     private ApplicationContext ctx;
     
+    @Autowired
+    ResourcesRepository resourcesRepo;
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+    
+    @Autowired
+    @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
+    TopicExchange exchange;
+    
     private OData odata;
     private ServiceMetadata serviceMetadata;
     
@@ -56,7 +70,7 @@ public class RAPEntityProcessor implements EntityProcessor{
         this.odata = odata;
         this.serviceMetadata = sm;
         
-        storageHelper = new StorageHelper();
+        storageHelper = new StorageHelper(resourcesRepo,rabbitTemplate,exchange);
     }
     
     @Override
