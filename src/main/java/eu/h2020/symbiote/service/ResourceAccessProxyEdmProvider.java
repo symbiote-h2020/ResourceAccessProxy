@@ -56,6 +56,12 @@ public class ResourceAccessProxyEdmProvider extends CsdlAbstractEdmProvider {
     // Complex Type Names
     public static final String WGS84LOCATION = "WGS84Location";
     public static final FullQualifiedName CT_WGS84LOCATION = new FullQualifiedName(NAMESPACE, WGS84LOCATION);
+    public static final String PROPERTY = "Property";
+    public static final FullQualifiedName CT_PROPERTY = new FullQualifiedName(NAMESPACE, PROPERTY);
+    public static final String UOM = "uom";
+    public static final FullQualifiedName CT_UOM = new FullQualifiedName(NAMESPACE, UOM);
+    public static final String OBSERVATIONVALUE = "ObservationValue";
+    public static final FullQualifiedName CT_OBSERVATIONVALUE = new FullQualifiedName(NAMESPACE, OBSERVATIONVALUE);
 
     // Entity Set Names
     public static final String ES_OBSERVATIONS_NAME = "Observations";
@@ -78,6 +84,9 @@ public class ResourceAccessProxyEdmProvider extends CsdlAbstractEdmProvider {
         //add ComplexTypes
         List<CsdlComplexType> complexTypes = new ArrayList<CsdlComplexType>();
         complexTypes.add(getComplexType(CT_WGS84LOCATION));
+        complexTypes.add(getComplexType(CT_PROPERTY));
+        complexTypes.add(getComplexType(CT_UOM));
+        complexTypes.add(getComplexType(CT_OBSERVATIONVALUE));
         schema.setComplexTypes(complexTypes);
 
         // add EntityContainer
@@ -100,9 +109,10 @@ public class ResourceAccessProxyEdmProvider extends CsdlAbstractEdmProvider {
             //CsdlProperty id = new CsdlProperty().setName("ID").setType(EdmPrimitiveTypeKind.Int32.getFullQualifiedName());
             CsdlProperty resourceId = new CsdlProperty().setName("resourceId").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
             CsdlProperty location = new CsdlProperty().setName("location").setType(CT_WGS84LOCATION);
-            CsdlProperty resultTime = new CsdlProperty().setName("resultTime").setType(EdmPrimitiveTypeKind.Int64.getFullQualifiedName());
-            CsdlProperty samplingTime = new CsdlProperty().setName("samplingTime").setType(EdmPrimitiveTypeKind.Int64.getFullQualifiedName());
-
+            CsdlProperty resultTime = new CsdlProperty().setName("resultTime").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
+            CsdlProperty samplingTime = new CsdlProperty().setName("samplingTime").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
+            CsdlProperty observationValue = new CsdlProperty().setName("observationValue").setType(CT_OBSERVATIONVALUE);
+            
             // create CsdlPropertyRef for Key element
             CsdlPropertyRef propertyRef = new CsdlPropertyRef();
             propertyRef.setName("resourceId");
@@ -118,7 +128,7 @@ public class ResourceAccessProxyEdmProvider extends CsdlAbstractEdmProvider {
             // configure EntityType
             CsdlEntityType entityType = new CsdlEntityType();
             entityType.setName(ET_OBSERVATION_NAME);
-            entityType.setProperties(Arrays.asList(resourceId, location, resultTime, samplingTime));
+            entityType.setProperties(Arrays.asList(resourceId, location, resultTime, samplingTime, observationValue));
             entityType.setKey(Collections.singletonList(propertyRef));
 
             return entityType;
@@ -168,6 +178,29 @@ public class ResourceAccessProxyEdmProvider extends CsdlAbstractEdmProvider {
                   new CsdlProperty().setName("longitude").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName()),
                   new CsdlProperty().setName("latitude").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName()),
                   new CsdlProperty().setName("altitude").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName())));
+        }
+        else if (CT_PROPERTY.equals(complexTypeName)) {
+            return new CsdlComplexType()
+                .setName(CT_PROPERTY.getName())
+                .setProperties(Arrays.asList(
+                  new CsdlProperty().setName("label").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName()),
+                  new CsdlProperty().setName("comment").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName())));
+        }
+        else if (CT_UOM.equals(complexTypeName)) {
+            return new CsdlComplexType()
+                .setName(CT_UOM.getName())
+                .setProperties(Arrays.asList(
+                  new CsdlProperty().setName("symbol").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName()),
+                  new CsdlProperty().setName("label").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName()),
+                  new CsdlProperty().setName("comment").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName())));
+        }
+        else if (CT_OBSERVATIONVALUE.equals(complexTypeName)) {
+            return new CsdlComplexType()
+                .setName(CT_OBSERVATIONVALUE.getName())
+                .setProperties(Arrays.asList(
+                  new CsdlProperty().setName("value").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName()),
+                  new CsdlProperty().setName("obsProperty").setType(CT_PROPERTY),
+                  new CsdlProperty().setName("uom").setType(CT_UOM)));
         }
         return null;
     }
