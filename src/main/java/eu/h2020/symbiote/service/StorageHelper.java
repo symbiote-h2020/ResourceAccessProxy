@@ -18,6 +18,10 @@ import eu.h2020.symbiote.messages.ResourceAccessSetMessage;
 import eu.h2020.symbiote.messages.ResourceAccessSetService;
 import eu.h2020.symbiote.model.data.Observation;
 import eu.h2020.symbiote.resources.ResourceInfo;
+import eu.h2020.symbiote.resources.query.Comparison;
+import eu.h2020.symbiote.resources.query.Filter;
+import eu.h2020.symbiote.resources.query.Operator;
+import eu.h2020.symbiote.resources.query.Query;
 import eu.h2020.symbiote.resources.service.InputParameter;
 import eu.h2020.symbiote.resources.service.ServiceSet;
 import java.net.URI;
@@ -127,7 +131,7 @@ public class StorageHelper {
     }
 
     public Object getRelatedObject(ResourceInfo resourceInfo, EdmEntityType sourceEntityType, EdmEntityType targetEntityType,
-            Integer top, String filterJson) throws ODataApplicationException {
+            Integer top, Query filterQuery) throws ODataApplicationException {
         FullQualifiedName relatedEntityFqn = targetEntityType.getFullQualifiedName();
         if (sourceEntityType.getName().equals(RAPEdmProvider.ET_RESOURCE_NAME)
                 && relatedEntityFqn.equals(RAPEdmProvider.ET_OBSERVATION_FQN)) {
@@ -141,7 +145,7 @@ public class StorageHelper {
                     msg = new ResourceAccessGetMessage(resourceInfo);
                     routingKey = ResourceAccessMessage.AccessType.GET.toString().toLowerCase();
                 } else {
-                    msg = new ResourceAccessHistoryMessage(resourceInfo);
+                    msg = new ResourceAccessHistoryMessage(resourceInfo,filterQuery);
                     routingKey = ResourceAccessMessage.AccessType.HISTORY.toString().toLowerCase();
                 }
 
@@ -493,22 +497,8 @@ public class StorageHelper {
         return (UriResourceNavigation) resourcePaths.get(--navigationCount);
     }
 
-    public static Filter calculateFilter(Expression expression) throws ODataApplicationException {
-        Filter f = new Filter();
-        Object obj = calculateFilterRecursive(expression);
-        if (obj instanceof Expr) {
-            FilterIn filterIn = new FilterIn();
-            filterIn.expr = (Expr) obj;
-            ArrayList<FilterIn> filters = new ArrayList<FilterIn>();
-            filters.add(filterIn);
-            f.filter = filters;
-        } else if (obj instanceof List) {
-            f.filter = (List<FilterIn>) obj;
-        }
-        return f;
-    }
-
-    private static Object calculateFilterRecursive(Expression expression) throws ODataApplicationException {
+    
+    public static Query calculateFilter(Expression expression) throws ODataApplicationException {
 
         if (expression instanceof Binary) {
             Expression left = ((Binary) expression).getLeftOperand();
@@ -516,43 +506,24 @@ public class StorageHelper {
             Expression right = ((Binary) expression).getRightOperand();
 
             if (left instanceof Binary && right instanceof Binary) {
-                Filter f = new Filter();
-                f.filter = new ArrayList<FilterIn>();
-                FilterIn filterInLeft = new FilterIn();
-                FilterIn filterInLop = new FilterIn();
-                FilterIn filterInRight = new FilterIn();
-
-                Lop lop = new Lop();
-                lop.lop = operator.name();
-                //filterInLop.lop = lop;
-                filterInLop.lop = operator.name();
-
-                Object leftObj = calculateFilterRecursive(left);
-                if (leftObj instanceof Expr) {
-                    filterInLeft.expr = (Expr) leftObj;
-                } else if (leftObj instanceof List) {
-                    filterInLeft.filter = (List<FilterIn>) leftObj;
+                ArrayList<Query> exprs = new ArrayList();
+                Operator op = null;
+                try {
+                    op = new Operator(operator.name());
+                } catch (Exception ex) {
+                    throw new ODataApplicationException(ex.getMessage(), HttpStatusCode.BAD_REQUEST.getStatusCode(), Locale.ROOT);
                 }
-                /*else if(leftObj instanceof Filter){
-                    filterInLeft.filter = (Filter) leftObj;
-                }*/
-
-                Object rightObj = calculateFilterRecursive(right);
-                if (rightObj instanceof Expr) {
-                    filterInRight.expr = (Expr) rightObj;
-                } else if (rightObj instanceof List) {
-                    filterInRight.filter = (List<FilterIn>) rightObj;
-                }
-                /*
-                else if(rightObj instanceof Filter){
-                    filterInRight.filter = (Filter) rightObj;
-                }*/
-
-                f.filter.add(0, filterInLeft);
-                f.filter.add(1, filterInLop);
-                f.filter.add(2, filterInRight);
-
-                return f.filter;
+                
+                
+                Query leftQuery = calculateFilter(left);
+                exprs.add(0, leftQuery);
+                
+                
+                Query rightQuery = calculateFilter(right);
+                exprs.add(1, (Query) rightQuery);
+                
+                Filter f = new Filter(op.getLop(),exprs);
+                return f;
             } else if (left instanceof Member && right instanceof Literal) {
                 Member member = (Member) left;
                 String key = member.toString();
@@ -572,11 +543,15 @@ public class StorageHelper {
                     value = parseDate(value);
 
                 }
-
-                Expr expr = new Expr();
-                expr.param = key;
-                expr.cmp = operator.name();
-                expr.val = value;
+                
+                Comparison cmp;
+                try {
+                    cmp = new Comparison(operator.name());
+                } catch (Exception ex) {
+                    throw new ODataApplicationException(ex.getMessage(), HttpStatusCode.BAD_REQUEST.getStatusCode(), Locale.ROOT);
+                }
+                
+                eu.h2020.symbiote.resources.query.Expression expr = new eu.h2020.symbiote.resources.query.Expression(key, cmp.getCmp(), value);
 
                 return expr;
             } else {
@@ -585,7 +560,8 @@ public class StorageHelper {
         }
         return null;
     }
-
+    
+    
     private static String parseDate(String dateParse) throws ODataApplicationException {
 
         TimeZone zoneUTC = TimeZone.getTimeZone("UTC");
@@ -659,7 +635,7 @@ class FilterIn {
 
     }
 }
-
+/*
 class Filter {
 
     public List<FilterIn> filter;
@@ -667,4 +643,4 @@ class Filter {
     public Filter() {
 
     }
-}
+}*/

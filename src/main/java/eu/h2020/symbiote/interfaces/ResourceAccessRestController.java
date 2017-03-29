@@ -19,6 +19,7 @@ import eu.h2020.symbiote.model.data.ObservationValue;
 import eu.h2020.symbiote.resources.PlatformInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.ResourceInfo;
+import eu.h2020.symbiote.resources.query.Query;
 import java.util.List;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -121,7 +122,8 @@ public class ResourceAccessRestController {
         //    if(!checkPlatformPluginPresent(info.getPlatformId()))
         //        throw new EntityNotFoundException("Plugin for platform " + info.getPlatformId() + " not found");
             
-            ResourceAccessHistoryMessage msg = new ResourceAccessHistoryMessage(info);
+            Query q = null;
+            ResourceAccessHistoryMessage msg = new ResourceAccessHistoryMessage(info,q);
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             mapper.setSerializationInclusion(Include.NON_EMPTY);

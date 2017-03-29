@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.interfaces.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.ResourceInfo;
+import eu.h2020.symbiote.resources.query.Query;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import org.slf4j.Logger;
@@ -105,16 +106,16 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
         
         //FILTER
         FilterOption filter = uriInfo.getFilterOption();
-        Object o = null;
+        Query filterQuery = null;
         if(filter != null){
             Expression expression = filter.getExpression();
-            o = storageHelper.calculateFilter(expression);
+            filterQuery = storageHelper.calculateFilter(expression);
             
             try{
                 ObjectMapper map = new ObjectMapper();
                 map.configure(SerializationFeature.INDENT_OUTPUT, true);
                 map.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-                jsonFilter = map.writeValueAsString(o);
+                jsonFilter = map.writeValueAsString(filterQuery);
                 log.info("JsonFilter:");
                 log.info(jsonFilter);
             }
@@ -160,7 +161,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
                     throw new ODataApplicationException("Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
                 }
                 EdmEntityType startEntityType = startEdmEntitySet.getEntityType();
-                obj = storageHelper.getRelatedObject(resource, startEntityType, targetEntityType, top, jsonFilter);
+                obj = storageHelper.getRelatedObject(resource, startEntityType, targetEntityType, top, filterQuery);
                 ////Entity sourceEntity = storageHelper.readEntityData(startEdmEntitySet, keyPredicates);
                 // error handling for e.g.  DemoService.svc/Categories(99)/Products
                 ////if (sourceEntity == null) {

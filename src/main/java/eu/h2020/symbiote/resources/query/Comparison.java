@@ -20,6 +20,31 @@ public class Comparison {
         this.cmp = cmp;
     }
     
+    public Comparison(String cmpStr) throws Exception {
+        switch(cmpStr) {
+            case "EQ":
+                this.cmp = Cmp.EQ;
+                break;
+            case "NE":
+                this.cmp = Cmp.NE;
+                break;
+            case "LT":
+                this.cmp = Cmp.LT;
+                break;
+            case "LE":
+                this.cmp = Cmp.LE;
+                break;
+            case "GT":
+                this.cmp = Cmp.GT;
+                break;
+            case "GE":
+                this.cmp = Cmp.GE;
+                break;
+            default:
+                throw new Exception("Comparison not recognize");
+        }
+    }
+    
     public Cmp getCmp() {
         return cmp;
     }

@@ -20,6 +20,23 @@ public class Operator {
         this.lop = lop;
     }
     
+    public Operator(String lopStr) throws Exception {
+        switch(lopStr){
+            case "AND":
+                this.lop = lop.AND;
+                break;
+            case "OR":
+                this.lop = lop.OR;
+                break;
+            case "NOT":
+                this.lop = lop.NOT;
+                break;
+            default:
+                throw new Exception("Operator not recognize");
+        }
+        
+    }
+    
     public Lop getLop() {
         return lop;
     }
