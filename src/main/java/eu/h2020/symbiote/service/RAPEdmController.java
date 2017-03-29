@@ -61,7 +61,7 @@ public class RAPEdmController {
      * The edm provider.
      */
     @Autowired 
-    private ResourceAccessProxyEdmProvider edmProvider;
+    private RAPEdmProvider edmProvider;
     
     /**
      * The enity collection processor.
@@ -159,20 +159,24 @@ public class RAPEdmController {
     
     
     
-    @RequestMapping(value="Resources('{resourceId}')/*")
+    @RequestMapping(value="*('{resourceId}')/*")
     public ResponseEntity<String> processResources(HttpServletRequest req) throws Exception {
         split = 0;
+        return processRequestPrivate(req);
+    }
+    
+    /*
+    @RequestMapping(value="Actuators('{resourceId}')/*")
+    public ResponseEntity<String> processActuators(HttpServletRequest req) throws Exception {
+        split = 0;
+        return processRequestPrivate(req);
+    }*/
+    
+    private ResponseEntity<String> processRequestPrivate (HttpServletRequest req) throws Exception{
         try {
             OData odata = OData.newInstance();
             ServiceMetadata edm = odata.createServiceMetadata(edmProvider,
                     new ArrayList<EdmxReference>());
-            
-            //ODataHandler handler = new ODataHandler(odata, edm);
-            //handler.register(entityCollectionProcessor);
-
-//            ServiceMetadata edm = odata.createServiceMetadata(new DemoEdmProvider(), new ArrayList<EdmxReference>());
-//            ODataHttpHandler handler = odata.createHandler(edm);
-//            handler.register(new DemoEntityCollectionProcessor());
 
             ODataHttpHandler handler = odata.createHandler(edm);
             handler.register(entityCollectionProcessor);
@@ -183,22 +187,13 @@ public class RAPEdmController {
             String responseStr = StreamUtils.copyToString(
                     response.getContent(), Charset.defaultCharset());
             MultiValueMap<String, String> headers = new HttpHeaders();
-//          for (String key : response.getHeaders().keySet()) {
-//              headers.add(key, response.getHeaders().get(key).toString());
-//          }
-//            for (String key : response.getHeaders(URI)) {
-//                headers.add(key, response.getHeaders(URI).get(key).toString());
-//            }
+
             return new ResponseEntity<String>(responseStr, headers,
                     HttpStatus.valueOf(response.getStatusCode()));
         } catch (Exception ex) {
-            //throw new EdmException();
             throw ex;
         }
-
     }
-    
-    
     
     
     

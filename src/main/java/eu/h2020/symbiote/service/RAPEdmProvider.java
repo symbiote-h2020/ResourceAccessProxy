@@ -36,7 +36,7 @@ import org.springframework.stereotype.Component;
  * @author Matteo Pardi m.pardi@nextworks.it
  */
 @Component
-public class ResourceAccessProxyEdmProvider extends CsdlAbstractEdmProvider {
+public class RAPEdmProvider extends CsdlAbstractEdmProvider {
 
     @Autowired
     private ApplicationContext ctx;
@@ -52,7 +52,14 @@ public class ResourceAccessProxyEdmProvider extends CsdlAbstractEdmProvider {
     
     public static final String ET_RESOURCE_NAME = "Resource";
     public static final FullQualifiedName ET_RESOURCE_FQN = new FullQualifiedName(NAMESPACE, ET_RESOURCE_NAME);
+    
+    
+    public static final String ET_ACTUATOR_NAME = "Actuator";
+    public static final FullQualifiedName ET_ACTUATOR_FQN = new FullQualifiedName(NAMESPACE, ET_ACTUATOR_NAME);
+    public static final String ET_SERVICE_NAME = "Service";
+    public static final FullQualifiedName ET_SERVICE_FQN = new FullQualifiedName(NAMESPACE, ET_SERVICE_NAME);
 
+    
     // Complex Type Names
     public static final String WGS84LOCATION = "WGS84Location";
     public static final FullQualifiedName CT_WGS84LOCATION = new FullQualifiedName(NAMESPACE, WGS84LOCATION);
@@ -62,10 +69,16 @@ public class ResourceAccessProxyEdmProvider extends CsdlAbstractEdmProvider {
     public static final FullQualifiedName CT_UOM = new FullQualifiedName(NAMESPACE, UOM);
     public static final String OBSERVATIONVALUE = "ObservationValue";
     public static final FullQualifiedName CT_OBSERVATIONVALUE = new FullQualifiedName(NAMESPACE, OBSERVATIONVALUE);
+    public static final String INPUTPARAMETER = "InputParameter";
+    public static final FullQualifiedName CT_INPUTPARAMETER = new FullQualifiedName(NAMESPACE, INPUTPARAMETER);
 
     // Entity Set Names
     public static final String ES_OBSERVATIONS_NAME = "Observations";
     public static final String ES_RESOURCES_NAME = "Resources";
+    
+
+    public static final String ES_SERVICES_NAME = "Services";
+    public static final String ES_ACTUATORS_NAME = "Actuators";
     
 
     @Override
@@ -79,6 +92,9 @@ public class ResourceAccessProxyEdmProvider extends CsdlAbstractEdmProvider {
         List<CsdlEntityType> entityTypes = new ArrayList<CsdlEntityType>();
         entityTypes.add(getEntityType(ET_OBSERVATION_FQN));
         entityTypes.add(getEntityType(ET_RESOURCE_FQN));
+        
+        entityTypes.add(getEntityType(ET_ACTUATOR_FQN));
+        entityTypes.add(getEntityType(ET_SERVICE_FQN));
         schema.setEntityTypes(entityTypes);
 
         //add ComplexTypes
@@ -123,13 +139,15 @@ public class ResourceAccessProxyEdmProvider extends CsdlAbstractEdmProvider {
                     .setType(ET_RESOURCE_FQN)
                     .setNullable(true)
                     .setPartner(ES_OBSERVATIONS_NAME);
-            
+            List<CsdlNavigationProperty> navPropList = new ArrayList<CsdlNavigationProperty>();
+            navPropList.add(navProp);
             
             // configure EntityType
             CsdlEntityType entityType = new CsdlEntityType();
             entityType.setName(ET_OBSERVATION_NAME);
             entityType.setProperties(Arrays.asList(resourceId, location, resultTime, samplingTime, observationValue));
             entityType.setKey(Collections.singletonList(propertyRef));
+            entityType.setNavigationProperties(navPropList);
 
             return entityType;
         }
@@ -158,6 +176,66 @@ public class ResourceAccessProxyEdmProvider extends CsdlAbstractEdmProvider {
             // configure EntityType
             CsdlEntityType entityType = new CsdlEntityType();
             entityType.setName(ET_RESOURCE_NAME);
+            entityType.setProperties(Arrays.asList(resourceId, platformResourceId, platformId));
+            entityType.setKey(Collections.singletonList(propertyRef));
+            entityType.setNavigationProperties(navPropList);
+
+            return entityType;
+        }
+        if (entityTypeName.equals(ET_SERVICE_FQN)) {
+
+            //create EntityType properties
+            //CsdlProperty id = new CsdlProperty().setName("ID").setType(EdmPrimitiveTypeKind.Int32.getFullQualifiedName());
+            CsdlProperty resourceId = new CsdlProperty().setName("resourceId").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
+            CsdlProperty inputParameterList = new CsdlProperty().setName("inputParameter").setType(CT_INPUTPARAMETER).setCollection(true);
+            
+            // create CsdlPropertyRef for Key element
+            CsdlPropertyRef propertyRef = new CsdlPropertyRef();
+            propertyRef.setName("resourceId");
+
+            
+            CsdlNavigationProperty navProp = new CsdlNavigationProperty()
+                    .setName(ET_ACTUATOR_NAME)
+                    .setType(ET_ACTUATOR_FQN)
+                    .setNullable(true)
+                    .setPartner(ES_SERVICES_NAME);
+            List<CsdlNavigationProperty> navPropList = new ArrayList<CsdlNavigationProperty>();
+            navPropList.add(navProp);
+            
+            // configure EntityType
+            CsdlEntityType entityType = new CsdlEntityType();
+            entityType.setName(ET_SERVICE_NAME);
+            entityType.setProperties(Arrays.asList(resourceId,inputParameterList));
+            entityType.setKey(Collections.singletonList(propertyRef));
+            entityType.setNavigationProperties(navPropList);
+
+            return entityType;
+        }
+        else if (entityTypeName.equals(ET_ACTUATOR_FQN)) {
+
+            //create EntityType properties
+            //CsdlProperty id = new CsdlProperty().setName("ID").setType(EdmPrimitiveTypeKind.Int32.getFullQualifiedName());
+            CsdlProperty resourceId = new CsdlProperty().setName("resourceId").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
+            CsdlProperty platformResourceId = new CsdlProperty().setName("platformResourceId").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
+            CsdlProperty platformId = new CsdlProperty().setName("platformId").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
+
+            // create CsdlPropertyRef for Key element
+            CsdlPropertyRef propertyRef = new CsdlPropertyRef();
+            propertyRef.setName("resourceId");
+            
+            
+            // navigation property: one-to-many
+            CsdlNavigationProperty navProp = new CsdlNavigationProperty()
+                            .setName(ES_SERVICES_NAME)
+                            .setType(ET_SERVICE_FQN)
+                            .setCollection(true)
+                            .setPartner(ET_ACTUATOR_NAME);
+            List<CsdlNavigationProperty> navPropList = new ArrayList<CsdlNavigationProperty>();
+            navPropList.add(navProp);
+
+            // configure EntityType
+            CsdlEntityType entityType = new CsdlEntityType();
+            entityType.setName(ET_ACTUATOR_NAME);
             entityType.setProperties(Arrays.asList(resourceId, platformResourceId, platformId));
             entityType.setKey(Collections.singletonList(propertyRef));
             entityType.setNavigationProperties(navPropList);
@@ -202,6 +280,13 @@ public class ResourceAccessProxyEdmProvider extends CsdlAbstractEdmProvider {
                   new CsdlProperty().setName("obsProperty").setType(CT_PROPERTY),
                   new CsdlProperty().setName("uom").setType(CT_UOM)));
         }
+        else if (CT_INPUTPARAMETER.equals(complexTypeName)) {
+            return new CsdlComplexType()
+                .setName(CT_INPUTPARAMETER.getName())
+                .setProperties(Arrays.asList(
+                  new CsdlProperty().setName("name").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName()),
+                  new CsdlProperty().setName("value").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName())));
+        }
         return null;
     }
 
@@ -238,6 +323,35 @@ public class ResourceAccessProxyEdmProvider extends CsdlAbstractEdmProvider {
                 
                 return entitySet;
             }
+            else if (entitySetName.equals(ES_SERVICES_NAME)) {
+                CsdlEntitySet entitySet = new CsdlEntitySet();
+                entitySet.setName(ES_SERVICES_NAME);
+                entitySet.setType(ET_SERVICE_FQN);
+                
+                CsdlNavigationPropertyBinding navPropBinding = new CsdlNavigationPropertyBinding();
+                navPropBinding.setPath(ET_ACTUATOR_NAME); // the path from entity type to navigation property
+                navPropBinding.setTarget(ES_ACTUATORS_NAME); //target entitySet, where the nav prop points to
+                List<CsdlNavigationPropertyBinding> navPropBindingList = new ArrayList<CsdlNavigationPropertyBinding>();
+                navPropBindingList.add(navPropBinding);
+                entitySet.setNavigationPropertyBindings(navPropBindingList);
+
+                return entitySet;
+            }
+            else if (entitySetName.equals(ES_ACTUATORS_NAME)) {
+                CsdlEntitySet entitySet = new CsdlEntitySet();
+                entitySet.setName(ES_ACTUATORS_NAME);
+                entitySet.setType(ET_ACTUATOR_FQN);
+                
+                
+                CsdlNavigationPropertyBinding navPropBinding = new CsdlNavigationPropertyBinding();
+                navPropBinding.setTarget(ES_SERVICES_NAME);//target entitySet, where the nav prop points to
+                navPropBinding.setPath(ES_SERVICES_NAME); // the path from entity type to navigation property
+                List<CsdlNavigationPropertyBinding> navPropBindingList = new ArrayList<CsdlNavigationPropertyBinding>();
+                navPropBindingList.add(navPropBinding);
+                entitySet.setNavigationPropertyBindings(navPropBindingList);
+                
+                return entitySet;
+            }
         }
 
         return null;
@@ -250,6 +364,9 @@ public class ResourceAccessProxyEdmProvider extends CsdlAbstractEdmProvider {
         List<CsdlEntitySet> entitySets = new ArrayList<CsdlEntitySet>();
         entitySets.add(getEntitySet(CONTAINER, ES_OBSERVATIONS_NAME));
         entitySets.add(getEntitySet(CONTAINER, ES_RESOURCES_NAME));
+        
+        entitySets.add(getEntitySet(CONTAINER, ES_SERVICES_NAME));
+        entitySets.add(getEntitySet(CONTAINER, ES_ACTUATORS_NAME));
 
         // create EntityContainer
         CsdlEntityContainer entityContainer = new CsdlEntityContainer();

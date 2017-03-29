@@ -6,6 +6,7 @@
 package eu.h2020.symbiote.service;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -13,8 +14,12 @@ import eu.h2020.symbiote.interfaces.ResourcesRepository;
 import eu.h2020.symbiote.messages.ResourceAccessGetMessage;
 import eu.h2020.symbiote.messages.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.ResourceAccessMessage;
+import eu.h2020.symbiote.messages.ResourceAccessSetMessage;
+import eu.h2020.symbiote.messages.ResourceAccessSetService;
 import eu.h2020.symbiote.model.data.Observation;
 import eu.h2020.symbiote.resources.ResourceInfo;
+import eu.h2020.symbiote.resources.service.InputParameter;
+import eu.h2020.symbiote.resources.service.ServiceSet;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.DateFormat;
@@ -49,11 +54,11 @@ import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 import org.apache.olingo.server.api.uri.UriResourceNavigation;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveType;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeException;
-import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
 import org.apache.olingo.commons.api.edm.EdmProperty;
 import org.apache.olingo.commons.api.edm.EdmType;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.apache.olingo.commons.core.edm.primitivetype.EdmDate;
+import org.apache.olingo.commons.api.edm.provider.CsdlComplexType;
+import org.apache.olingo.commons.api.edm.provider.CsdlProperty;
 import org.apache.olingo.commons.core.edm.primitivetype.EdmString;
 import org.apache.olingo.server.api.uri.queryoption.expression.Binary;
 import org.apache.olingo.server.api.uri.queryoption.expression.BinaryOperatorKind;
@@ -124,8 +129,8 @@ public class StorageHelper {
     public Object getRelatedObject(ResourceInfo resourceInfo, EdmEntityType sourceEntityType, EdmEntityType targetEntityType,
             Integer top, String filterJson) throws ODataApplicationException {
         FullQualifiedName relatedEntityFqn = targetEntityType.getFullQualifiedName();
-        if (sourceEntityType.getName().equals(ResourceAccessProxyEdmProvider.ET_RESOURCE_NAME)
-                && relatedEntityFqn.equals(ResourceAccessProxyEdmProvider.ET_OBSERVATION_FQN)) {
+        if (sourceEntityType.getName().equals(RAPEdmProvider.ET_RESOURCE_NAME)
+                && relatedEntityFqn.equals(RAPEdmProvider.ET_OBSERVATION_FQN)) {
 
             try {
                 List<Observation> observations = null;
@@ -168,13 +173,58 @@ public class StorageHelper {
         return null;
     }
 
+    public void setService(ResourceInfo resourceInfo, String serviceId, Entity requestBody, EdmEntityType targetEntityType) throws ODataApplicationException {
+        if (targetEntityType.getName().equals(RAPEdmProvider.ET_SERVICE_NAME)) {
+            List<InputParameter> inputParameterList = new ArrayList<InputParameter>();
+            ResourceAccessMessage msg;
+            String routingKey = ResourceAccessMessage.AccessType.SET.toString().toLowerCase();
+
+            Property updateProperty = requestBody.getProperty("inputParameter");
+            if (updateProperty.isCollection()) {
+                List<ComplexValue> name_value = (List<ComplexValue>) updateProperty.asCollection();
+                for (ComplexValue complexValue : name_value) {
+                    List<Property> properties = complexValue.getValue();
+                    String name = null;
+                    String value = null;
+                    for (Property p : properties){
+                        String pName = p.getName();
+                        if(pName.equals("name"))
+                            name = (String) p.getValue();
+                        else if(pName.equals("value"))
+                            value = (String) p.getValue();
+                    }
+                    InputParameter ip = new InputParameter(name, value);
+                    inputParameterList.add(ip);
+                }
+            }
+            ServiceSet serviceSet = new ServiceSet(serviceId, inputParameterList);
+
+            msg = new ResourceAccessSetService(resourceInfo, serviceSet);
+
+            String json = "";
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+                mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+
+                json = mapper.writeValueAsString(msg);
+            } catch (JsonProcessingException ex) {
+                Logger.getLogger(StorageHelper.class.getName()).log(Level.SEVERE, null, ex);
+            }
+
+            Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+        } else {
+            throw new ODataApplicationException("Internal Error", HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), Locale.ROOT);
+        }
+    }
+
     /* PUBLIC FACADE */
     public EntityCollection readEntitySetData(EdmEntitySet edmEntitySet) throws ODataApplicationException {
 
         // actually, this is only required if we have more than one Entity Sets
-        if (edmEntitySet.getName().equals(ResourceAccessProxyEdmProvider.ES_RESOURCES_NAME)) {
+        if (edmEntitySet.getName().equals(RAPEdmProvider.ES_RESOURCES_NAME)) {
             return getResources();
-        } else if (edmEntitySet.getName().equals(ResourceAccessProxyEdmProvider.ES_OBSERVATIONS_NAME)) {
+        } else if (edmEntitySet.getName().equals(RAPEdmProvider.ES_OBSERVATIONS_NAME)) {
             return getObservations();
         }
 
@@ -209,9 +259,9 @@ public class StorageHelper {
     private Entity getElement(EdmEntityType edmEntityType, List<UriParameter> keyParams) throws ODataApplicationException {
         // the list of entities at runtime
         EntityCollection entitySet;
-        if (edmEntityType.getName().equals(ResourceAccessProxyEdmProvider.ET_RESOURCE_NAME)) {
+        if (edmEntityType.getName().equals(RAPEdmProvider.ET_RESOURCE_NAME)) {
             entitySet = getResources();
-        } else if (edmEntityType.getName().equals(ResourceAccessProxyEdmProvider.ET_OBSERVATION_NAME)) {
+        } else if (edmEntityType.getName().equals(RAPEdmProvider.ET_OBSERVATION_NAME)) {
             entitySet = getObservations();
         } else {
             return null;
@@ -253,7 +303,7 @@ public class StorageHelper {
                 .addProperty(new Property(null, "location", ValueType.COMPLEX, location1))
                 .addProperty(new Property(null, "resultTime", ValueType.PRIMITIVE, 150))
                 .addProperty(new Property(null, "samplingTime", ValueType.PRIMITIVE, 200));
-        e1.setId(createId(ResourceAccessProxyEdmProvider.ES_OBSERVATIONS_NAME, 1));
+        e1.setId(createId(RAPEdmProvider.ES_OBSERVATIONS_NAME, 1));
         observationList.add(e1);
 
         final Entity e2 = new Entity()
@@ -261,7 +311,7 @@ public class StorageHelper {
                 .addProperty(new Property(null, "location", ValueType.COMPLEX, location2))
                 .addProperty(new Property(null, "resultTime", ValueType.PRIMITIVE, 70))
                 .addProperty(new Property(null, "samplingTime", ValueType.PRIMITIVE, 35));
-        e2.setId(createId(ResourceAccessProxyEdmProvider.ES_OBSERVATIONS_NAME, 2));
+        e2.setId(createId(RAPEdmProvider.ES_OBSERVATIONS_NAME, 2));
         observationList.add(e2);
 
         // add some sample resource entities
@@ -269,14 +319,14 @@ public class StorageHelper {
                 .addProperty(new Property(null, "resourceId", ValueType.PRIMITIVE, "res1"))
                 .addProperty(new Property(null, "platformResourceId", ValueType.PRIMITIVE, "1+100"))
                 .addProperty(new Property(null, "platformId", ValueType.PRIMITIVE, "100"));
-        r1.setId(createId(ResourceAccessProxyEdmProvider.ES_RESOURCES_NAME, "res1"));
+        r1.setId(createId(RAPEdmProvider.ES_RESOURCES_NAME, "res1"));
         resourceList.add(r1);
 
         final Entity r2 = new Entity()
                 .addProperty(new Property(null, "resourceId", ValueType.PRIMITIVE, "res2"))
                 .addProperty(new Property(null, "platformResourceId", ValueType.PRIMITIVE, "2+100"))
                 .addProperty(new Property(null, "platformId", ValueType.PRIMITIVE, "100"));
-        r2.setId(createId(ResourceAccessProxyEdmProvider.ES_RESOURCES_NAME, "res2"));
+        r2.setId(createId(RAPEdmProvider.ES_RESOURCES_NAME, "res2"));
         resourceList.add(r2);
     }
 
@@ -294,8 +344,8 @@ public class StorageHelper {
         FullQualifiedName relatedEntityFqn = targetEntityType.getFullQualifiedName();
         //String sourceEntityFqn = sourceEntity.getType();
 
-        if (sourceEntityType.getName().equals(ResourceAccessProxyEdmProvider.ET_OBSERVATION_NAME)
-                && relatedEntityFqn.equals(ResourceAccessProxyEdmProvider.ET_RESOURCE_FQN)) {
+        if (sourceEntityType.getName().equals(RAPEdmProvider.ET_OBSERVATION_NAME)
+                && relatedEntityFqn.equals(RAPEdmProvider.ET_RESOURCE_FQN)) {
             // relation Products->Category (result all categories)
             String observationID = sourceEntity.getProperty("resourceId").getValue().toString();
             if (observationID.equals("1")) {
@@ -304,8 +354,8 @@ public class StorageHelper {
                 navigationTargetEntityCollection.getEntities().add(resourceList.get(2));
             }
 
-        } else if (sourceEntityType.getName().equals(ResourceAccessProxyEdmProvider.ET_RESOURCE_NAME)
-                && relatedEntityFqn.equals(ResourceAccessProxyEdmProvider.ET_OBSERVATION_FQN)) {
+        } else if (sourceEntityType.getName().equals(RAPEdmProvider.ET_RESOURCE_NAME)
+                && relatedEntityFqn.equals(RAPEdmProvider.ET_OBSERVATION_FQN)) {
             // relation Category->Products (result all products)
 
             String resourceID = (String) sourceEntity.getProperty("resourceId").getValue();
@@ -513,7 +563,7 @@ public class StorageHelper {
                     value = value.substring(1, value.length() - 1);
                 }
 
-                if (key.equals("[resultTime]")) {
+                if (key.contains("resultTime") || key.contains("samplingTime")) {
                     Matcher matcher = PATTERN.matcher(value);
                     if (!matcher.matches()) {
                         throw new ODataApplicationException("Data format not correct",
@@ -537,7 +587,7 @@ public class StorageHelper {
     }
 
     private static String parseDate(String dateParse) throws ODataApplicationException {
-        
+
         TimeZone zoneUTC = TimeZone.getTimeZone("UTC");
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
         dateFormat.setTimeZone(zoneUTC);
@@ -555,8 +605,8 @@ public class StorageHelper {
             date = dateFormat3.parse(dateParse);
         } catch (ParseException e3) {
             try {
-            date = dateFormat2.parse(dateParse);
-            }catch (ParseException e2) {
+                date = dateFormat2.parse(dateParse);
+            } catch (ParseException e2) {
                 try {
                     date = dateFormat.parse(dateParse);
                 } catch (ParseException e) {
@@ -568,11 +618,12 @@ public class StorageHelper {
                 }
             }
         }
-        
-        if(date == null)
+
+        if (date == null) {
             throw new ODataApplicationException("Data format not correct",
                     HttpStatusCode.BAD_REQUEST.getStatusCode(), Locale.ROOT);
-        
+        }
+
         parsedData = dateFormat.format(date);
         return parsedData;
     }

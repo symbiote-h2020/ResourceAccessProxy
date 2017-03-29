@@ -5,13 +5,19 @@
  */
 package eu.h2020.symbiote.service;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.interfaces.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
+import eu.h2020.symbiote.resources.ResourceInfo;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Locale;
 import org.apache.olingo.commons.api.data.ContextURL;
 import org.apache.olingo.commons.api.data.Entity;
+import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
 import org.apache.olingo.commons.api.edm.EdmNavigationProperty;
@@ -33,12 +39,17 @@ import org.apache.olingo.server.api.uri.UriResourceNavigation;
 import org.apache.olingo.server.api.serializer.ODataSerializer;
 import org.apache.olingo.server.api.serializer.EntitySerializerOptions;
 import org.apache.olingo.server.api.serializer.SerializerResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
+import org.apache.olingo.server.api.deserializer.DeserializerException;
+import org.apache.olingo.server.api.deserializer.DeserializerResult;
+import org.apache.olingo.server.api.deserializer.ODataDeserializer;
 
 /**
  *
@@ -50,6 +61,8 @@ public class RAPEntityProcessor implements EntityProcessor{
 
     @Autowired
     private ApplicationContext ctx;
+    
+    private static final Logger log = LoggerFactory.getLogger(RAPEntityProcessor.class);
     
     @Autowired
     ResourcesRepository resourcesRepo;
@@ -141,13 +154,89 @@ public class RAPEntityProcessor implements EntityProcessor{
     }
 
     @Override
-    public void createEntity(ODataRequest odr, ODataResponse odr1, UriInfo ui, ContentType ct, ContentType ct1) throws ODataApplicationException, ODataLibraryException {
+    public void createEntity(ODataRequest odr, ODataResponse odr1, UriInfo uriInfo, ContentType requestFormat, ContentType responseFormat) throws ODataApplicationException, ODataLibraryException {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-    public void updateEntity(ODataRequest odr, ODataResponse odr1, UriInfo ui, ContentType ct, ContentType ct1) throws ODataApplicationException, ODataLibraryException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public void updateEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType requestFormat, ContentType responseFormat) throws ODataApplicationException, ODataLibraryException {
+        EdmEntitySet responseEdmEntitySet = null; // for building ContextURL
+        EntityCollection responseEntityCollection = null; // for the response body
+        String responseString = null;
+        InputStream stream = null;
+
+
+        // 1st retrieve the requested EntitySet from the uriInfo
+        List<UriResource> resourceParts = uriInfo.getUriResourceParts();
+        int segmentCount = resourceParts.size();
+
+        UriResource uriResource = resourceParts.get(0); // the first segment is the EntitySet
+        if (!(uriResource instanceof UriResourceEntitySet)) {
+            throw new ODataApplicationException("Only EntitySet is supported", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
+        }
+
+        UriResourceEntitySet uriResourceEntitySet = (UriResourceEntitySet) uriResource;
+        EdmEntitySet startEdmEntitySet = uriResourceEntitySet.getEntitySet();
+
+        if (segmentCount == 1) { // this is the case for: DemoService/DemoService.svc/Categories
+            throw new ODataApplicationException("Not supported", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
+        } else if (segmentCount == 2) { //navigation: e.g. DemoService.svc/Categories(3)/Products
+            UriResource lastSegment = resourceParts.get(1); // don't support more complex URIs
+            if (lastSegment instanceof UriResourceNavigation) {
+                UriResourceNavigation uriResourceNavigation = (UriResourceNavigation) lastSegment;
+                EdmNavigationProperty edmNavigationProperty = uriResourceNavigation.getProperty();
+                EdmEntityType targetEntityType = edmNavigationProperty.getType();
+                responseEdmEntitySet = storageHelper.getNavigationTargetEntitySet(startEdmEntitySet, edmNavigationProperty);
+
+                // 2nd: fetch the data from backend
+                // first fetch the entity where the first segment of the URI points to
+                // e.g. Categories(3)/Products first find the single entity: Category(3)
+                List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
+                ResourceInfo resource = storageHelper.getResourceInfo(startEdmEntitySet,keyPredicates);
+                if (resource == null) {
+                    throw new ODataApplicationException("Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+                }
+                
+                
+                List<UriParameter> navKeyPredicates = uriResourceNavigation.getKeyPredicates();
+                String serviceId = null;
+                if(navKeyPredicates != null && !navKeyPredicates.isEmpty()){
+                    UriParameter key = navKeyPredicates.get(0);
+                    String keyName = key.getName();
+                    String keyText = key.getText();
+                    if(keyName.equals("resourceId"))
+                        serviceId = keyText;
+                }
+                EdmEntityType startEntityType = startEdmEntitySet.getEntityType();
+                
+                
+                InputStream requestInputStream = request.getBody();
+                ODataDeserializer deserializer = this.odata.createDeserializer(requestFormat);
+                DeserializerResult result = deserializer.entity(requestInputStream, targetEntityType);
+                Entity requestEntity = result.getEntity();
+                
+                
+                //obj = storageHelper.getRelatedObject(resource, startEntityType, targetEntityType, top, jsonFilter);
+                //obj = "RESPONSE";
+                storageHelper.setService(resource,serviceId, requestEntity, targetEntityType);
+            }
+        } else { // this would be the case for e.g. Products(1)/Category/Products
+            throw new ODataApplicationException("Not supported", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
+        }
+
+        try{
+            responseString = "";
+            stream = new ByteArrayInputStream(responseString.getBytes("UTF-8"));
+        }
+        catch(Exception e){
+            log.error(e.getMessage());
+        }
+        
+        // 4th: configure the response object: set the body, headers and status code
+        //response.setContent(serializerResult.getContent());
+        response.setContent(stream);
+        response.setStatusCode(HttpStatusCode.OK.getStatusCode());
+        response.setHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
     }
 
     @Override
