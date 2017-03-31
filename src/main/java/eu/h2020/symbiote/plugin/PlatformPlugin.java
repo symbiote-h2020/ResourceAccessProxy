@@ -5,8 +5,8 @@
  */
 package eu.h2020.symbiote.plugin;
 
-import eu.h2020.symbiote.model.data.Observation;
-import eu.h2020.symbiote.model.data.ObservationValue;
+import eu.h2020.symbiote.core.model.Observation;
+import eu.h2020.symbiote.core.model.ObservationValue;
 
 /**
  *

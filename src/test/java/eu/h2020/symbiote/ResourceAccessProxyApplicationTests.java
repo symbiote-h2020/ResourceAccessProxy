@@ -3,7 +3,6 @@ package eu.h2020.symbiote;
 import eu.h2020.symbiote.interfaces.PluginRepository;
 import eu.h2020.symbiote.interfaces.ResourceAccessRestController;
 import eu.h2020.symbiote.interfaces.ResourcesRepository;
-import eu.h2020.symbiote.model.data.Observation;
 import eu.h2020.symbiote.plugin.PlatformSpecificPlugin;
 import eu.h2020.symbiote.resources.PlatformInfo;
 import eu.h2020.symbiote.resources.ResourceInfo;

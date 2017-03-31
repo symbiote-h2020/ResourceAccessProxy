@@ -18,7 +18,7 @@ import eu.h2020.symbiote.messages.ResourceAccessGetMessage;
 import eu.h2020.symbiote.messages.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.ResourceAccessSubscribeMessage;
-import eu.h2020.symbiote.model.data.Observation;
+import eu.h2020.symbiote.core.model.Observation;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.ResourceInfo;
 import java.io.IOException;

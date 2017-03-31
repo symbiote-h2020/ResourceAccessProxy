@@ -7,7 +7,7 @@ package eu.h2020.symbiote.messages;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import eu.h2020.symbiote.model.data.ObservationValue;
+import eu.h2020.symbiote.core.model.ObservationValue;
 import eu.h2020.symbiote.resources.ResourceInfo;
 
 /**

@@ -14,8 +14,8 @@ import eu.h2020.symbiote.messages.ResourceAccessGetMessage;
 import eu.h2020.symbiote.messages.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.ResourceAccessSetMessage;
-import eu.h2020.symbiote.model.data.Observation;
-import eu.h2020.symbiote.model.data.ObservationValue;
+import eu.h2020.symbiote.core.model.Observation;
+import eu.h2020.symbiote.core.model.ObservationValue;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.ResourceInfo;
 import java.util.List;
@@ -23,7 +23,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-
+import eu.h2020.symbiote.core.model.Property;
+import eu.h2020.symbiote.core.model.UnitOfMeasurement;
+import eu.h2020.symbiote.core.model.Location;
 /**
  *
  * @author Matteo Pardi <m.pardi@nextworks.it>
@@ -69,7 +71,7 @@ public class PlatformSpecificPlugin {
         //
         // INSERT HERE: query to the platform with internal resource id
         //
-        value = Observation.observationExampleValue();
+        value = observationExampleValue();
         
         return value;
     }
@@ -130,5 +132,17 @@ public class PlatformSpecificPlugin {
         } catch (Exception e ) {
             log.error("Error while registering plugin for platform " + PLUGIN_PLATFORM_ID + "\n" + e);
         }
+    }
+        
+    public static Observation observationExampleValue () {        
+        String sensorId = "symbIoTeID1";
+        Location loc = new Location(15.9, 45.8, 145, "Spansko", "City of Zagreb");
+        long timestamp = System.currentTimeMillis();
+        ObservationValue obsval = new ObservationValue("7", new Property("Temperature", "Air temperature"), new UnitOfMeasurement("C", "degree Celsius", ""));
+        Observation obs = new Observation(sensorId, loc, timestamp, timestamp-1000 , obsval);
+        
+        log.debug("Observation: \n" + obs.toString());
+        
+        return obs;
     }
 }

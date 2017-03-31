@@ -35,8 +35,8 @@ import org.springframework.stereotype.Component;
  *
  * @author Matteo Pardi m.pardi@nextworks.it
  */
-@Component
-public class RAPEdmProvider extends CsdlAbstractEdmProvider {
+//@Component
+public class RAPEdmProvider_1 extends CsdlAbstractEdmProvider {
 
     @Autowired
     private ApplicationContext ctx;

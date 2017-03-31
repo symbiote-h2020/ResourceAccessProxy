@@ -16,7 +16,7 @@ import eu.h2020.symbiote.messages.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.ResourceAccessSetMessage;
 import eu.h2020.symbiote.messages.ResourceAccessSetService;
-import eu.h2020.symbiote.model.data.Observation;
+import eu.h2020.symbiote.core.model.Observation;
 import eu.h2020.symbiote.resources.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Comparison;
 import eu.h2020.symbiote.resources.query.Filter;

@@ -6,7 +6,7 @@
 package eu.h2020.symbiote.interfaces;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import eu.h2020.symbiote.model.data.Observation;
+import eu.h2020.symbiote.core.model.Observation;
 import eu.h2020.symbiote.service.notificationResurce.NotificationWebSocket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

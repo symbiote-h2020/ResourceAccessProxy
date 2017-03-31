@@ -55,13 +55,13 @@ public class PluginNotificationConfig {
         return bindings;
     }
 
-    @Bean
+    @Bean(name=RapDefinitions.PLUGIN_NOTIFICATION_QUEUE + "Receiver")
     PluginNotification platformPluginReceiver() {
         return new PluginNotification();
     }
     
     @Bean(name=RapDefinitions.PLUGIN_NOTIFICATION_QUEUE + "Listener")
-    MessageListenerAdapter platformPluginListenerAdapter(PluginNotification receiver) {
+    MessageListenerAdapter platformPluginListenerAdapter(@Qualifier(RapDefinitions.PLUGIN_NOTIFICATION_QUEUE + "Receiver") PluginNotification receiver) {
         return new MessageListenerAdapter(receiver, "receiveNotification");
     }
 }

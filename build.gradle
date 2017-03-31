@@ -69,6 +69,8 @@ dependencies {
     
     compile("org.apache.olingo:odata-server-api:${'4.3.0'}")
     compile("org.apache.olingo:odata-server-core:${'4.3.0'}")
+    
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:w_observ-SNAPSHOT')
 }
 
 dependencyManagement {
