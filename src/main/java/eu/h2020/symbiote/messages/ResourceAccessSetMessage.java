@@ -15,6 +15,10 @@ import eu.h2020.symbiote.resources.ResourceInfo;
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
 public class ResourceAccessSetMessage extends ResourceAccessMessage {
+    
+    @JsonProperty("resourceInfo")
+    ResourceInfo resInfo;
+    
     @JsonProperty("value")
     private final ObservationValue value;
     /**
@@ -28,6 +32,11 @@ public class ResourceAccessSetMessage extends ResourceAccessMessage {
         this.accessType = AccessType.SET;
         this.resInfo = resInfo;
         this.value = value;
+    }
+    
+    @JsonProperty("resourceInfo")
+    public ResourceInfo getResourceInfo() {
+        return resInfo;
     }
     
     public ObservationValue getValue() {

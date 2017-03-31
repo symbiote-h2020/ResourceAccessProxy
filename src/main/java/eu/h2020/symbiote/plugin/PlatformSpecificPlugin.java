@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.interfaces.ResourceAccessRestController;
 import eu.h2020.symbiote.messages.RegisterPluginMessage;
+import eu.h2020.symbiote.messages.ResourceAccessGetMessage;
+import eu.h2020.symbiote.messages.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.ResourceAccessSetMessage;
 import eu.h2020.symbiote.model.data.Observation;
@@ -85,23 +87,28 @@ public class PlatformSpecificPlugin {
     public String receiveMessage(String message) {
         String json = "";
         try {            
+            ResourceInfo info;
             ObjectMapper mapper = new ObjectMapper();
             ResourceAccessMessage msg = mapper.readValue(message, ResourceAccessMessage.class);
-            ResourceInfo info = msg.getResourceInfo();
             ResourceAccessMessage.AccessType access = msg.getAccessType();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             switch(access) {
-                case GET:                    
+                case GET:          
+                    ResourceAccessGetMessage msgGet = (ResourceAccessGetMessage) msg;
+                    info = msgGet.getResourceInfo();
                     Observation observation = readResource(info.getPlatformResourceId());
                     json = mapper.writeValueAsString(observation);
                     break;
                 case HISTORY:
+                    ResourceAccessHistoryMessage msgHistory = (ResourceAccessHistoryMessage) msg;
+                    info = msgHistory.getResourceInfo();
                     List<Observation> observationLst = readResourceHistory(info.getPlatformResourceId());
                     json = mapper.writeValueAsString(observationLst);
                     throw new Exception("Access type " + access.toString() + " not yet supported");
                 case SET:
                     ResourceAccessSetMessage mess = (ResourceAccessSetMessage)msg;
+                    info = mess.getResourceInfo();
                     writeResource(info.getPlatformResourceId(), mess.getValue());
                     throw new Exception("Access type " + access.toString() + " not yet supported");
             }

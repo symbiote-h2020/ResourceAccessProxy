@@ -15,6 +15,9 @@ import eu.h2020.symbiote.resources.service.ServiceSet;
  * @author luca-
  */
 public class ResourceAccessSetService extends ResourceAccessMessage{
+    @JsonProperty("resourceInfo")
+    ResourceInfo resInfo;
+    
     @JsonProperty("value")
     private final ServiceSet value;
     /**
@@ -28,6 +31,11 @@ public class ResourceAccessSetService extends ResourceAccessMessage{
         this.accessType = ResourceAccessMessage.AccessType.SET;
         this.resInfo = resInfo;
         this.value = value;
+    }
+    
+    @JsonProperty("resourceInfo")
+    public ResourceInfo getResourceInfo() {
+        return resInfo;
     }
     
     public ServiceSet getValue() {

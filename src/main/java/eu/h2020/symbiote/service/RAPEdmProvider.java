@@ -5,6 +5,8 @@
  */
 package eu.h2020.symbiote.service;
 
+
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,6 +29,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
+import eu.h2020.symbiote.cloud.model.Sensor;
+import eu.h2020.symbiote.core.model.Observation;
+import eu.h2020.symbiote.interfaces.ResourceAccessRestController;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.logging.Level;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * this class is supposed to declare the metadata of the OData service it is
  * invoked by the Olingo framework e.g. when the metadata document of the
@@ -38,6 +49,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class RAPEdmProvider extends CsdlAbstractEdmProvider {
 
+    private static final Logger log = LoggerFactory.getLogger(ResourceAccessRestController.class);
+    
     @Autowired
     private ApplicationContext ctx;
 
@@ -47,11 +60,15 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
     public static final String CONTAINER_NAME = "Container";
     public static final FullQualifiedName CONTAINER = new FullQualifiedName(NAMESPACE, CONTAINER_NAME);
     // Entity Types Names
-    public static final String ET_OBSERVATION_NAME = "Observation";
+    public static final String ET_OBSERVATION_NAME = Observation.class.getSimpleName();
     public static final FullQualifiedName ET_OBSERVATION_FQN = new FullQualifiedName(NAMESPACE, ET_OBSERVATION_NAME);
     
-    public static final String ET_RESOURCE_NAME = "Resource";
+    public static final String ET_RESOURCE_NAME = Sensor.class.getSimpleName();
     public static final FullQualifiedName ET_RESOURCE_FQN = new FullQualifiedName(NAMESPACE, ET_RESOURCE_NAME);
+
+    // Entity Set Names
+    public static final String ES_OBSERVATIONS_NAME =  Observation.class.getSimpleName() + "s";
+    public static final String ES_RESOURCES_NAME = Sensor.class.getSimpleName() + "s";
     
     
     public static final String ET_ACTUATOR_NAME = "Actuator";
@@ -59,233 +76,229 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
     public static final String ET_SERVICE_NAME = "Service";
     public static final FullQualifiedName ET_SERVICE_FQN = new FullQualifiedName(NAMESPACE, ET_SERVICE_NAME);
 
-    
-    // Complex Type Names
-    public static final String WGS84LOCATION = "WGS84Location";
-    public static final FullQualifiedName CT_WGS84LOCATION = new FullQualifiedName(NAMESPACE, WGS84LOCATION);
-    public static final String PROPERTY = "Property";
-    public static final FullQualifiedName CT_PROPERTY = new FullQualifiedName(NAMESPACE, PROPERTY);
-    public static final String UOM = "uom";
-    public static final FullQualifiedName CT_UOM = new FullQualifiedName(NAMESPACE, UOM);
-    public static final String OBSERVATIONVALUE = "ObservationValue";
-    public static final FullQualifiedName CT_OBSERVATIONVALUE = new FullQualifiedName(NAMESPACE, OBSERVATIONVALUE);
-    public static final String INPUTPARAMETER = "InputParameter";
-    public static final FullQualifiedName CT_INPUTPARAMETER = new FullQualifiedName(NAMESPACE, INPUTPARAMETER);
-
-    // Entity Set Names
-    public static final String ES_OBSERVATIONS_NAME = "Observations";
-    public static final String ES_RESOURCES_NAME = "Resources";
-    
-
-    public static final String ES_SERVICES_NAME = "Services";
-    public static final String ES_ACTUATORS_NAME = "Actuators";
-    
-
     @Override
     public List<CsdlSchema> getSchemas() throws ODataException {
-
-        // create Schema
-        CsdlSchema schema = new CsdlSchema();
-        schema.setNamespace(NAMESPACE);
-
-        // add EntityTypes
-        List<CsdlEntityType> entityTypes = new ArrayList<CsdlEntityType>();
-        entityTypes.add(getEntityType(ET_OBSERVATION_FQN));
-        entityTypes.add(getEntityType(ET_RESOURCE_FQN));
+        try {
+            // create Schema
+            CsdlSchema schema = new CsdlSchema();
+            schema.setNamespace(NAMESPACE);
+            
+            // add EntityTypes
+            List<CsdlEntityType> entityTypes = new ArrayList();
+            entityTypes.add(getEntityType(ET_OBSERVATION_FQN));
+            entityTypes.add(getEntityType(ET_RESOURCE_FQN));
+            schema.setEntityTypes(entityTypes);
+            
+            //add ComplexTypes
+            List<CsdlComplexType> complexTypes = new ArrayList();
+            Class objectClass = Class.forName(getClassLongName(ET_OBSERVATION_NAME, Observation.class));
+            List<Field> fields = getAllFields(objectClass);
+            for(Field f : fields) {
+                if(f.getType().isPrimitive())
+                    continue;
+                complexTypes.add(getComplexType(new FullQualifiedName(NAMESPACE, f.getGenericType().toString())));
+            }
+            schema.setComplexTypes(complexTypes);            
+            // add EntityContainer
+            schema.setEntityContainer(getEntityContainer());            
+            // finally
+            List<CsdlSchema> schemas = new ArrayList();
+            schemas.add(schema);
+            
+            return schemas;
+        } catch (ClassNotFoundException ex) {
+            java.util.logging.Logger.getLogger(RAPEdmProvider.class.getName()).log(Level.SEVERE, null, ex);
+        }
         
-        entityTypes.add(getEntityType(ET_ACTUATOR_FQN));
-        entityTypes.add(getEntityType(ET_SERVICE_FQN));
-        schema.setEntityTypes(entityTypes);
-
-        //add ComplexTypes
-        List<CsdlComplexType> complexTypes = new ArrayList<CsdlComplexType>();
-        complexTypes.add(getComplexType(CT_WGS84LOCATION));
-        complexTypes.add(getComplexType(CT_PROPERTY));
-        complexTypes.add(getComplexType(CT_UOM));
-        complexTypes.add(getComplexType(CT_OBSERVATIONVALUE));
-        schema.setComplexTypes(complexTypes);
-
-        // add EntityContainer
-        schema.setEntityContainer(getEntityContainer());
-
-        // finally
-        List<CsdlSchema> schemas = new ArrayList<CsdlSchema>();
-        schemas.add(schema);
-
-        return schemas;
-    }
-
-    @Override
-    public CsdlEntityType getEntityType(FullQualifiedName entityTypeName) throws ODataException {
-
-        // this method is called for one of the EntityTypes that are configured in the Schema
-        if (entityTypeName.equals(ET_OBSERVATION_FQN)) {
-
-            //create EntityType properties
-            //CsdlProperty id = new CsdlProperty().setName("ID").setType(EdmPrimitiveTypeKind.Int32.getFullQualifiedName());
-            CsdlProperty resourceId = new CsdlProperty().setName("resourceId").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
-            CsdlProperty location = new CsdlProperty().setName("location").setType(CT_WGS84LOCATION);
-            CsdlProperty resultTime = new CsdlProperty().setName("resultTime").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
-            CsdlProperty samplingTime = new CsdlProperty().setName("samplingTime").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
-            CsdlProperty observationValue = new CsdlProperty().setName("observationValue").setType(CT_OBSERVATIONVALUE);
-            
-            // create CsdlPropertyRef for Key element
-            CsdlPropertyRef propertyRef = new CsdlPropertyRef();
-            propertyRef.setName("resourceId");
-
-            
-            CsdlNavigationProperty navProp = new CsdlNavigationProperty()
-                    .setName(ET_RESOURCE_NAME)
-                    .setType(ET_RESOURCE_FQN)
-                    .setNullable(true)
-                    .setPartner(ES_OBSERVATIONS_NAME);
-            List<CsdlNavigationProperty> navPropList = new ArrayList<CsdlNavigationProperty>();
-            navPropList.add(navProp);
-            
-            // configure EntityType
-            CsdlEntityType entityType = new CsdlEntityType();
-            entityType.setName(ET_OBSERVATION_NAME);
-            entityType.setProperties(Arrays.asList(resourceId, location, resultTime, samplingTime, observationValue));
-            entityType.setKey(Collections.singletonList(propertyRef));
-            entityType.setNavigationProperties(navPropList);
-
-            return entityType;
-        }
-        else if (entityTypeName.equals(ET_RESOURCE_FQN)) {
-
-            //create EntityType properties
-            //CsdlProperty id = new CsdlProperty().setName("ID").setType(EdmPrimitiveTypeKind.Int32.getFullQualifiedName());
-            CsdlProperty resourceId = new CsdlProperty().setName("resourceId").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
-            CsdlProperty platformResourceId = new CsdlProperty().setName("platformResourceId").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
-            CsdlProperty platformId = new CsdlProperty().setName("platformId").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
-
-            // create CsdlPropertyRef for Key element
-            CsdlPropertyRef propertyRef = new CsdlPropertyRef();
-            propertyRef.setName("resourceId");
-            
-            
-            // navigation property: one-to-many
-            CsdlNavigationProperty navProp = new CsdlNavigationProperty()
-                            .setName(ES_OBSERVATIONS_NAME)
-                            .setType(ET_OBSERVATION_FQN)
-                            .setCollection(true)
-                            .setPartner(ET_RESOURCE_NAME);
-            List<CsdlNavigationProperty> navPropList = new ArrayList<CsdlNavigationProperty>();
-            navPropList.add(navProp);
-
-            // configure EntityType
-            CsdlEntityType entityType = new CsdlEntityType();
-            entityType.setName(ET_RESOURCE_NAME);
-            entityType.setProperties(Arrays.asList(resourceId, platformResourceId, platformId));
-            entityType.setKey(Collections.singletonList(propertyRef));
-            entityType.setNavigationProperties(navPropList);
-
-            return entityType;
-        }
-        if (entityTypeName.equals(ET_SERVICE_FQN)) {
-
-            //create EntityType properties
-            //CsdlProperty id = new CsdlProperty().setName("ID").setType(EdmPrimitiveTypeKind.Int32.getFullQualifiedName());
-            CsdlProperty resourceId = new CsdlProperty().setName("resourceId").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
-            CsdlProperty inputParameterList = new CsdlProperty().setName("inputParameter").setType(CT_INPUTPARAMETER).setCollection(true);
-            
-            // create CsdlPropertyRef for Key element
-            CsdlPropertyRef propertyRef = new CsdlPropertyRef();
-            propertyRef.setName("resourceId");
-
-            
-            CsdlNavigationProperty navProp = new CsdlNavigationProperty()
-                    .setName(ET_ACTUATOR_NAME)
-                    .setType(ET_ACTUATOR_FQN)
-                    .setNullable(true)
-                    .setPartner(ES_SERVICES_NAME);
-            List<CsdlNavigationProperty> navPropList = new ArrayList<CsdlNavigationProperty>();
-            navPropList.add(navProp);
-            
-            // configure EntityType
-            CsdlEntityType entityType = new CsdlEntityType();
-            entityType.setName(ET_SERVICE_NAME);
-            entityType.setProperties(Arrays.asList(resourceId,inputParameterList));
-            entityType.setKey(Collections.singletonList(propertyRef));
-            entityType.setNavigationProperties(navPropList);
-
-            return entityType;
-        }
-        else if (entityTypeName.equals(ET_ACTUATOR_FQN)) {
-
-            //create EntityType properties
-            //CsdlProperty id = new CsdlProperty().setName("ID").setType(EdmPrimitiveTypeKind.Int32.getFullQualifiedName());
-            CsdlProperty resourceId = new CsdlProperty().setName("resourceId").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
-            CsdlProperty platformResourceId = new CsdlProperty().setName("platformResourceId").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
-            CsdlProperty platformId = new CsdlProperty().setName("platformId").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName());
-
-            // create CsdlPropertyRef for Key element
-            CsdlPropertyRef propertyRef = new CsdlPropertyRef();
-            propertyRef.setName("resourceId");
-            
-            
-            // navigation property: one-to-many
-            CsdlNavigationProperty navProp = new CsdlNavigationProperty()
-                            .setName(ES_SERVICES_NAME)
-                            .setType(ET_SERVICE_FQN)
-                            .setCollection(true)
-                            .setPartner(ET_ACTUATOR_NAME);
-            List<CsdlNavigationProperty> navPropList = new ArrayList<CsdlNavigationProperty>();
-            navPropList.add(navProp);
-
-            // configure EntityType
-            CsdlEntityType entityType = new CsdlEntityType();
-            entityType.setName(ET_ACTUATOR_NAME);
-            entityType.setProperties(Arrays.asList(resourceId, platformResourceId, platformId));
-            entityType.setKey(Collections.singletonList(propertyRef));
-            entityType.setNavigationProperties(navPropList);
-
-            return entityType;
-        }
-
         return null;
     }
     
+    private List<Field> getAllFields(Class<?> type) {
+        List<Field> fields = new ArrayList();
+        for (Class<?> c = type; c != null; c = c.getSuperclass()) {
+            fields.addAll(Arrays.asList(c.getDeclaredFields()));
+        }
+        return fields;
+    }
+    
+    private Class getInternalTypeClass(Field f) {
+        Class type = null;
+        Type t = f.getGenericType();
+        if (t instanceof ParameterizedType) {
+            ParameterizedType pt = (ParameterizedType) t;
+            Type[] ta = pt.getActualTypeArguments();
+            type = (Class) ta[0];
+        }        
+        return type;
+    }
+                 
+        
+    private String getClassLongName(String simpleName, Class father) {
+        String name = null;
+        if(father.getSimpleName().equals(simpleName)) {
+            name = father.getName();
+            return name;    
+        }
+        
+        List<Field> fields = getAllFields(father);
+        for(Field f : fields) {
+            Class cl = f.getType();
+            if(cl == List.class) {
+                cl = getInternalTypeClass(f);
+                if(cl != null)
+                    cl = f.getType();
+            }
+            if((cl != null) && (cl.getSimpleName().equals(simpleName))) {
+                name = cl.getName();
+                break;
+            }
+        }
+        if(name==null) {
+            for(Field f : fields) {
+                Class cl = f.getType();            
+                if(cl == List.class) {
+                    name = getClassLongName(simpleName, getInternalTypeClass(f));
+                } else {
+                    if(!(cl.isPrimitive()) && (cl != String.class)) {
+                        name = getClassLongName(simpleName, (Class)f.getType());
+                    }
+                }
+                if(name != null)
+                    break;
+            }
+        }
+        
+        return name;
+    }
+    
+    private String getShortClassName(String type) {
+        String[] gt = type.split("\\.");
+        String genericType = gt[gt.length-1];
+
+        return genericType;        
+    }
+    
+    private FullQualifiedName getFullQualifiedName(String type) {
+        FullQualifiedName fqn = null;
+        String[] gt = type.split("\\.");
+        String genericType = gt[gt.length-1];
+
+        if(genericType.compareToIgnoreCase("String") == 0) {
+            fqn = EdmPrimitiveTypeKind.String.getFullQualifiedName();
+        } else if (genericType.compareToIgnoreCase("Double") == 0) {
+            fqn = EdmPrimitiveTypeKind.Double.getFullQualifiedName();
+        } else if (genericType.compareToIgnoreCase("Long") == 0) {
+            fqn = EdmPrimitiveTypeKind.Int64.getFullQualifiedName();
+        } else if (genericType.compareToIgnoreCase("Int") == 0) {
+            fqn = EdmPrimitiveTypeKind.Int32.getFullQualifiedName();
+        } else if (genericType.compareToIgnoreCase("Boolean") == 0) {
+            fqn = EdmPrimitiveTypeKind.Boolean.getFullQualifiedName();
+        } 
+        
+        return fqn;        
+    }
+    
+    @Override
+    public CsdlEntityType getEntityType(FullQualifiedName entityTypeName) throws ODataException {
+
+        CsdlEntityType entityType = null;
+        //create EntityType properties
+        try {            
+            Class objectClass = Class.forName(getClassLongName(entityTypeName.getName(), Sensor.class));
+            List<Field> fields = getAllFields(objectClass);
+            ArrayList<CsdlProperty> lst = new ArrayList();
+            List<CsdlNavigationProperty> navPropList = new ArrayList<>();
+            String keyEl = "";
+            for(Field f : fields) {
+                Class cl;
+                boolean isList=false;
+                if(f.getType() == List.class) {
+                    cl = getInternalTypeClass(f);
+                    String shortName = getShortClassName(cl.getName());
+                    // adding navigation for this collection
+                    CsdlNavigationProperty navProp = new CsdlNavigationProperty()
+                                            .setName(shortName + "s")
+                                            .setType(new FullQualifiedName(NAMESPACE, shortName))
+                                            .setCollection(true)
+                                            .setPartner(entityTypeName.getName());
+                    navPropList.add(navProp);
+                    isList = true;
+                    log.info("LIST");                    
+                } else {
+                    cl = f.getType();                        
+                }
+                String shortName = getShortClassName(cl.getName());
+                if((cl.isPrimitive()) || (cl == String.class)) {
+                    FullQualifiedName fqn = getFullQualifiedName(cl.getName());
+                    CsdlProperty propId = new CsdlProperty()
+                            .setName(f.getName())
+                            .setType(fqn);
+                    lst.add(propId);
+                    log.info("PRIMITIVE: " + f.getName() + " - " + fqn.getFullQualifiedNameAsString());
+                } else {                        
+                    CsdlProperty propId = new CsdlProperty()
+                            .setName(f.getName())
+                            .setType(new FullQualifiedName(NAMESPACE, shortName));                            
+                    if(isList)
+                        propId.setCollection(true);
+                    lst.add(propId);
+                    log.info("COMPLEX: " + f.getName() + " - " + shortName);
+                }
+                // TO UPDATE WITH (?) ANNOTATIONS?
+                String nm = f.getName();
+                if(nm.contains("Id") ||
+                   nm.contains("id") ||
+                   nm.contains("ID")) {
+                   keyEl = nm;
+                }                
+            }
+            CsdlPropertyRef propertyRef = null;
+            if(keyEl.length() > 0) {
+                // create CsdlPropertyRef for Key element
+                propertyRef = new CsdlPropertyRef();
+                propertyRef.setName(keyEl);
+            }
+            // configure EntityType
+            entityType = new CsdlEntityType();
+            entityType.setName(entityTypeName.getName());
+            entityType.setProperties(lst);
+            if(propertyRef != null)
+                entityType.setKey(Collections.singletonList(propertyRef));
+            entityType.setNavigationProperties(navPropList);
+        } catch (Exception e) {
+           log.error(e.toString());
+        }
+
+        return entityType;
+    }
+    
+    @Override
     public CsdlComplexType getComplexType(final FullQualifiedName complexTypeName) throws ODataException {
-        if (CT_WGS84LOCATION.equals(complexTypeName)) {
-            return new CsdlComplexType()
-                .setName(CT_WGS84LOCATION.getName())
-                .setProperties(Arrays.asList(
-                  new CsdlProperty().setName("name").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName()),
-                  new CsdlProperty().setName("description").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName()),
-                  new CsdlProperty().setName("longitude").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName()),
-                  new CsdlProperty().setName("latitude").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName()),
-                  new CsdlProperty().setName("altitude").setType(EdmPrimitiveTypeKind.Double.getFullQualifiedName())));
-        }
-        else if (CT_PROPERTY.equals(complexTypeName)) {
-            return new CsdlComplexType()
-                .setName(CT_PROPERTY.getName())
-                .setProperties(Arrays.asList(
-                  new CsdlProperty().setName("label").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName()),
-                  new CsdlProperty().setName("comment").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName())));
-        }
-        else if (CT_UOM.equals(complexTypeName)) {
-            return new CsdlComplexType()
-                .setName(CT_UOM.getName())
-                .setProperties(Arrays.asList(
-                  new CsdlProperty().setName("symbol").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName()),
-                  new CsdlProperty().setName("label").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName()),
-                  new CsdlProperty().setName("comment").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName())));
-        }
-        else if (CT_OBSERVATIONVALUE.equals(complexTypeName)) {
-            return new CsdlComplexType()
-                .setName(CT_OBSERVATIONVALUE.getName())
-                .setProperties(Arrays.asList(
-                  new CsdlProperty().setName("value").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName()),
-                  new CsdlProperty().setName("obsProperty").setType(CT_PROPERTY),
-                  new CsdlProperty().setName("uom").setType(CT_UOM)));
-        }
-        else if (CT_INPUTPARAMETER.equals(complexTypeName)) {
-            return new CsdlComplexType()
-                .setName(CT_INPUTPARAMETER.getName())
-                .setProperties(Arrays.asList(
-                  new CsdlProperty().setName("name").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName()),
-                  new CsdlProperty().setName("value").setType(EdmPrimitiveTypeKind.String.getFullQualifiedName())));
+        
+        try {
+            String longName = getClassLongName(complexTypeName.getName(), Sensor.class);
+            Class objectClass = Class.forName(longName);
+            List<Field> fields = getAllFields(objectClass);
+            ArrayList<CsdlProperty> propList = new ArrayList();
+            for(Field f : fields) {
+                String name = f.getName();
+                if((f.getType().isPrimitive()) || (f.getType() == String.class)) {
+                    FullQualifiedName fqn = getFullQualifiedName(f.getType().getName());
+                    CsdlProperty prop = new CsdlProperty().setName(name).setType(fqn);
+                    propList.add(prop);
+                } else {
+                    String shortName = getShortClassName(f.getType().getSimpleName());
+                    CsdlProperty prop = new CsdlProperty().setName(name).setType(new FullQualifiedName(NAMESPACE, shortName));
+                    propList.add(prop);
+                }
+            }            
+            CsdlComplexType cpx = new CsdlComplexType()
+                        .setName(complexTypeName.getName())
+                        .setProperties(propList);
+                
+            return cpx;
+        } catch (Exception e) {
+            java.util.logging.Logger.getLogger(RAPEdmProvider.class.getName()).log(Level.SEVERE, null, e);
         }
         return null;
     }
@@ -323,35 +336,6 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
                 
                 return entitySet;
             }
-            else if (entitySetName.equals(ES_SERVICES_NAME)) {
-                CsdlEntitySet entitySet = new CsdlEntitySet();
-                entitySet.setName(ES_SERVICES_NAME);
-                entitySet.setType(ET_SERVICE_FQN);
-                
-                CsdlNavigationPropertyBinding navPropBinding = new CsdlNavigationPropertyBinding();
-                navPropBinding.setPath(ET_ACTUATOR_NAME); // the path from entity type to navigation property
-                navPropBinding.setTarget(ES_ACTUATORS_NAME); //target entitySet, where the nav prop points to
-                List<CsdlNavigationPropertyBinding> navPropBindingList = new ArrayList<CsdlNavigationPropertyBinding>();
-                navPropBindingList.add(navPropBinding);
-                entitySet.setNavigationPropertyBindings(navPropBindingList);
-
-                return entitySet;
-            }
-            else if (entitySetName.equals(ES_ACTUATORS_NAME)) {
-                CsdlEntitySet entitySet = new CsdlEntitySet();
-                entitySet.setName(ES_ACTUATORS_NAME);
-                entitySet.setType(ET_ACTUATOR_FQN);
-                
-                
-                CsdlNavigationPropertyBinding navPropBinding = new CsdlNavigationPropertyBinding();
-                navPropBinding.setTarget(ES_SERVICES_NAME);//target entitySet, where the nav prop points to
-                navPropBinding.setPath(ES_SERVICES_NAME); // the path from entity type to navigation property
-                List<CsdlNavigationPropertyBinding> navPropBindingList = new ArrayList<CsdlNavigationPropertyBinding>();
-                navPropBindingList.add(navPropBinding);
-                entitySet.setNavigationPropertyBindings(navPropBindingList);
-                
-                return entitySet;
-            }
         }
 
         return null;
@@ -364,9 +348,6 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
         List<CsdlEntitySet> entitySets = new ArrayList<CsdlEntitySet>();
         entitySets.add(getEntitySet(CONTAINER, ES_OBSERVATIONS_NAME));
         entitySets.add(getEntitySet(CONTAINER, ES_RESOURCES_NAME));
-        
-        entitySets.add(getEntitySet(CONTAINER, ES_SERVICES_NAME));
-        entitySets.add(getEntitySet(CONTAINER, ES_ACTUATORS_NAME));
 
         // create EntityContainer
         CsdlEntityContainer entityContainer = new CsdlEntityContainer();

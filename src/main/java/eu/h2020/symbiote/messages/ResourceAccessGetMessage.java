@@ -15,6 +15,9 @@ import eu.h2020.symbiote.resources.ResourceInfo;
  */
 public class ResourceAccessGetMessage extends ResourceAccessMessage {
     
+    @JsonProperty("resourceInfo")
+    ResourceInfo resInfo;
+    
     /**
      * JSON Constructor
      * @param resInfo               the resource data information     
@@ -23,5 +26,10 @@ public class ResourceAccessGetMessage extends ResourceAccessMessage {
     public ResourceAccessGetMessage(@JsonProperty("resourceInfo") ResourceInfo resInfo){
         this.accessType = AccessType.GET;
         this.resInfo = resInfo;
+    }
+    
+    @JsonProperty("resourceInfo")
+    public ResourceInfo getResourceInfo() {
+        return resInfo;
     }
 }

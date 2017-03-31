@@ -15,6 +15,10 @@ import eu.h2020.symbiote.resources.query.Query;
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
 public class ResourceAccessHistoryMessage extends ResourceAccessMessage {
+    
+    @JsonProperty("resourceInfo")
+    ResourceInfo resInfo;
+    
     @JsonProperty("filter")
     private final Query filter;
     /**
@@ -30,7 +34,13 @@ public class ResourceAccessHistoryMessage extends ResourceAccessMessage {
         this.filter = filter;
     }
     
+    @JsonProperty("resourceInfo")
+    public ResourceInfo getResourceInfo() {
+        return resInfo;
+    }
+    
     public Query getFilter(){
         return this.filter;
     }
+ 
 }

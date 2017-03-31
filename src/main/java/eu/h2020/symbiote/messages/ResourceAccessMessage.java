@@ -21,26 +21,22 @@ import eu.h2020.symbiote.resources.ResourceInfo;
 @JsonSubTypes({
 	@Type(value = ResourceAccessGetMessage.class,       name = "GET"),
         @Type(value = ResourceAccessHistoryMessage.class,   name = "HISTORY"),
-        @Type(value = ResourceAccessSetMessage.class,       name = "SET")
+        @Type(value = ResourceAccessSetMessage.class,       name = "SET"),
+        @Type(value = ResourceAccessSubscribeMessage.class,   name = "SUBSCRIBE"),
+        @Type(value = ResourceAccessUnSubscribeMessage.class,   name = "UNSUBSCRIBE"),
 })
 abstract public class ResourceAccessMessage {
     
     public enum AccessType {
-        GET, HISTORY, SET
+        GET, HISTORY, SET, SUBSCRIBE, UNSUBSCRIBE
     }
     
     @JsonProperty("type")
     AccessType accessType;
-    @JsonProperty("resourceInfo")
-    ResourceInfo resInfo;
+    
 
     @JsonProperty("type")
     public AccessType getAccessType() {
         return accessType;
-    }
-    
-    @JsonProperty("resourceInfo")
-    public ResourceInfo getResourceInfo() {
-        return resInfo;
     }
 }
