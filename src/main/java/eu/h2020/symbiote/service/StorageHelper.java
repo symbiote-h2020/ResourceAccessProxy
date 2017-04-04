@@ -133,7 +133,7 @@ public class StorageHelper {
     public Object getRelatedObject(ResourceInfo resourceInfo, EdmEntityType sourceEntityType, EdmEntityType targetEntityType,
             Integer top, Query filterQuery) throws ODataApplicationException {
         FullQualifiedName relatedEntityFqn = targetEntityType.getFullQualifiedName();
-        if (sourceEntityType.getName().equals(RAPEdmProvider.ET_RESOURCE_NAME)
+        if (sourceEntityType.getName().equals(RAPEdmProvider.ET_SENSOR_NAME)
                 && relatedEntityFqn.equals(RAPEdmProvider.ET_OBSERVATION_FQN)) {
 
             try {
@@ -263,7 +263,7 @@ public class StorageHelper {
     private Entity getElement(EdmEntityType edmEntityType, List<UriParameter> keyParams) throws ODataApplicationException {
         // the list of entities at runtime
         EntityCollection entitySet;
-        if (edmEntityType.getName().equals(RAPEdmProvider.ET_RESOURCE_NAME)) {
+        if (edmEntityType.getName().equals(RAPEdmProvider.ET_SENSOR_NAME)) {
             entitySet = getResources();
         } else if (edmEntityType.getName().equals(RAPEdmProvider.ET_OBSERVATION_NAME)) {
             entitySet = getObservations();
@@ -349,7 +349,7 @@ public class StorageHelper {
         //String sourceEntityFqn = sourceEntity.getType();
 
         if (sourceEntityType.getName().equals(RAPEdmProvider.ET_OBSERVATION_NAME)
-                && relatedEntityFqn.equals(RAPEdmProvider.ET_RESOURCE_FQN)) {
+                && relatedEntityFqn.equals(RAPEdmProvider.ET_SENSOR_FQN)) {
             // relation Products->Category (result all categories)
             String observationID = sourceEntity.getProperty("resourceId").getValue().toString();
             if (observationID.equals("1")) {
@@ -358,7 +358,7 @@ public class StorageHelper {
                 navigationTargetEntityCollection.getEntities().add(resourceList.get(2));
             }
 
-        } else if (sourceEntityType.getName().equals(RAPEdmProvider.ET_RESOURCE_NAME)
+        } else if (sourceEntityType.getName().equals(RAPEdmProvider.ET_SENSOR_NAME)
                 && relatedEntityFqn.equals(RAPEdmProvider.ET_OBSERVATION_FQN)) {
             // relation Category->Products (result all products)
 
