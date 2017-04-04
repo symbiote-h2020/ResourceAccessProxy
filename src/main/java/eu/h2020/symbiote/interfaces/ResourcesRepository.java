@@ -25,7 +25,7 @@ public interface ResourcesRepository extends MongoRepository<ResourceInfo, Strin
      * @param resourceId    the id of the resource
      * @return              the Resource instance
      */
-    public Optional<ResourceInfo> findByResourceId(String resourceId);
+    public Optional<ResourceInfo> findById(String resourceId);
   
     /**
      * This method will find Resource instances associated to a platform

@@ -22,7 +22,7 @@ public class ResourceInfo {
     
     @Id
     @JsonProperty("resourceId")
-    private final String resource_Id;
+    private final String id;
     @JsonProperty("platformResourceId")
     private final String platformResource_Id;
     @JsonProperty("platformId")
@@ -31,7 +31,7 @@ public class ResourceInfo {
     private List<String> session_Id_List;
     
     public ResourceInfo() {
-        this.resource_Id = "";
+        this.id = "";
         this.platformResource_Id = "";
         this.platform_Id = "";
         this.session_Id_List = null;
@@ -41,7 +41,7 @@ public class ResourceInfo {
     public ResourceInfo(@JsonProperty("resourceId") String resourceId, 
                         @JsonProperty("platformResourceId") String platformResourceId, 
                         @JsonProperty("platformId") String platformId) {
-        this.resource_Id = resourceId;
+        this.id = resourceId;
         this.platformResource_Id = platformResourceId;
         this.platform_Id = platformId;
         this.session_Id_List = null;
@@ -52,7 +52,7 @@ public class ResourceInfo {
                         @JsonProperty("platformResourceId") String platformResourceId, 
                         @JsonProperty("platformId") String platformId,
                         @JsonProperty("sessionIdList") List<String> sessionId) {
-        this.resource_Id = resourceId;
+        this.id = resourceId;
         this.platformResource_Id = platformResourceId;
         this.platform_Id = platformId;
         this.session_Id_List = sessionId;
@@ -60,7 +60,7 @@ public class ResourceInfo {
     
     @JsonProperty("resourceId")
     public String getResourceId() {
-        return resource_Id;
+        return id;
     }
     
     @JsonProperty("platformResourceId")

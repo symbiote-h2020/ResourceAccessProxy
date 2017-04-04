@@ -111,7 +111,7 @@ public class StorageHelper {
 
             try {
                 if (keyName.equals("resourceId")) {
-                    Optional<ResourceInfo> resInfoOptional = resourcesRepo.findByResourceId(keyText);
+                    Optional<ResourceInfo> resInfoOptional = resourcesRepo.findById(keyText);
                     if (resInfoOptional.isPresent()) {
                         resInfo = resInfoOptional.get();
                     }

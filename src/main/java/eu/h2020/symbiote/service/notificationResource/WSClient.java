@@ -3,24 +3,42 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package eu.h2020.symbiote.service.notificationResurce;
+package eu.h2020.symbiote.service.notificationResource;
 
 import java.net.URI;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import javax.websocket.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
  * @author luca-
  */
-
+//This class is used only for testing web socket
 @ClientEndpoint
 public class WSClient {
 
+    private static final Logger log = LoggerFactory.getLogger(WSClient.class);
+
     private static Object waitLock = new Object();
+
+    final static CountDownLatch messageLatch = new CountDownLatch(1);
+
+    @OnOpen
+    public void onOpen(Session session) {
+        System.out.println("Connected to endpoint: " + session.getBasicRemote());
+        try {
+            System.out.println("Connected with sessionId: " + session.getId());
+        } catch (Exception ex) {
+            log.error("error occured at sender " + session, ex);
+        }
+    }
 
     @OnMessage
     public void onMessage(String message) {
-//the new USD rate arrives from the websocket server side.
+        //receive message
         System.out.println("Received msg: " + message);
     }
 
@@ -37,12 +55,14 @@ public class WSClient {
         WebSocketContainer container = null;//
         Session session = null;
         try {
-            //Tyrus is plugged via ServiceLoader API. See notes above
             container = ContainerProvider.getWebSocketContainer();
-//WS1 is the context-root of my web.app 
-//ratesrv is the  path given in the ServerEndPoint annotation on server implementation
             session = container.connectToServer(WSClient.class, URI.create("ws://localhost:8080/notification"));
-            wait4TerminateSignal();
+
+            session.getBasicRemote().sendText("[2]");
+
+            messageLatch.await(60, TimeUnit.SECONDS);
+
+            //wait4TerminateSignal();
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

@@ -7,7 +7,7 @@ package eu.h2020.symbiote.interfaces;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.core.model.Observation;
-import eu.h2020.symbiote.service.notificationResurce.NotificationWebSocket;
+import eu.h2020.symbiote.service.notificationResource.WebSocketController;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +20,7 @@ public class PluginNotification {
     private static final Logger log = LoggerFactory.getLogger(PluginNotification.class);
 
     @Autowired
-    NotificationWebSocket notificationWebSocket;
+    WebSocketController webSocketController;
     
     
     public void receiveNotification(byte[] messageByte) {
@@ -31,7 +31,7 @@ public class PluginNotification {
             ObjectMapper mapper = new ObjectMapper();
             Observation obs = mapper.readValue(message, Observation.class);            
             //String platformId = msg.getPlatformId();
-            notificationWebSocket.SendMessage(obs);
+            webSocketController.SendMessage(obs);
             
         } catch (Exception e) {
             log.info("Error during plugin registration process\n" + e.getMessage());

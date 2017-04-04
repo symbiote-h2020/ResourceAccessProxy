@@ -135,7 +135,7 @@ public class PlatformSpecificPlugin {
     }
         
     public static Observation observationExampleValue () {        
-        String sensorId = "symbIoTeID1";
+        /*String sensorId = "symbIoTeID1";
         Location loc = new Location(15.9, 45.8, 145, "Spansko", "City of Zagreb");
         long timestamp = System.currentTimeMillis();
         ObservationValue obsval = new ObservationValue("7", new Property("Temperature", "Air temperature"), new UnitOfMeasurement("C", "degree Celsius", ""));
@@ -143,6 +143,7 @@ public class PlatformSpecificPlugin {
         
         log.debug("Observation: \n" + obs.toString());
         
-        return obs;
+        return obs;*/
+        return null;
     }
 }
