@@ -27,11 +27,12 @@ import org.apache.olingo.commons.api.edm.provider.CsdlSchema;
 import org.apache.olingo.commons.api.ex.ODataException;
 import org.springframework.stereotype.Component;
 
-import eu.h2020.symbiote.cloud.model.Sensor;
+import eu.h2020.symbiote.resources.service.Sensor;
 import eu.h2020.symbiote.core.model.Observation;
 import eu.h2020.symbiote.core.model.resources.Actuator;
 import eu.h2020.symbiote.core.model.resources.ActuatingService;
 import eu.h2020.symbiote.interfaces.ResourceAccessRestController;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.HashMap;
@@ -39,6 +40,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.annotation.Id;
 
 /**
  * this class is supposed to declare the metadata of the OData service it is
@@ -304,12 +306,11 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
                     lst.add(propId);
                     log.info("COMPLEX: " + f.getName() + " - " + shortName);
                 }
-                // TO UPDATE WITH (?) ANNOTATIONS?
-                String nm = f.getName();
-                if(nm.contains("Id") ||
-                   nm.contains("id") ||
-                   nm.contains("ID")) {
-                   keyEl = nm;
+                                
+                Annotation an = f.getAnnotation(Id.class);
+                if(an != null) {
+                    String nm = f.getName();
+                    keyEl = nm;
                 }                
             }
             CsdlPropertyRef propertyRef = null;
