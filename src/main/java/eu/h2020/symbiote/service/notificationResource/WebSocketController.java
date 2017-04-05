@@ -177,10 +177,10 @@ public class WebSocketController extends TextWebSocketHandler {
         }
 
         //SOLO MOMENTANEO
-        if (resInfo == null) {
+        /*if (resInfo == null) {
             List<ResourceInfo> resInfo2 = resourcesRepo.findAll();
             resInfo = resInfo2.get(0);
-        }
+        }*/
 
         return resInfo;
     }

@@ -204,7 +204,7 @@ public class RAPEntityProcessor implements EntityProcessor{
                     UriParameter key = navKeyPredicates.get(0);
                     String keyName = key.getName();
                     String keyText = key.getText();
-                    if(keyName.equals("resourceId"))
+                    if(keyName.equals("id"))
                         serviceId = keyText;
                 }
                 EdmEntityType startEntityType = startEdmEntitySet.getEntityType();

@@ -8,7 +8,7 @@ package eu.h2020.symbiote.messages;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import eu.h2020.symbiote.resources.ResourceInfo;
-import eu.h2020.symbiote.resources.service.ServiceSet;
+import eu.h2020.symbiote.cloud.model.resources.Service;
 
 /**
  *
@@ -18,8 +18,8 @@ public class ResourceAccessSetService extends ResourceAccessMessage{
     @JsonProperty("resourceInfo")
     ResourceInfo resInfo;
     
-    @JsonProperty("value")
-    private final ServiceSet value;
+    @JsonProperty("cmd")
+    private final Service service;
     /**
      * JSON Constructor
      * @param resInfo       the resource data information
@@ -27,10 +27,10 @@ public class ResourceAccessSetService extends ResourceAccessMessage{
      */
     @JsonCreator
     public ResourceAccessSetService(@JsonProperty("resourceInfo") ResourceInfo resInfo, 
-                                    @JsonProperty("value")ServiceSet value) {
+                                    @JsonProperty("value")Service service) {
         this.accessType = ResourceAccessMessage.AccessType.SET;
         this.resInfo = resInfo;
-        this.value = value;
+        this.service = service;
     }
     
     @JsonProperty("resourceInfo")
@@ -38,7 +38,7 @@ public class ResourceAccessSetService extends ResourceAccessMessage{
         return resInfo;
     }
     
-    public ServiceSet getValue() {
-        return value;
+    public Service getService() {
+        return service;
     }
 }

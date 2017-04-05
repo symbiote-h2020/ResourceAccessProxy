@@ -27,10 +27,10 @@ import org.apache.olingo.commons.api.edm.provider.CsdlSchema;
 import org.apache.olingo.commons.api.ex.ODataException;
 import org.springframework.stereotype.Component;
 
-import eu.h2020.symbiote.cloud.model.Sensor;
-import eu.h2020.symbiote.core.model.Observation;
-import eu.h2020.symbiote.core.model.resources.Actuator;
-import eu.h2020.symbiote.core.model.resources.ActuatingService;
+import eu.h2020.symbiote.cloud.model.resources.Sensor;
+import eu.h2020.symbiote.cloud.model.data.observation.Observation;
+import eu.h2020.symbiote.cloud.model.resources.Actuator;
+import eu.h2020.symbiote.cloud.model.resources.ActuatingService;
 import eu.h2020.symbiote.interfaces.ResourceAccessRestController;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -282,7 +282,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
                                             .setPartner(entityTypeName.getName());
                     navPropList.add(navProp);
                     isList = true;
-                    log.info("LIST");                    
+                    log.info("LIST -> Name: "+f.getName()+", Type: "+shortName);                
                 } else {
                     cl = f.getType();
                 }

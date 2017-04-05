@@ -14,7 +14,6 @@ import eu.h2020.symbiote.interfaces.ResourcesRepository;
 import eu.h2020.symbiote.messages.ResourceAccessGetMessage;
 import eu.h2020.symbiote.messages.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.ResourceAccessMessage;
-import eu.h2020.symbiote.messages.ResourceAccessSetMessage;
 import eu.h2020.symbiote.messages.ResourceAccessSetService;
 import eu.h2020.symbiote.core.model.Observation;
 import eu.h2020.symbiote.resources.ResourceInfo;
@@ -22,8 +21,8 @@ import eu.h2020.symbiote.resources.query.Comparison;
 import eu.h2020.symbiote.resources.query.Filter;
 import eu.h2020.symbiote.resources.query.Operator;
 import eu.h2020.symbiote.resources.query.Query;
-import eu.h2020.symbiote.resources.service.InputParameter;
-import eu.h2020.symbiote.resources.service.ServiceSet;
+import eu.h2020.symbiote.cloud.model.data.parameter.InputParameter;
+import eu.h2020.symbiote.cloud.model.resources.Service;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.DateFormat;
@@ -61,8 +60,6 @@ import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeException;
 import org.apache.olingo.commons.api.edm.EdmProperty;
 import org.apache.olingo.commons.api.edm.EdmType;
 import org.apache.olingo.commons.api.edm.FullQualifiedName;
-import org.apache.olingo.commons.api.edm.provider.CsdlComplexType;
-import org.apache.olingo.commons.api.edm.provider.CsdlProperty;
 import org.apache.olingo.commons.core.edm.primitivetype.EdmString;
 import org.apache.olingo.server.api.uri.queryoption.expression.Binary;
 import org.apache.olingo.server.api.uri.queryoption.expression.BinaryOperatorKind;
@@ -110,7 +107,7 @@ public class StorageHelper {
             keyText = keyText.replaceAll("'", "");
 
             try {
-                if (keyName.equals("resourceId")) {
+                if (keyName.equals("id")) {
                     Optional<ResourceInfo> resInfoOptional = resourcesRepo.findById(keyText);
                     if (resInfoOptional.isPresent()) {
                         resInfo = resInfoOptional.get();
@@ -121,10 +118,10 @@ public class StorageHelper {
             }
 
             //SOLO MOMENTANEO
-            if (resInfo == null) {
+            /*if (resInfo == null) {
                 List<ResourceInfo> resInfo2 = resourcesRepo.findAll();
-                resInfo = resInfo2.get(1);
-            }
+                resInfo = resInfo2.get(0);
+            }*/
         }
 
         return resInfo;
@@ -183,7 +180,7 @@ public class StorageHelper {
             ResourceAccessMessage msg;
             String routingKey = ResourceAccessMessage.AccessType.SET.toString().toLowerCase();
 
-            Property updateProperty = requestBody.getProperty("inputParameter");
+            Property updateProperty = requestBody.getProperty("inputParameters");
             if (updateProperty.isCollection()) {
                 List<ComplexValue> name_value = (List<ComplexValue>) updateProperty.asCollection();
                 for (ComplexValue complexValue : name_value) {
@@ -197,13 +194,16 @@ public class StorageHelper {
                         else if(pName.equals("value"))
                             value = (String) p.getValue();
                     }
-                    InputParameter ip = new InputParameter(name, value);
+                    InputParameter ip = new InputParameter(name);
+                    ip.setValue(value);
                     inputParameterList.add(ip);
                 }
             }
-            ServiceSet serviceSet = new ServiceSet(serviceId, inputParameterList);
+            Service service = new Service();
+            service.setName(serviceId);
+            service.setInputParameters(inputParameterList);
 
-            msg = new ResourceAccessSetService(resourceInfo, serviceSet);
+            msg = new ResourceAccessSetService(resourceInfo, service);
 
             String json = "";
             try {
@@ -604,43 +604,3 @@ public class StorageHelper {
         return parsedData;
     }
 }
-
-class Expr {
-
-    public String param;
-    public String cmp;
-    public String val;
-
-    public Expr() {
-
-    }
-}
-
-class Lop {
-
-    public String lop;
-
-    public Lop() {
-
-    }
-}
-
-class FilterIn {
-
-    public Expr expr;
-    public String lop;
-    public List<FilterIn> filter;
-
-    public FilterIn() {
-
-    }
-}
-/*
-class Filter {
-
-    public List<FilterIn> filter;
-
-    public Filter() {
-
-    }
-}*/
