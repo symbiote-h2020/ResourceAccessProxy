@@ -226,7 +226,7 @@ public class StorageHelper {
     public EntityCollection readEntitySetData(EdmEntitySet edmEntitySet) throws ODataApplicationException {
 
         // actually, this is only required if we have more than one Entity Sets
-        if (edmEntitySet.getName().equals(RAPEdmProvider.ES_RESOURCES_NAME)) {
+        if (edmEntitySet.getName().equals(RAPEdmProvider.ES_SENSORS_NAME)) {
             return getResources();
         } else if (edmEntitySet.getName().equals(RAPEdmProvider.ES_OBSERVATIONS_NAME)) {
             return getObservations();
@@ -323,14 +323,14 @@ public class StorageHelper {
                 .addProperty(new Property(null, "resourceId", ValueType.PRIMITIVE, "res1"))
                 .addProperty(new Property(null, "platformResourceId", ValueType.PRIMITIVE, "1+100"))
                 .addProperty(new Property(null, "platformId", ValueType.PRIMITIVE, "100"));
-        r1.setId(createId(RAPEdmProvider.ES_RESOURCES_NAME, "res1"));
+        r1.setId(createId(RAPEdmProvider.ES_SENSORS_NAME, "res1"));
         resourceList.add(r1);
 
         final Entity r2 = new Entity()
                 .addProperty(new Property(null, "resourceId", ValueType.PRIMITIVE, "res2"))
                 .addProperty(new Property(null, "platformResourceId", ValueType.PRIMITIVE, "2+100"))
                 .addProperty(new Property(null, "platformId", ValueType.PRIMITIVE, "100"));
-        r2.setId(createId(RAPEdmProvider.ES_RESOURCES_NAME, "res2"));
+        r2.setId(createId(RAPEdmProvider.ES_SENSORS_NAME, "res2"));
         resourceList.add(r2);
     }
 
