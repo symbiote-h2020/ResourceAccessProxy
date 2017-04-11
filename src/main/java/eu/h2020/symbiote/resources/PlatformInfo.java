@@ -6,7 +6,10 @@
 package eu.h2020.symbiote.resources;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -18,29 +21,41 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class PlatformInfo {
     @Id
     @JsonProperty("platformId")
-    private final String platform_Id;
-    @JsonProperty("platformName")
-    private final String platform_Name;
+    private final String id;
+    
+    @JsonProperty("hasFilters")
+    private final boolean hasFilters;
+       
+    @JsonProperty("hasNotifications")
+    private final boolean hasNotifications;
     
     public PlatformInfo() {
-        platform_Id = "";
-        platform_Name = "";
+        id = "";
+        hasFilters = false;
+        hasNotifications = false;
     }
     
     @JsonCreator
     public PlatformInfo(@JsonProperty("platformId") String platformId, 
-                        @JsonProperty("platformName") String platformName) {
-        this.platform_Id = platformId;
-        this.platform_Name = platformName;
+            @JsonProperty("hasFilters") boolean hasFilters,
+            @JsonProperty("hasNotifications") boolean hasNotifications) {
+        this.id = platformId;
+        this.hasFilters = hasFilters;
+        this.hasNotifications = hasNotifications;
     }
     
     @JsonProperty("platformId")
     public String getPlatformId() {
-        return platform_Id;
+        return id;
     }
     
-    @JsonProperty("platformName")
-    public String getPlatformName() {
-        return platform_Name;
+    @JsonProperty("hasFilters")
+    public boolean getHasFilters() {
+        return hasFilters;
+    }
+
+    @JsonProperty("hasNotifications")
+    public boolean getHasNotifications() {
+        return hasNotifications;
     }
 }

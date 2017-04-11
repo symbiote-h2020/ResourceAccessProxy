@@ -26,7 +26,7 @@ import org.springframework.context.annotation.DependsOn;
  *
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
-//@Configuration
+@Configuration
 public class PlatformPluginQueueConfig {   
     
     @Autowired

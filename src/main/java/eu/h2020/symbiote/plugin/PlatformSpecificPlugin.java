@@ -8,14 +8,15 @@ package eu.h2020.symbiote.plugin;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import eu.h2020.symbiote.cloud.model.data.observation.ObservationValue;
+import eu.h2020.symbiote.cloud.model.data.parameter.InputParameter;
 import eu.h2020.symbiote.interfaces.ResourceAccessRestController;
 import eu.h2020.symbiote.messages.RegisterPluginMessage;
 import eu.h2020.symbiote.messages.ResourceAccessGetMessage;
 import eu.h2020.symbiote.messages.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.ResourceAccessSetMessage;
-import eu.h2020.symbiote.core.model.Observation;
-import eu.h2020.symbiote.core.model.ObservationValue;
+import eu.h2020.symbiote.cloud.model.data.observation.Observation;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.ResourceInfo;
 import java.util.List;
@@ -23,9 +24,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import eu.h2020.symbiote.core.model.Property;
-import eu.h2020.symbiote.core.model.UnitOfMeasurement;
-import eu.h2020.symbiote.core.model.Location;
+import eu.h2020.symbiote.cloud.model.data.observation.Location;
+import eu.h2020.symbiote.cloud.model.data.observation.Property;
+import eu.h2020.symbiote.cloud.model.data.observation.UnitOfMeasurement;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.TimeZone;
+
 /**
  *
  * @author Matteo Pardi <m.pardi@nextworks.it>
@@ -34,17 +40,9 @@ public class PlatformSpecificPlugin {
     private static final Logger log = LoggerFactory.getLogger(ResourceAccessRestController.class);
 
     private static final String PLUGIN_PLATFORM_ID = "platform_01";
-
-    private static final String PLUGIN_PLATFORM_NAME = "platform_name_01";
-    
-    //public static final String PLUGIN_RES_ACCESS_QUEUE = PLUGIN_PLATFORM_ID + "-rap-platform-queue";
-    public static final String PLUGIN_RES_ACCESS_QUEUE = "rap-platform-queue";
-    //public static final String[] PLUGIN_RES_ACCESS_KEYS = {PLUGIN_PLATFORM_ID + ".get", 
-    //                                                       PLUGIN_PLATFORM_ID + ".set", 
-    //                                                       PLUGIN_PLATFORM_ID + ".history" ,
-    //                                                       PLUGIN_PLATFORM_ID + ".subscribe",
-    //                                                       PLUGIN_PLATFORM_ID + ".unsubscribe"};
-    
+    private static final boolean PLUGIN_PLATFORM_FILTERS_FLAG = true;
+    private static final boolean PLUGIN_PLATFORM_NOTIFICATIONS_FLAG = true;
+    public static final String PLUGIN_RES_ACCESS_QUEUE = "rap-platform-queue";    
     public static final String[] PLUGIN_RES_ACCESS_KEYS = {"get", 
                                                            "set", 
                                                            "history" ,
@@ -76,7 +74,7 @@ public class PlatformSpecificPlugin {
         return value;
     }
     
-    public void writeResource(String resourceId, ObservationValue value) {
+    public void writeResource(String resourceId, InputParameter value) {
         // TODO    
     }
     
@@ -122,7 +120,7 @@ public class PlatformSpecificPlugin {
     
     private void registerPlugin() {
         try {
-            RegisterPluginMessage msg = new RegisterPluginMessage(PLUGIN_PLATFORM_ID, PLUGIN_PLATFORM_NAME);
+            RegisterPluginMessage msg = new RegisterPluginMessage(PLUGIN_PLATFORM_ID, PLUGIN_PLATFORM_FILTERS_FLAG, PLUGIN_PLATFORM_NOTIFICATIONS_FLAG);
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
@@ -135,15 +133,21 @@ public class PlatformSpecificPlugin {
     }
         
     public static Observation observationExampleValue () {        
-        /*String sensorId = "symbIoTeID1";
+        String sensorId = "symbIoTeID1";
         Location loc = new Location(15.9, 45.8, 145, "Spansko", "City of Zagreb");
-        long timestamp = System.currentTimeMillis();
+        TimeZone zoneUTC = TimeZone.getTimeZone("UTC");
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+        dateFormat.setTimeZone(zoneUTC);
+        Date date = new Date();
+        String timestamp = dateFormat.format(date);
+        long ms = date.getTime() - 1000;
+        date.setTime(ms);
+        String samplet = dateFormat.format(date);
         ObservationValue obsval = new ObservationValue("7", new Property("Temperature", "Air temperature"), new UnitOfMeasurement("C", "degree Celsius", ""));
-        Observation obs = new Observation(sensorId, loc, timestamp, timestamp-1000 , obsval);
+        Observation obs = new Observation(sensorId, loc, timestamp, samplet , obsval);
         
         log.debug("Observation: \n" + obs.toString());
         
-        return obs;*/
-        return null;
+        return obs;
     }
 }

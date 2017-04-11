@@ -13,19 +13,29 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
 public class RegisterPluginMessage extends PluginRegistrationMessage {
-    @JsonProperty("platformName") 
-    private final String platformName;
+    @JsonProperty("hasFilters")
+    private final boolean hasFilters;
+       
+    @JsonProperty("hasNotifications")
+    private final boolean hasNotifications;
     
     @JsonCreator
-    public RegisterPluginMessage(@JsonProperty("platformId") String platformId, 
-                                 @JsonProperty("platformName") String platformName) {
+    public RegisterPluginMessage(@JsonProperty("platformId") String platformId,
+            @JsonProperty("hasFilters") boolean hasFilters,
+            @JsonProperty("hasNotifications") boolean hasNotifications) {
         this.actionType = RegistrationMessage.RegistrationAction.REGISTER_PLUGIN;
         this.platformId = platformId;
-        this.platformName = platformName;
+        this.hasFilters = hasFilters;
+        this.hasNotifications = hasNotifications;
     }
-    
-    @JsonProperty("platformName")
-    public String getPlatformName() {
-        return platformName;
+        
+    @JsonProperty("hasFilters")
+    public boolean getHasFilters() {
+        return hasFilters;
+    }
+
+    @JsonProperty("hasNotifications")
+    public boolean getHasNotifications() {
+        return hasNotifications;
     }
 }

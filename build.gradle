@@ -70,8 +70,8 @@ dependencies {
     compile("org.apache.olingo:odata-server-api:${'4.3.0'}")
     compile("org.apache.olingo:odata-server-core:${'4.3.0'}")
     
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:w_observ-SNAPSHOT')
-    
+    //compile('com.github.symbiote-h2020:SymbIoTeLibraries:w_observ-SNAPSHOT')    
+    compile files('libs/SymbIoTeLibraries-0.1.0.jar')
     
     compile("org.springframework.boot:spring-boot-starter-websocket")
     

@@ -10,7 +10,6 @@ import eu.h2020.symbiote.messages.PluginRegistrationMessage;
 import eu.h2020.symbiote.messages.RegisterPluginMessage;
 import eu.h2020.symbiote.messages.RegistrationMessage.RegistrationAction;
 import eu.h2020.symbiote.resources.PlatformInfo;
-import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,10 +38,11 @@ public class PluginRegistration {
             switch(type) {
                 case REGISTER_PLUGIN: {
                     RegisterPluginMessage mess = (RegisterPluginMessage)msg;
-                    String platformName = mess.getPlatformName();
-                    log.debug("Registering plugin for platform " + platformId + " with name " + platformName);
-                    addPlugin(platformId, platformName);
-                    log.info("AddPlugin: platformId=" + platformId + " platformName="+platformName);
+                    boolean hasFilters = mess.getHasFilters();
+                    boolean hasNotifications = mess.getHasNotifications();
+                    log.debug("Registering plugin for platform with id " + platformId);
+                    addPlugin(platformId, hasFilters, hasNotifications);
+                    log.info("AddPlugin: Id=" + platformId);
                     break;
                 }
                 case UNREGISTER_PLUGIN: {
@@ -58,8 +58,8 @@ public class PluginRegistration {
         }
     }
     
-    private void addPlugin(String platformId, String platformName) {
-        PlatformInfo platformInfo = new PlatformInfo(platformId, platformName);
+    private void addPlugin(String platformId, boolean hasFilters, boolean hasNotifications) {
+        PlatformInfo platformInfo = new PlatformInfo(platformId, hasFilters, hasNotifications);
         pluginRepository.save(platformInfo);
     }
     
