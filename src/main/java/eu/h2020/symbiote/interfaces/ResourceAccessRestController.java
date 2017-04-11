@@ -8,6 +8,7 @@ package eu.h2020.symbiote.interfaces;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import eu.h2020.symbiote.cloud.model.data.parameter.InputParameter;
 import eu.h2020.symbiote.exceptions.*;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceRESTCondition;
 import eu.h2020.symbiote.messages.ResourceAccessGetMessage;
@@ -15,7 +16,6 @@ import eu.h2020.symbiote.messages.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.ResourceAccessMessage.AccessType;
 import eu.h2020.symbiote.messages.ResourceAccessSetMessage;
 import eu.h2020.symbiote.core.model.Observation;
-import eu.h2020.symbiote.core.model.ObservationValue;
 import eu.h2020.symbiote.resources.PlatformInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.ResourceInfo;
@@ -71,7 +71,7 @@ public class ResourceAccessRestController {
      * @param resourceId    the id of the resource to query 
      * @return  the current value read from the resource
      */
-    @RequestMapping(value="/rap/Sensor('{resourceId}')", method=RequestMethod.GET)
+    @RequestMapping(value="/rap/Sensor/{resourceId}", method=RequestMethod.GET)
     public Observation readResource(@PathVariable String resourceId) {        
         try {
             log.info("Received read resource request for ID = " + resourceId);
@@ -87,7 +87,7 @@ public class ResourceAccessRestController {
             mapper.setSerializationInclusion(Include.NON_EMPTY);
             String json = mapper.writeValueAsString(msg);
             
-            String routingKey = /*info.getPlatformId() + "." +*/ AccessType.GET.toString().toLowerCase();
+            String routingKey = AccessType.GET.toString().toLowerCase();
             Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             String response = null;
             if(obj != null)
@@ -111,7 +111,7 @@ public class ResourceAccessRestController {
      * @param resourceId    the id of the resource to query 
      * @return  the current value read from the resource
      */
-    @RequestMapping(value="/rap/Sensor('{resourceId}')/history", method=RequestMethod.GET)
+    @RequestMapping(value="/rap/Sensor/{resourceId}/history", method=RequestMethod.GET)
     public List<Observation> readResourceHistory(@PathVariable String resourceId) {
         try {
             log.info("Received read resource request for ID = " + resourceId);
@@ -129,7 +129,7 @@ public class ResourceAccessRestController {
             mapper.setSerializationInclusion(Include.NON_EMPTY);
             String json = mapper.writeValueAsString(msg);
             
-            String routingKey = /*info.getPlatformId() + "." + */AccessType.HISTORY.toString().toLowerCase();
+            String routingKey = AccessType.HISTORY.toString().toLowerCase();
             String response = (String)rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             observationList = mapper.readValue(response, List.class);
             if(observationList == null)
@@ -153,8 +153,8 @@ public class ResourceAccessRestController {
      * @param value         the value to write
      * @return              the http response code
      */
-    @RequestMapping(value="/rap/Resource('{resourceId}')", method=RequestMethod.POST)
-    public ResponseEntity<?> writeResource(@PathVariable String resourceId, @RequestBody ObservationValue value) {
+    @RequestMapping(value="/rap/Actuator/{resourceId}/Service/{serviceId}", method=RequestMethod.POST)
+    public ResponseEntity<?> writeResource(@PathVariable String resourceId, @PathVariable String serviceId, @RequestBody InputParameter value) {
         try {
             log.info("Received write resource request for ID = " + resourceId + " with value " + value);
 
@@ -168,7 +168,7 @@ public class ResourceAccessRestController {
             mapper.setSerializationInclusion(Include.NON_EMPTY);
             String json = mapper.writeValueAsString(msg);
             
-            String routingKey = /*info.getPlatformId() + "." + */AccessType.SET.toString().toLowerCase();
+            String routingKey = AccessType.SET.toString().toLowerCase();
             rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             
             return new ResponseEntity<>(HttpStatus.OK);
@@ -198,8 +198,9 @@ public class ResourceAccessRestController {
         return resInfo;
     }
     
+    
     private boolean checkPlatformPluginPresent(String platformId) {
-        Optional<PlatformInfo> pluginInfo = pluginRepo.findByPlatformId(platformId);
+        Optional<PlatformInfo> pluginInfo = pluginRepo.findById(platformId);
    
         return pluginInfo.isPresent();
     }

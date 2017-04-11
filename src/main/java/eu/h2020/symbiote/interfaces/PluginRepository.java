@@ -24,14 +24,5 @@ public interface PluginRepository extends MongoRepository<PlatformInfo, String> 
      * @param platformId    the id of the platform
      * @return              the Resource instances
      */
-    public Optional<PlatformInfo> findByPlatformId(String platformId);
-
-    /**
-     * This method will find a Plugin in the database 
-     * by its platformName.
-     * 
-     * @param platformName          the name of the plugin
-     * @return                      the Resource instance(s)
-     */
-    public Optional<PlatformInfo> findByPlatformName(String platformName);      
+    public Optional<PlatformInfo> findById(String platformId);
 }
