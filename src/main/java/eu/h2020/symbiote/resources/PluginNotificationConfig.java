@@ -6,6 +6,7 @@
 package eu.h2020.symbiote.resources;
 
 import eu.h2020.symbiote.interfaces.PluginNotification;
+import eu.h2020.symbiote.interfaces.conditions.NBInterfaceWebSocketCondition;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.amqp.core.BindingBuilder;
@@ -17,12 +18,14 @@ import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 
 /**
  *
- * @author luca-
+ * @author Luca Tomaselli <l.tomaselli@nextworks.it>
  */
+@Conditional(NBInterfaceWebSocketCondition.class)
 @Configuration
 public class PluginNotificationConfig {
     

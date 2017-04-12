@@ -6,6 +6,7 @@
 package eu.h2020.symbiote.interfaces;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import eu.h2020.symbiote.core.model.resources.Resource;
 import eu.h2020.symbiote.messages.RegisterResourceMessage;
 import eu.h2020.symbiote.messages.RegistrationMessage.RegistrationAction;
 import eu.h2020.symbiote.messages.UnregisterResourceMessage;
@@ -36,13 +37,13 @@ public class ResourceRegistration {
         
             ObjectMapper mapper = new ObjectMapper();
             RegisterResourceMessage msg = mapper.readValue(message, RegisterResourceMessage.class);
-            String resourceId = msg.getResourceId();
-            String platformResourceId = msg.getPlatformResourceId();
-            //String platformId = msg.getPlatformId();
-            String platformId = PlatformSpecificPlugin.getPluginPlatformId();
+            String internalId = msg.getInternalId();
+            Resource resource = msg.getResource();
+            String symbioteId = resource.getId();
+            String platformId = msg.getHost();
             
-            log.debug("Registering resource with id " + resourceId);
-            addResource(resourceId, platformResourceId, platformId);
+            log.debug("Registering resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
+            addResource(symbioteId, internalId, platformId);
         } catch (Exception e) {
             log.info("Error during registration process\n" + e.getMessage());
         }
@@ -54,9 +55,10 @@ public class ResourceRegistration {
         
             ObjectMapper mapper = new ObjectMapper();
             UnregisterResourceMessage msg = mapper.readValue(message, UnregisterResourceMessage.class);
-            String resourceId = msg.getResourceId();
+            // TODO: to check if ID at this level is correct
+            String resourceId = msg.getInternalId();
             
-            log.debug("Unregistering resource with id %s" + resourceId);
+            log.debug("Unregistering resource with symbioteId %s" + resourceId);
             deleteResource(resourceId);
                     
         } catch (Exception e) {
@@ -70,50 +72,18 @@ public class ResourceRegistration {
         
             ObjectMapper mapper = new ObjectMapper();
             UpdateResourceMessage msg = mapper.readValue(message, UpdateResourceMessage.class);
-            String resourceId = msg.getResourceId();
-            String platformResourceId = msg.getPlatformResourceId();
-            //String platformId = msg.getPlatformId();
-            String platformId = PlatformSpecificPlugin.getPluginPlatformId();
+            String internalId = msg.getInternalId();
+            Resource resource = msg.getResource();
+            String symbioteId = resource.getId();
+            String platformId = msg.getHost();
 
-            log.debug("Updating resource with id " + resourceId);
-            addResource(resourceId, platformResourceId, platformId);
+            log.debug("Updating resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
+            addResource(symbioteId, internalId, platformId);
         } catch (Exception e) {
             log.info("Error during registration process\n" + e.getMessage());
         }
     }    
-    /*
-    public void receiveMessage(String message) {
-        try {
-            log.info("Resource Registration message received: \n" + message + "");
-
-            ObjectMapper mapper = new ObjectMapper();
-            ResourceRegistrationMessage msg = mapper.readValue(message, ResourceRegistrationMessage.class);
-            String resourceId = msg.getResourceId();
-            RegistrationAction type = msg.getActionType();
-
-            switch(type) {
-                case REGISTER_RESOURCE: {
-                    RegisterResourceMessage mess = (RegisterResourceMessage)msg;
-                    String platformResourceId = mess.getPlatformResourceId();
-                    String platformId = mess.getPlatformId();
-
-                    log.debug("Registering resource for platform " + platformId + " with id " + resourceId);
-                    addResource(resourceId, platformResourceId, platformId);
-                    break;
-                }
-                case UNREGISTER_RESOURCE: {
-                    log.debug("Unregistering resource with id %s" + resourceId);
-                    deleteResource(resourceId);
-                    break;
-                }
-                default:
-                    throw new Exception("Wrong message format");
-            }
-        } catch (Exception e) {
-            log.info("Error during registration process\n" + e.getMessage());
-        }
-    }*/
-
+    
     public void notifyMonitoring(String resourceId, RegistrationAction action) {
         log.debug("Sending monitoring notification to " + action.toString() + " resource with id " + resourceId);        
         //TODO

@@ -12,7 +12,7 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
 
 /**
  *
- * @author Matteo Pardi
+ * @author Matteo Pardi <m.pardi@nextworks.it>
  */
 public class NBInterfaceRESTCondition implements Condition { 
     

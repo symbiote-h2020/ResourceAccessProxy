@@ -16,6 +16,7 @@ import eu.h2020.symbiote.interfaces.ResourcesRepository;
 import eu.h2020.symbiote.messages.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.ResourceAccessSubscribeMessage;
 import eu.h2020.symbiote.core.model.Observation;
+import eu.h2020.symbiote.interfaces.conditions.NBInterfaceWebSocketCondition;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.ResourceInfo;
 import java.io.IOException;
@@ -28,6 +29,7 @@ import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -36,8 +38,9 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 /**
  *
- * @author luca-
+ * @author Luca Tomaselli <l.tomaselli@nextworks.it>
  */
+@Conditional(NBInterfaceWebSocketCondition.class)
 @Component
 public class WebSocketController extends TextWebSocketHandler {
 
@@ -52,7 +55,7 @@ public class WebSocketController extends TextWebSocketHandler {
     @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
     TopicExchange exchange;
 
-    private HashMap<String, WebSocketSession> id_session = new HashMap<String, WebSocketSession>();
+    private final HashMap<String, WebSocketSession> idSession = new HashMap();
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable throwable) throws Exception {
@@ -62,7 +65,7 @@ public class WebSocketController extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         log.info(String.format("Session %s closed because of %s", session.getId(), status.getReason()));
-        id_session.remove(session.getId());
+        idSession.remove(session.getId());
 
         //update DB
         List<ResourceInfo> resInfoList = resourcesRepo.findAll();
@@ -81,7 +84,7 @@ public class WebSocketController extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         log.info("Connected ... " + session.getId());
-        id_session.put(session.getId(), session);
+        idSession.put(session.getId(), session);
     }
 
     @Override
@@ -101,7 +104,7 @@ public class WebSocketController extends TextWebSocketHandler {
             throw new GenericException(HttpStatusCode.BAD_REQUEST.getInfo());
         }
 
-        List<ResourceInfo> resInfoList = new ArrayList<ResourceInfo>();
+        List<ResourceInfo> resInfoList = new ArrayList();
 
         for (String resId : resourcesId) {
             ResourceInfo resInfo = getResourceInfo(resId);
@@ -110,7 +113,7 @@ public class WebSocketController extends TextWebSocketHandler {
             //update DB
             List<String> sessionsIdOfRes = resInfo.getSessionId();
             if (sessionsIdOfRes == null) {
-                sessionsIdOfRes = new ArrayList<String>();
+                sessionsIdOfRes = new ArrayList();
             }
             sessionsIdOfRes.add(session.getId());
             resInfo.setSessionId(sessionsIdOfRes);
@@ -138,7 +141,7 @@ public class WebSocketController extends TextWebSocketHandler {
         List<WebSocketSession> sessionList = new ArrayList<>();
         if (sessionIdList != null && !sessionIdList.isEmpty()) {
             for (String sessionId : sessionIdList) {
-                WebSocketSession session = id_session.get(sessionId);
+                WebSocketSession session = idSession.get(sessionId);
                 sessionList.add(session);
             }
 

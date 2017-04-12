@@ -38,12 +38,12 @@ public interface ResourcesRepository extends MongoRepository<ResourceInfo, Strin
   
     /**
      * This method will find (a) Resource instance(s) in the database by 
-     * its(their) platformResourceId.
+     * its(their) internalId.
      * 
-     * @param platformResourceId    the id of the resource in the platform
+     * @param internalId            the id of the resource in the platform
      * @return                      the Resource instance(s)
      */
-    public List<ResourceInfo> findByPlatformResourceId(String platformResourceId);
+    public List<ResourceInfo> findByInternalId(String internalId);
     
     public List<ResourceInfo> findAll();
 }

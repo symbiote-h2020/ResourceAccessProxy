@@ -3,23 +3,23 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package eu.h2020.symbiote.interfaces.conditions;
+package eu.h2020.symbiote.plugin;
 
 import org.springframework.context.annotation.Condition;
 import org.springframework.context.annotation.ConditionContext;
 import org.springframework.core.env.Environment;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 
+
 /**
  *
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
-public class NBInterfaceODataCondition implements Condition { 
+public class PlatformSpecificPluginCondition implements Condition {
     
     @Override
     public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
         Environment env = context.getEnvironment();
-        return env.getProperty("app.northbound.interface.OData", boolean.class, false);
+        return env.getProperty("app.enableSpecificPlugin", boolean.class, false);
     }
 }
-

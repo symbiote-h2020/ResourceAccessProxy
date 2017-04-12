@@ -6,10 +6,10 @@
 package eu.h2020.symbiote.resources;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.ArrayList;
 import java.util.List;
-import javax.websocket.Session;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -21,70 +21,61 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class ResourceInfo {
     
     @Id
-    @JsonProperty("resourceId")
+    @JsonProperty("symbioteId")
     private final String id;
-    @JsonProperty("platformResourceId")
-    private final String platformResource_Id;
+    @JsonProperty("internalId")
+    private final String internalId;
     @JsonProperty("platformId")
-    private final String platform_Id;
-    @JsonProperty("sessionIdList")
-    private List<String> session_Id_List;
+    private final String platformId;
+    @JsonIgnore
+    private List<String> sessionIdList;
     
     public ResourceInfo() {
         this.id = "";
-        this.platformResource_Id = "";
-        this.platform_Id = "";
-        this.session_Id_List = null;
+        this.internalId = "";
+        this.platformId = "";
+        this.sessionIdList = null;
     }
     
     @JsonCreator
-    public ResourceInfo(@JsonProperty("resourceId") String resourceId, 
-                        @JsonProperty("platformResourceId") String platformResourceId, 
+    public ResourceInfo(@JsonProperty("symbioteId") String resourceId, 
+                        @JsonProperty("internalId") String platformResourceId, 
                         @JsonProperty("platformId") String platformId) {
         this.id = resourceId;
-        this.platformResource_Id = platformResourceId;
-        this.platform_Id = platformId;
-        this.session_Id_List = null;
+        this.internalId = platformResourceId;
+        this.platformId = platformId;
+        this.sessionIdList = null;
     }
     
-    @JsonCreator
-    public ResourceInfo(@JsonProperty("resourceId") String resourceId, 
-                        @JsonProperty("platformResourceId") String platformResourceId, 
-                        @JsonProperty("platformId") String platformId,
-                        @JsonProperty("sessionIdList") List<String> sessionId) {
-        this.id = resourceId;
-        this.platformResource_Id = platformResourceId;
-        this.platform_Id = platformId;
-        this.session_Id_List = sessionId;
-    }
-    
-    @JsonProperty("resourceId")
-    public String getResourceId() {
+    @JsonProperty("internalId")
+    public String getSymbioteId() {
         return id;
     }
     
-    @JsonProperty("platformResourceId")
-    public String getPlatformResourceId() {
-        return platformResource_Id;
+    @JsonProperty("internalId")
+    public String getInternalId() {
+        return internalId;
     }
     
     @JsonProperty("platformId")
     public String getPlatformId() {
-        return platform_Id;
+        return platformId;
     }
     
-    @JsonProperty("sessionIdList")
+    @JsonIgnore
     public List<String> getSessionId() {
-        return session_Id_List;
+        return sessionIdList;
     }
     
+    @JsonIgnore
     public void setSessionId(List<String> sessionIdList) {
-        this.session_Id_List = sessionIdList;
+        this.sessionIdList = sessionIdList;
     }
     
+    @JsonIgnore
     public void addToSessionList(String sessionId) {
-        if(this.session_Id_List == null)
-            this.session_Id_List = new ArrayList<String>();
-        this.session_Id_List.add(sessionId);
+        if(this.sessionIdList == null)
+            this.sessionIdList = new ArrayList();
+        this.sessionIdList.add(sessionId);
     }
 }

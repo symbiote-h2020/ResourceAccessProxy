@@ -7,14 +7,38 @@ package eu.h2020.symbiote.messages;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import eu.h2020.symbiote.core.model.Location;
-import java.util.List;
+import eu.h2020.symbiote.core.model.resources.Resource;
 
 /**
  *
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
 public class UpdateResourceMessage extends ResourceRegistrationMessage {
+    @JsonProperty("host")
+    private final String host;
+    @JsonProperty("resource")
+    private final Resource resource;
+    
+    @JsonCreator
+    public UpdateResourceMessage(@JsonProperty("host") String host,
+                                   @JsonProperty("resource") Resource resource) {
+        this.actionType = RegistrationAction.REGISTER_RESOURCE;
+        this.host = host;
+        this.resource = resource;
+    }
+    
+    @JsonProperty("host")
+    public String getHost() {
+        return host;
+    }
+    
+    @JsonProperty("resource")
+    public Resource getResource() {
+        return resource;
+    }    
+    
+    
+    /*
     @JsonProperty("internalId")
     private final String platformResourceId;
     //private final String platformId;
@@ -62,12 +86,7 @@ public class UpdateResourceMessage extends ResourceRegistrationMessage {
     public String getPlatformResourceId() {
         return platformResourceId;
     }
-    /*
-    @JsonProperty("platformId")
-    public String getPlatformId() {
-        return platformId;
-    }*/
-    
+        
     @JsonProperty("name")
     public String getResourceName() {
         return resourceName;
@@ -96,5 +115,5 @@ public class UpdateResourceMessage extends ResourceRegistrationMessage {
     @JsonProperty("owner")
     public String getOwner() {
         return owner;
-    }
+    }*/
 }

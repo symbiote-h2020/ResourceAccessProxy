@@ -49,7 +49,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 
 /**
  *
- * @author luca-
+ * @author Luca Tomaselli <l.tomaselli@nextworks.it>
  */
 @Component
 public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {

@@ -19,6 +19,7 @@ import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
 
@@ -26,6 +27,7 @@ import org.springframework.context.annotation.DependsOn;
  *
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
+@Conditional(PlatformSpecificPluginCondition.class)
 @Configuration
 public class PlatformPluginQueueConfig {   
     
@@ -38,12 +40,12 @@ public class PlatformPluginQueueConfig {
     
     
     @Bean(name=PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE)
-    Queue dummyPluginQueue() {
+    Queue specificPluginQueue() {
         return new Queue(PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE, false);
     }
 
     @Bean(name=PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE + "Bindings")
-    List<Binding> dummyPluginBindings(@Qualifier(PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE) Queue queue,
+    List<Binding> specificPluginBindings(@Qualifier(PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE) Queue queue,
                              @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT) TopicExchange exchange) {
         ArrayList bindings = new ArrayList();
         for(String key : PlatformSpecificPlugin.PLUGIN_RES_ACCESS_KEYS)
@@ -53,7 +55,7 @@ public class PlatformPluginQueueConfig {
     }
 
     @Bean(name=PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE + "Container")
-    SimpleMessageListenerContainer dummyPluginContainer(ConnectionFactory connectionFactory,
+    SimpleMessageListenerContainer specificPluginContainer(ConnectionFactory connectionFactory,
                                              @Qualifier(PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE + "Listener") MessageListenerAdapter listenerAdapter) {
         SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
@@ -64,12 +66,12 @@ public class PlatformPluginQueueConfig {
 
     @DependsOn(RapDefinitions.PLUGIN_REGISTRATION_EXCHANGE_IN)
     @Bean
-    PlatformSpecificPlugin dummyPluginReceiver() {
+    PlatformSpecificPlugin specificPluginReceiver() {
         return new PlatformSpecificPlugin(rabbitTemplate, exchange);
     }
 
     @Bean(name=PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE + "Listener")
-    MessageListenerAdapter dummyPluginListenerAdapter(PlatformSpecificPlugin receiver) {
+    MessageListenerAdapter specificPluginListenerAdapter(PlatformSpecificPlugin receiver) {
         return new MessageListenerAdapter(receiver, "receiveMessage");
     }
 }

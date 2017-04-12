@@ -12,15 +12,16 @@ import java.util.List;
 
 /**
  *
- * @author luca-
- */
+* @author Luca Tomaselli <l.tomaselli@nextworks.it>
+*
+*/
 public class ResourceAccessSubscribeMessage extends ResourceAccessMessage {
     
     @JsonProperty("resourceInfoList")
     List<ResourceInfo> resInfoList;
     /**
      * JSON Constructor
-     * @param resInfo               the list of resource data information     
+     * @param resInfoList               the list of resource data information     
      */
     @JsonCreator
     public ResourceAccessSubscribeMessage(@JsonProperty("resourceInfo") List<ResourceInfo> resInfoList){
