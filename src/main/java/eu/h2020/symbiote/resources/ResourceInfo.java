@@ -47,7 +47,7 @@ public class ResourceInfo {
         this.sessionIdList = null;
     }
     
-    @JsonProperty("internalId")
+    @JsonProperty("symbioteId")
     public String getSymbioteId() {
         return id;
     }

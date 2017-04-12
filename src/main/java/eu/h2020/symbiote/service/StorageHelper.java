@@ -118,10 +118,10 @@ public class StorageHelper {
             }
 
             //SOLO MOMENTANEO
-            /*if (resInfo == null) {
+            if (resInfo == null) {
                 List<ResourceInfo> resInfo2 = resourcesRepo.findAll();
                 resInfo = resInfo2.get(0);
-            }*/
+            }
         }
 
         return resInfo;
@@ -153,20 +153,24 @@ public class StorageHelper {
 
                 Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
                 String response = null;
-                if (obj != null) {
-                    response = new String((byte[]) obj, "UTF-8");
+                if (obj == null) {
+                    throw new ODataApplicationException("No response from plugin", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
                 }
-                observations = mapper.readValue(response, new TypeReference<List<Observation>>() {
-                });
+                else{
+                    response = new String((byte[]) obj, "UTF-8");
+                    observations = mapper.readValue(response, new TypeReference<List<Observation>>() {
+                    });
 
-                if (top != null && top == 1 && observations != null && observations.size() > 0) {
-                    Observation obs = observations.get(0);
-                    return obs;
-                } else {
-                    return observations;
+                    if (top != null && top == 1 && observations != null && observations.size() > 0) {
+                        Observation obs = observations.get(0);
+                        return obs;
+                    } else {
+                        return observations;
+                    }
                 }
             } catch (Exception e) {
                 String err = "Unable to read resource with id: " + resourceInfo.getSymbioteId();
+                err += "\n Error:"+ e.getMessage();
                 //log.error(err + "\n" + e.getMessage());
                 throw new ODataApplicationException(err, HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
             }
