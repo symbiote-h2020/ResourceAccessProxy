@@ -71,8 +71,8 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 /**
  *
- * @author luca-
- */
+* @author Luca Tomaselli <l.tomaselli@nextworks.it>
+*/
 public class StorageHelper {
 
     private ResourcesRepository resourcesRepo;
@@ -166,7 +166,7 @@ public class StorageHelper {
                     return observations;
                 }
             } catch (Exception e) {
-                String err = "Unable to read resource with id: " + resourceInfo.getResourceId();
+                String err = "Unable to read resource with id: " + resourceInfo.getSymbioteId();
                 //log.error(err + "\n" + e.getMessage());
                 throw new ODataApplicationException(err, HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
             }

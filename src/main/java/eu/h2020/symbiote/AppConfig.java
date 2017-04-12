@@ -27,6 +27,7 @@ class AppConfig extends AbstractMongoConfiguration {
     @Value("${symbiote.rap.mongo.host}")
     private String mongoHost;
 
+    @Override
     protected String getDatabaseName() {
         return databaseName;
     }
@@ -36,8 +37,8 @@ class AppConfig extends AbstractMongoConfiguration {
         return new Mongo();
     }
 
-    //TODO change 'localhost' in MongoClient to sth read from configuration
     @Bean
+    @Override
     public MongoTemplate mongoTemplate() throws Exception {
         return new MongoTemplate(new MongoClient(mongoHost), getDatabaseName());
     }

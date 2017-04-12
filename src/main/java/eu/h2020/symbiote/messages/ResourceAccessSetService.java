@@ -12,8 +12,8 @@ import eu.h2020.symbiote.cloud.model.resources.Service;
 
 /**
  *
- * @author luca-
- */
+* @author Luca Tomaselli <l.tomaselli@nextworks.it>
+*/
 public class ResourceAccessSetService extends ResourceAccessMessage{
     @JsonProperty("resourceInfo")
     ResourceInfo resInfo;
@@ -23,7 +23,7 @@ public class ResourceAccessSetService extends ResourceAccessMessage{
     /**
      * JSON Constructor
      * @param resInfo       the resource data information
-     * @param value         the value to set
+     * @param service       the value to set
      */
     @JsonCreator
     public ResourceAccessSetService(@JsonProperty("resourceInfo") ResourceInfo resInfo, 

@@ -14,8 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  *
- * @author luca-
- */
+* @author Luca Tomaselli <l.tomaselli@nextworks.it>
+*/
 public class PluginNotification {
     private static final Logger log = LoggerFactory.getLogger(PluginNotification.class);
 
@@ -30,7 +30,7 @@ public class PluginNotification {
 
             ObjectMapper mapper = new ObjectMapper();
             Observation obs = mapper.readValue(message, Observation.class);            
-            //String platformId = msg.getPlatformId();
+            
             webSocketController.SendMessage(obs);
             
         } catch (Exception e) {

@@ -17,6 +17,6 @@ public class UnregisterResourceMessage extends ResourceRegistrationMessage {
     @JsonCreator
     public UnregisterResourceMessage(@JsonProperty("id") String resourceId) {
         this.actionType = RegistrationAction.UNREGISTER_RESOURCE;
-        this.resourceId = resourceId;
+        this.internalId = resourceId;
     }
 }

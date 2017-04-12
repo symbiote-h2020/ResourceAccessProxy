@@ -20,6 +20,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
+ * author Matteo Pardi <m.pardi@nextworks.it>
+ * 
  * Class responsible for the instantiation 
  * and configuration of the message queues.
  *

@@ -40,6 +40,11 @@ import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+
+/*
+*
+* @author Luca Tomaselli <l.tomaselli@nextworks.it>
+*/
 @Conditional(NBInterfaceODataCondition.class)
 @RestController
 @RequestMapping("rap")

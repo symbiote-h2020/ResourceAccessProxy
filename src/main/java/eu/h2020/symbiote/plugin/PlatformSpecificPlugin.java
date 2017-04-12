@@ -61,26 +61,35 @@ public class PlatformSpecificPlugin {
     
     public static String getPluginPlatformId() {
         return PLUGIN_PLATFORM_ID;
-    }
-    
+    }    
     
     public Observation readResource(String resourceId) {
         Observation value;
         //
         // INSERT HERE: query to the platform with internal resource id
         //
+        // example
         value = observationExampleValue();
         
         return value;
     }
     
     public void writeResource(String resourceId, InputParameter value) {
-        // TODO    
+        // INSERT HERE: call to the platform with internal resource id
+        // setting the actuator value
     }
     
     public List<Observation> readResourceHistory(String resourceId) {
         List<Observation> value = null;
-        // TODO
+        //
+        // INSERT HERE: query to the platform with internal resource id
+        //
+        // example
+        Observation obs1 = observationExampleValue();
+        Observation obs2 = observationExampleValue();
+        value.add(obs1);
+        value.add(obs2);
+        
         return value;
     }
     
@@ -97,20 +106,26 @@ public class PlatformSpecificPlugin {
                 case GET:          
                     ResourceAccessGetMessage msgGet = (ResourceAccessGetMessage) msg;
                     info = msgGet.getResourceInfo();
-                    Observation observation = readResource(info.getPlatformResourceId());
+                    Observation observation = readResource(info.getInternalId());
                     json = mapper.writeValueAsString(observation);
                     break;
                 case HISTORY:
                     ResourceAccessHistoryMessage msgHistory = (ResourceAccessHistoryMessage) msg;
                     info = msgHistory.getResourceInfo();
-                    List<Observation> observationLst = readResourceHistory(info.getPlatformResourceId());
-                    json = mapper.writeValueAsString(observationLst);
-                    throw new Exception("Access type " + access.toString() + " not yet supported");
+                    List<Observation> observationLst = readResourceHistory(info.getInternalId());
+                    json = mapper.writeValueAsString(observationLst);                    
                 case SET:
                     ResourceAccessSetMessage mess = (ResourceAccessSetMessage)msg;
                     info = mess.getResourceInfo();
-                    writeResource(info.getPlatformResourceId(), mess.getValue());
-                    throw new Exception("Access type " + access.toString() + " not yet supported");
+                    writeResource(info.getInternalId(), mess.getValue());                    
+                case SUBSCRIBE:
+                    // insert here subscription to resource
+                    break;
+                case UNSUBSCRIBE:
+                    // insert here unsubscription to resource
+                    break;
+                default:
+                    throw new Exception("Access type " + access.toString() + " not supported");
             }
         } catch (Exception e) {
             log.error("Error while processing message:\n" + message + "\n" + e);
