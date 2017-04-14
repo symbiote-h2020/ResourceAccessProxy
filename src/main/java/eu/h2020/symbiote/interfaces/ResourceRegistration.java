@@ -5,6 +5,8 @@
  */
 package eu.h2020.symbiote.interfaces;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.core.model.resources.Resource;
 import eu.h2020.symbiote.messages.RegisterResourceMessage;
@@ -13,6 +15,8 @@ import eu.h2020.symbiote.messages.UnregisterResourceMessage;
 import eu.h2020.symbiote.messages.UpdateResourceMessage;
 import eu.h2020.symbiote.plugin.PlatformSpecificPlugin;
 import eu.h2020.symbiote.resources.ResourceInfo;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,14 +40,22 @@ public class ResourceRegistration {
             log.info("Resource Registration message received: \n" + new String(message) + "");
         
             ObjectMapper mapper = new ObjectMapper();
-            RegisterResourceMessage msg = mapper.readValue(message, RegisterResourceMessage.class);
-            String internalId = msg.getInternalId();
-            Resource resource = msg.getResource();
-            String symbioteId = resource.getId();
-            String platformId = msg.getHost();
-            
-            log.debug("Registering resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
-            addResource(symbioteId, internalId, platformId);
+            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            List<RegisterResourceMessage> msgs = mapper.readValue(message, new TypeReference<List<RegisterResourceMessage>>(){});
+            for(RegisterResourceMessage msg : msgs){
+                String internalId = msg.getInternalId();
+                Resource resource = msg.getResource();
+                String symbioteId = resource.getId();
+                String platformId = msg.getHost();
+
+                //TO REMOVE
+                if(symbioteId == null){
+                    symbioteId = Integer.toString((int)(Math.random() * Integer.MAX_VALUE));
+                }
+                
+                log.info("Registering resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
+                addResource(symbioteId, internalId, platformId);
+            }
         } catch (Exception e) {
             log.info("Error during registration process\n" + e.getMessage());
         }
