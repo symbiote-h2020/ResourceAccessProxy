@@ -41,18 +41,27 @@ public class ResourceRegistration {
             log.info("Resource Registration message received: \n" + new String(message) + "");
         
             ObjectMapper mapper = new ObjectMapper();
-            RegisterResourceMessage msg = mapper.readValue(message, RegisterResourceMessage.class);
-            String internalId = msg.getInternalId();
-            Resource resource = msg.getResource();
-            String symbioteId = resource.getId();
-            List<Property> props = null;
-            if(resource instanceof StationarySensor) {
-                props = ((StationarySensor)resource).getObservesProperty();
-            } else if(resource instanceof MobileSensor) {
-                props = ((MobileSensor)resource).getObservesProperty();
-            }            
-            log.debug("Registering resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
-            addResource(symbioteId, internalId, props);
+            
+            List<RegisterResourceMessage> msgs = mapper.readValue(message, new TypeReference<List<RegisterResourceMessage>>(){});
+            for(RegisterResourceMessage msg: msgs){
+                String internalId = msg.getInternalId();
+                Resource resource = msg.getResource();
+                String symbioteId = resource.getId();
+                List<Property> props = null;
+                if(resource instanceof StationarySensor) {
+                    props = ((StationarySensor)resource).getObservesProperty();
+                } else if(resource instanceof MobileSensor) {
+                    props = ((MobileSensor)resource).getObservesProperty();
+                }      
+
+                //TO REMOVE
+                if(symbioteId == null){
+                    symbioteId = Integer.toString((int)(Math.random() * Integer.MAX_VALUE));
+                }
+
+                log.debug("Registering resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
+                addResource(symbioteId, internalId, props);
+            }
         } catch (Exception e) {
             log.info("Error during registration process\n" + e.getMessage());
         }
