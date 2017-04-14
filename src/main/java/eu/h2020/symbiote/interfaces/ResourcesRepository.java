@@ -26,16 +26,7 @@ public interface ResourcesRepository extends MongoRepository<ResourceInfo, Strin
      * @return              the Resource instance
      */
     public Optional<ResourceInfo> findById(String resourceId);
-  
-    /**
-     * This method will find Resource instances associated to a platform
-     * in the database by their platformId.
-     * 
-     * @param platformId    the id of the platform
-     * @return              the Resource instances
-     */
-    public List<ResourceInfo> findByPlatformId(String platformId);
-  
+    
     /**
      * This method will find (a) Resource instance(s) in the database by 
      * its(their) internalId.
@@ -45,5 +36,6 @@ public interface ResourcesRepository extends MongoRepository<ResourceInfo, Strin
      */
     public List<ResourceInfo> findByInternalId(String internalId);
     
+    @Override
     public List<ResourceInfo> findAll();
 }

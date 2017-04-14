@@ -1,5 +1,6 @@
 package eu.h2020.symbiote;
 
+import eu.h2020.symbiote.core.model.Property;
 import eu.h2020.symbiote.interfaces.PluginRepository;
 import eu.h2020.symbiote.interfaces.ResourceAccessRestController;
 import eu.h2020.symbiote.interfaces.ResourcesRepository;
@@ -60,7 +61,7 @@ public class ResourceAccessProxyApplicationTests {
     	
         //this.resourceRepo.deleteAll();
         
-        ResourceInfo resourceTest = new ResourceInfo("test_resource", "test_res", PlatformSpecificPlugin.getPluginPlatformId());
+        ResourceInfo resourceTest = new ResourceInfo("test_resource", "test_res");
         resourceRepo.save(resourceTest);
     }
 	
