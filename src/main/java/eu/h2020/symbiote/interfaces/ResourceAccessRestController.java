@@ -5,20 +5,22 @@
  */
 package eu.h2020.symbiote.interfaces;
 
+import eu.h2020.symbiote.resources.db.ResourcesRepository;
+import eu.h2020.symbiote.resources.db.PluginRepository;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.cloud.model.data.parameter.InputParameter;
 import eu.h2020.symbiote.exceptions.*;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceRESTCondition;
-import eu.h2020.symbiote.messages.ResourceAccessGetMessage;
-import eu.h2020.symbiote.messages.ResourceAccessHistoryMessage;
-import eu.h2020.symbiote.messages.ResourceAccessMessage.AccessType;
-import eu.h2020.symbiote.messages.ResourceAccessSetMessage;
+import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
+import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
+import eu.h2020.symbiote.messages.access.ResourceAccessMessage.AccessType;
+import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
 import eu.h2020.symbiote.core.model.Observation;
-import eu.h2020.symbiote.resources.PlatformInfo;
+import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
-import eu.h2020.symbiote.resources.ResourceInfo;
+import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
 import java.util.List;
 import java.util.Optional;
@@ -41,8 +43,7 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * @author Matteo Pardi <m.pardi@nextworks.it>
  *
- * REST controller which exposes the VNFM northbound APIs
- * used by the NFVO to interact with the VNFM
+ * REST controller to receive resource access requests
  * 
  */
 @Conditional(NBInterfaceRESTCondition.class)
@@ -74,13 +75,9 @@ public class ResourceAccessRestController {
     @RequestMapping(value="/rap/Sensor/{resourceId}", method=RequestMethod.GET)
     public Observation readResource(@PathVariable String resourceId) {        
         try {
-            log.info("Received read resource request for ID = " + resourceId);
-        
-            Observation observation = null;        
+            log.info("Received read resource request for ID = " + resourceId);       
+            
             ResourceInfo info = getResourceInfo(resourceId);
-        //   if(!checkPlatformPluginPresent(info.getPlatformId()))
-        //        throw new EntityNotFoundException("Plugin for platform " + info.getPlatformId() + " not found");
-
             ResourceAccessGetMessage msg = new ResourceAccessGetMessage(info);
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
@@ -92,7 +89,7 @@ public class ResourceAccessRestController {
             String response = null;
             if(obj != null)
                 response = new String((byte[]) obj, "UTF-8");
-            observation = mapper.readValue(response, Observation.class);
+            Observation observation = mapper.readValue(response, Observation.class);
             
             return observation;
         } catch(EntityNotFoundException enf) {
@@ -114,14 +111,9 @@ public class ResourceAccessRestController {
     @RequestMapping(value="/rap/Sensor/{resourceId}/history", method=RequestMethod.GET)
     public List<Observation> readResourceHistory(@PathVariable String resourceId) {
         try {
-            log.info("Received read resource request for ID = " + resourceId);
-
-            List<Observation> observationList = null;
+            log.info("Received read resource request for ID = " + resourceId);           
         
             ResourceInfo info = getResourceInfo(resourceId);
-        //    if(!checkPlatformPluginPresent(info.getPlatformId()))
-        //        throw new EntityNotFoundException("Plugin for platform " + info.getPlatformId() + " not found");
-            
             Query q = null;
             ResourceAccessHistoryMessage msg = new ResourceAccessHistoryMessage(info,q);
             ObjectMapper mapper = new ObjectMapper();
@@ -131,7 +123,7 @@ public class ResourceAccessRestController {
             
             String routingKey = AccessType.HISTORY.toString().toLowerCase();
             String response = (String)rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-            observationList = mapper.readValue(response, List.class);
+            List<Observation> observationList = mapper.readValue(response, List.class);
             if(observationList == null)
                 throw new Exception("Plugin error");
             
@@ -150,19 +142,16 @@ public class ResourceAccessRestController {
      * 
      * 
      * @param resourceId    the id of the resource to query 
-     * @param value         the value to write
+     * @param valueList     the value list to write     
      * @return              the http response code
      */
-    @RequestMapping(value="/rap/Actuator/{resourceId}/Service/{serviceId}", method=RequestMethod.POST)
-    public ResponseEntity<?> writeResource(@PathVariable String resourceId, @PathVariable String serviceId, @RequestBody InputParameter value) {
+    @RequestMapping(value="/rap/Service/{resourceId}", method=RequestMethod.POST)
+    public ResponseEntity<?> writeResource(@PathVariable String resourceId, @RequestBody List<InputParameter> valueList) {
         try {
-            log.info("Received write resource request for ID = " + resourceId + " with value " + value);
+            log.info("Received write resource request for ID = " + resourceId + " with values " + valueList);
 
-            ResourceInfo info = getResourceInfo(resourceId);
-        //    if(!checkPlatformPluginPresent(info.getPlatformId()))
-        //        throw new EntityNotFoundException("Plugin for platform " + info.getPlatformId() + " not found");
-            
-            ResourceAccessSetMessage msg = new ResourceAccessSetMessage(info, value);
+            ResourceInfo info = getResourceInfo(resourceId);    
+            ResourceAccessSetMessage msg = new ResourceAccessSetMessage(info, valueList);
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             mapper.setSerializationInclusion(Include.NON_EMPTY);
@@ -180,28 +169,12 @@ public class ResourceAccessRestController {
             throw new GenericException(err);
         }
     }
-
-    /*
+    
     private ResourceInfo getResourceInfo(String resourceId) {
-        Optional<ResourceInfo> resInfo = resourcesRepo.findByResourceId(resourceId);
+        Optional<ResourceInfo> resInfo = resourcesRepo.findById(resourceId);
         if(!resInfo.isPresent())
             throw new EntityNotFoundException("Resource " + resourceId + " not found");
         
         return resInfo.get();
-    }*/
-    
-    private ResourceInfo getResourceInfo(String resourceId) {
-        List<ResourceInfo> resInfo2 = resourcesRepo.findAll();
-        //Optional<ResourceInfo> resInfo = resourcesRepo.findByResourceId(resourceId);
-        ResourceInfo resInfo = resInfo2.get(1);
-        
-        return resInfo;
-    }
-    
-    
-    private boolean checkPlatformPluginPresent(String platformId) {
-        Optional<PlatformInfo> pluginInfo = pluginRepo.findById(platformId);
-   
-        return pluginInfo.isPresent();
     }
 }

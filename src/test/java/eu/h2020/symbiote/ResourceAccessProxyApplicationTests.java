@@ -1,12 +1,12 @@
 package eu.h2020.symbiote;
 
 import eu.h2020.symbiote.core.model.Property;
-import eu.h2020.symbiote.interfaces.PluginRepository;
+import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.interfaces.ResourceAccessRestController;
-import eu.h2020.symbiote.interfaces.ResourcesRepository;
+import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.plugin.PlatformSpecificPlugin;
-import eu.h2020.symbiote.resources.PlatformInfo;
-import eu.h2020.symbiote.resources.ResourceInfo;
+import eu.h2020.symbiote.resources.db.PlatformInfo;
+import eu.h2020.symbiote.resources.db.ResourceInfo;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import org.junit.After;

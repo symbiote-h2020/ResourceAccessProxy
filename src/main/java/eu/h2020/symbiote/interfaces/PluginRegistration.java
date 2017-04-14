@@ -5,11 +5,12 @@
  */
 package eu.h2020.symbiote.interfaces;
 
+import eu.h2020.symbiote.resources.db.PluginRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import eu.h2020.symbiote.messages.PluginRegistrationMessage;
-import eu.h2020.symbiote.messages.RegisterPluginMessage;
-import eu.h2020.symbiote.messages.RegistrationMessage.RegistrationAction;
-import eu.h2020.symbiote.resources.PlatformInfo;
+import eu.h2020.symbiote.messages.registration.PluginRegistrationMessage;
+import eu.h2020.symbiote.messages.registration.RegisterPluginMessage;
+import eu.h2020.symbiote.messages.registration.RegistrationMessage.RegistrationAction;
+import eu.h2020.symbiote.resources.db.PlatformInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

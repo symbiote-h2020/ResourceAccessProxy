@@ -8,9 +8,9 @@ package eu.h2020.symbiote.service;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import eu.h2020.symbiote.interfaces.ResourcesRepository;
+import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
-import eu.h2020.symbiote.resources.ResourceInfo;
+import eu.h2020.symbiote.resources.db.ResourceInfo;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.List;
@@ -217,7 +217,7 @@ public class RAPEntityProcessor implements EntityProcessor{
                 
                 //obj = storageHelper.getRelatedObject(resource, startEntityType, targetEntityType, top, jsonFilter);
                 //obj = "RESPONSE";
-                storageHelper.setService(resource,serviceId, requestEntity, targetEntityType);
+                storageHelper.setService(resource, requestEntity, targetEntityType);
             }
         } else { // this would be the case for e.g. Products(1)/Category/Products
             throw new ODataApplicationException("Not supported", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
