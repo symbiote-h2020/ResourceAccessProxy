@@ -3,11 +3,11 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package eu.h2020.symbiote.messages;
+package eu.h2020.symbiote.messages.access;
 
 import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
-import eu.h2020.symbiote.resources.ResourceInfo;
+import eu.h2020.symbiote.resources.db.ResourceInfo;
 
 /**
  *

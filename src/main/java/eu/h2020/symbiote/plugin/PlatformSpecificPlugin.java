@@ -11,14 +11,14 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.cloud.model.data.observation.ObservationValue;
 import eu.h2020.symbiote.cloud.model.data.parameter.InputParameter;
 import eu.h2020.symbiote.interfaces.ResourceAccessRestController;
-import eu.h2020.symbiote.messages.RegisterPluginMessage;
-import eu.h2020.symbiote.messages.ResourceAccessGetMessage;
-import eu.h2020.symbiote.messages.ResourceAccessHistoryMessage;
-import eu.h2020.symbiote.messages.ResourceAccessMessage;
-import eu.h2020.symbiote.messages.ResourceAccessSetMessage;
+import eu.h2020.symbiote.messages.registration.RegisterPluginMessage;
+import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
+import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
+import eu.h2020.symbiote.messages.access.ResourceAccessMessage;
+import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
 import eu.h2020.symbiote.cloud.model.data.observation.Observation;
 import eu.h2020.symbiote.resources.RapDefinitions;
-import eu.h2020.symbiote.resources.ResourceInfo;
+import eu.h2020.symbiote.resources.db.ResourceInfo;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,7 +75,7 @@ public class PlatformSpecificPlugin {
         return value;
     }
     
-    public void writeResource(String resourceId, InputParameter value) {
+    public void writeResource(String resourceId, List<InputParameter> valueList) {
         // INSERT HERE: call to the platform with internal resource id
         // setting the actuator value
     }
@@ -118,7 +118,7 @@ public class PlatformSpecificPlugin {
                 case SET:
                     ResourceAccessSetMessage mess = (ResourceAccessSetMessage)msg;
                     info = mess.getResourceInfo();
-                    writeResource(info.getInternalId(), mess.getValue());                    
+                    writeResource(info.getInternalId(), mess.getInputParameters());                    
                 case SUBSCRIBE:
                     // insert here subscription to resource
                     break;

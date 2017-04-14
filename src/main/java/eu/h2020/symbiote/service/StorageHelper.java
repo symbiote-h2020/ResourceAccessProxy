@@ -10,13 +10,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import eu.h2020.symbiote.interfaces.ResourcesRepository;
-import eu.h2020.symbiote.messages.ResourceAccessGetMessage;
-import eu.h2020.symbiote.messages.ResourceAccessHistoryMessage;
-import eu.h2020.symbiote.messages.ResourceAccessMessage;
-import eu.h2020.symbiote.messages.ResourceAccessSetService;
+import eu.h2020.symbiote.resources.db.ResourcesRepository;
+import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
+import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
+import eu.h2020.symbiote.messages.access.ResourceAccessMessage;
+import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
 import eu.h2020.symbiote.core.model.Observation;
-import eu.h2020.symbiote.resources.ResourceInfo;
+import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Comparison;
 import eu.h2020.symbiote.resources.query.Filter;
 import eu.h2020.symbiote.resources.query.Operator;
@@ -178,7 +178,7 @@ public class StorageHelper {
         return null;
     }
 
-    public void setService(ResourceInfo resourceInfo, String serviceId, Entity requestBody, EdmEntityType targetEntityType) throws ODataApplicationException {
+    public void setService(ResourceInfo resourceInfo, Entity requestBody, EdmEntityType targetEntityType) throws ODataApplicationException {
         if (targetEntityType.getName().equals(RAPEdmProvider.ET_SERVICE_NAME)) {
             List<InputParameter> inputParameterList = new ArrayList<InputParameter>();
             ResourceAccessMessage msg;
@@ -203,11 +203,7 @@ public class StorageHelper {
                     inputParameterList.add(ip);
                 }
             }
-            Service service = new Service();
-            service.setName(serviceId);
-            service.setInputParameters(inputParameterList);
-
-            msg = new ResourceAccessSetService(resourceInfo, service);
+            msg = new ResourceAccessSetMessage(resourceInfo, inputParameterList);
 
             String json = "";
             try {
