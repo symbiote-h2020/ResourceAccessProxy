@@ -8,6 +8,7 @@ package eu.h2020.symbiote.resources;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import eu.h2020.symbiote.core.model.Property;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.data.annotation.Id;
@@ -25,25 +26,24 @@ public class ResourceInfo {
     private final String id;
     @JsonProperty("internalId")
     private final String internalId;
-    @JsonProperty("platformId")
-    private final String platformId;
+    @JsonProperty("observedProperties")
+    private List<Property> observedProperties;
     @JsonIgnore
     private List<String> sessionIdList;
     
     public ResourceInfo() {
         this.id = "";
         this.internalId = "";
-        this.platformId = "";
+        this.observedProperties = null;
         this.sessionIdList = null;
     }
     
     @JsonCreator
     public ResourceInfo(@JsonProperty("symbioteId") String resourceId, 
-                        @JsonProperty("internalId") String platformResourceId, 
-                        @JsonProperty("platformId") String platformId) {
+                        @JsonProperty("internalId") String platformResourceId) {
         this.id = resourceId;
         this.internalId = platformResourceId;
-        this.platformId = platformId;
+        this.observedProperties = null;
         this.sessionIdList = null;
     }
     
@@ -57,9 +57,14 @@ public class ResourceInfo {
         return internalId;
     }
     
-    @JsonProperty("platformId")
-    public String getPlatformId() {
-        return platformId;
+    @JsonProperty("observedProperties")
+    public List<Property> getObservedProperties() {
+        return observedProperties;
+    }    
+    
+    @JsonProperty("observedProperties")
+    public void setObservedProperties(List<Property> observedProperties) {
+        this.observedProperties = observedProperties;
     }
     
     @JsonIgnore

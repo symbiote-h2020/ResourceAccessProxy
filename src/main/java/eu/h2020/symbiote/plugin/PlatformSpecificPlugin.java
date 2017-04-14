@@ -29,6 +29,7 @@ import eu.h2020.symbiote.cloud.model.data.observation.Property;
 import eu.h2020.symbiote.cloud.model.data.observation.UnitOfMeasurement;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.TimeZone;
 
@@ -159,7 +160,8 @@ public class PlatformSpecificPlugin {
         date.setTime(ms);
         String samplet = dateFormat.format(date);
         ObservationValue obsval = new ObservationValue("7", new Property("Temperature", "Air temperature"), new UnitOfMeasurement("C", "degree Celsius", ""));
-        Observation obs = new Observation(sensorId, loc, timestamp, samplet , obsval);
+        ArrayList<ObservationValue> obsList = new ArrayList();
+        Observation obs = new Observation(sensorId, loc, timestamp, samplet , obsList);
         
         log.debug("Observation: \n" + obs.toString());
         

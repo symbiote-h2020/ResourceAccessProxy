@@ -6,13 +6,16 @@
 package eu.h2020.symbiote.interfaces;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import eu.h2020.symbiote.core.model.Property;
+import eu.h2020.symbiote.core.model.resources.MobileSensor;
 import eu.h2020.symbiote.core.model.resources.Resource;
+import eu.h2020.symbiote.core.model.resources.StationarySensor;
 import eu.h2020.symbiote.messages.RegisterResourceMessage;
 import eu.h2020.symbiote.messages.RegistrationMessage.RegistrationAction;
 import eu.h2020.symbiote.messages.UnregisterResourceMessage;
 import eu.h2020.symbiote.messages.UpdateResourceMessage;
-import eu.h2020.symbiote.plugin.PlatformSpecificPlugin;
 import eu.h2020.symbiote.resources.ResourceInfo;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,10 +43,14 @@ public class ResourceRegistration {
             String internalId = msg.getInternalId();
             Resource resource = msg.getResource();
             String symbioteId = resource.getId();
-            String platformId = msg.getHost();
-            
+            List<Property> props = null;
+            if(resource instanceof StationarySensor) {
+                props = ((StationarySensor)resource).getObservesProperty();
+            } else if(resource instanceof MobileSensor) {
+                props = ((MobileSensor)resource).getObservesProperty();
+            }            
             log.debug("Registering resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
-            addResource(symbioteId, internalId, platformId);
+            addResource(symbioteId, internalId, props);
         } catch (Exception e) {
             log.info("Error during registration process\n" + e.getMessage());
         }
@@ -75,10 +82,14 @@ public class ResourceRegistration {
             String internalId = msg.getInternalId();
             Resource resource = msg.getResource();
             String symbioteId = resource.getId();
-            String platformId = msg.getHost();
-
+            List<Property> props = null;
+            if(resource instanceof StationarySensor) {
+                props = ((StationarySensor)resource).getObservesProperty();
+            } else if(resource instanceof MobileSensor) {
+                props = ((MobileSensor)resource).getObservesProperty();
+            }
             log.debug("Updating resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
-            addResource(symbioteId, internalId, platformId);
+            addResource(symbioteId, internalId, props);
         } catch (Exception e) {
             log.info("Error during registration process\n" + e.getMessage());
         }
@@ -89,8 +100,10 @@ public class ResourceRegistration {
         //TODO
     }
     
-    private void addResource(String resourceId, String platformResourceId, String platformId) {
-        ResourceInfo resourceInfo = new ResourceInfo(resourceId, platformResourceId, platformId);
+    private void addResource(String resourceId, String platformResourceId, List<Property> obsProperties) {
+        ResourceInfo resourceInfo = new ResourceInfo(resourceId, platformResourceId);
+        if(obsProperties != null)
+            resourceInfo.setObservedProperties(obsProperties);
         resourcesRepository.save(resourceInfo);
     }
     
