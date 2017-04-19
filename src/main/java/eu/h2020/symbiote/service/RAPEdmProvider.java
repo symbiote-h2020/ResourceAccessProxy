@@ -284,7 +284,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
                                             .setPartner(entityTypeName.getName());
                     navPropList.add(navProp);
                     isList = true;
-                    log.info("LIST -> Name: "+f.getName()+", Type: "+shortName);                
+                    log.debug("List type -> Name: "+f.getName()+", Type: "+shortName);                
                 } else {
                     cl = f.getType();
                 }
@@ -295,7 +295,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
                             .setName(f.getName())
                             .setType(fqn);
                     lst.add(propId);
-                    log.info("PRIMITIVE: " + f.getName() + " - " + fqn.getFullQualifiedNameAsString());
+                    log.debug("Primitive type: " + f.getName() + " - " + fqn.getFullQualifiedNameAsString());
                 } else {                        
                     CsdlProperty propId = new CsdlProperty()
                             .setName(f.getName())
@@ -304,7 +304,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
                     if(isList)
                         propId.setCollection(true);
                     lst.add(propId);
-                    log.info("COMPLEX: " + f.getName() + " - " + shortName);
+                    log.debug("Complex type: " + f.getName() + " - " + shortName);
                 }
                                 
                 Annotation an = f.getAnnotation(Id.class);
