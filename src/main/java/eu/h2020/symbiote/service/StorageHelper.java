@@ -15,7 +15,7 @@ import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
-import eu.h2020.symbiote.core.model.Observation;
+import eu.h2020.symbiote.cloud.model.data.observation.Observation;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Comparison;
 import eu.h2020.symbiote.resources.query.Filter;
@@ -71,8 +71,8 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 /**
  *
-* @author Luca Tomaselli <l.tomaselli@nextworks.it>
-*/
+ * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ */
 public class StorageHelper {
 
     private ResourcesRepository resourcesRepo;
@@ -98,32 +98,31 @@ public class StorageHelper {
 
     public ResourceInfo getResourceInfo(EdmEntitySet edmEntitySet, List<UriParameter> keyParams) {
         ResourceInfo resInfo = null;
-        for (final UriParameter key : keyParams) {
-            // key
-            String keyName = key.getName();
-            String keyText = key.getText();
+        final UriParameter key = keyParams.get(0);
 
-            //remove quote
-            keyText = keyText.replaceAll("'", "");
+        String keyName = key.getName();
 
-            try {
-                if (keyName.equals("id")) {
-                    Optional<ResourceInfo> resInfoOptional = resourcesRepo.findById(keyText);
-                    if (resInfoOptional.isPresent()) {
-                        resInfo = resInfoOptional.get();
-                    }
+        String keyText = key.getText();
+
+        //remove quote
+        keyText = keyText.replaceAll("'", "");
+
+        try {
+            if (keyName.equals("id")) {
+                Optional<ResourceInfo> resInfoOptional = resourcesRepo.findById(keyText);
+                if (resInfoOptional.isPresent()) {
+                    resInfo = resInfoOptional.get();
                 }
-            } catch (Exception e) {
-                int a = 0;
             }
-
-            //SOLO MOMENTANEO
-            if (resInfo == null) {
-                List<ResourceInfo> resInfo2 = resourcesRepo.findAll();
-                resInfo = resInfo2.get(0);
-            }
+        } catch (Exception e) {
+            int a = 0;
         }
 
+        //SOLO MOMENTANEO
+        //if (resInfo == null) {
+        //List<ResourceInfo> resInfo2 = resourcesRepo.findAll();
+        //resInfo = resInfo2.get(0);
+        //}
         return resInfo;
     }
 
@@ -142,7 +141,7 @@ public class StorageHelper {
                     msg = new ResourceAccessGetMessage(resourceInfo);
                     routingKey = ResourceAccessMessage.AccessType.GET.toString().toLowerCase();
                 } else {
-                    msg = new ResourceAccessHistoryMessage(resourceInfo,filterQuery);
+                    msg = new ResourceAccessHistoryMessage(resourceInfo, filterQuery);
                     routingKey = ResourceAccessMessage.AccessType.HISTORY.toString().toLowerCase();
                 }
 
@@ -155,8 +154,7 @@ public class StorageHelper {
                 String response = null;
                 if (obj == null) {
                     throw new ODataApplicationException("No response from plugin", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
-                }
-                else{
+                } else {
                     response = new String((byte[]) obj, "UTF-8");
                     observations = mapper.readValue(response, new TypeReference<List<Observation>>() {
                     });
@@ -170,7 +168,7 @@ public class StorageHelper {
                 }
             } catch (Exception e) {
                 String err = "Unable to read resource with id: " + resourceInfo.getSymbioteId();
-                err += "\n Error:"+ e.getMessage();
+                err += "\n Error:" + e.getMessage();
                 //log.error(err + "\n" + e.getMessage());
                 throw new ODataApplicationException(err, HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
             }
@@ -191,12 +189,13 @@ public class StorageHelper {
                     List<Property> properties = complexValue.getValue();
                     String name = null;
                     String value = null;
-                    for (Property p : properties){
+                    for (Property p : properties) {
                         String pName = p.getName();
-                        if(pName.equals("name"))
+                        if (pName.equals("name")) {
                             name = (String) p.getValue();
-                        else if(pName.equals("value"))
+                        } else if (pName.equals("value")) {
                             value = (String) p.getValue();
+                        }
                     }
                     InputParameter ip = new InputParameter(name);
                     ip.setValue(value);
@@ -497,7 +496,6 @@ public class StorageHelper {
         return (UriResourceNavigation) resourcePaths.get(--navigationCount);
     }
 
-    
     public static Query calculateFilter(Expression expression) throws ODataApplicationException {
 
         if (expression instanceof Binary) {
@@ -513,16 +511,14 @@ public class StorageHelper {
                 } catch (Exception ex) {
                     throw new ODataApplicationException(ex.getMessage(), HttpStatusCode.BAD_REQUEST.getStatusCode(), Locale.ROOT);
                 }
-                
-                
+
                 Query leftQuery = calculateFilter(left);
                 exprs.add(0, leftQuery);
-                
-                
+
                 Query rightQuery = calculateFilter(right);
                 exprs.add(1, (Query) rightQuery);
-                
-                Filter f = new Filter(op.getLop(),exprs);
+
+                Filter f = new Filter(op.getLop(), exprs);
                 return f;
             } else if (left instanceof Member && right instanceof Literal) {
                 Member member = (Member) left;
@@ -543,14 +539,14 @@ public class StorageHelper {
                     value = parseDate(value);
 
                 }
-                
+
                 Comparison cmp;
                 try {
                     cmp = new Comparison(operator.name());
                 } catch (Exception ex) {
                     throw new ODataApplicationException(ex.getMessage(), HttpStatusCode.BAD_REQUEST.getStatusCode(), Locale.ROOT);
                 }
-                
+
                 eu.h2020.symbiote.resources.query.Expression expr = new eu.h2020.symbiote.resources.query.Expression(key, cmp.getCmp(), value);
 
                 return expr;
@@ -560,8 +556,7 @@ public class StorageHelper {
         }
         return null;
     }
-    
-    
+
     private static String parseDate(String dateParse) throws ODataApplicationException {
 
         TimeZone zoneUTC = TimeZone.getTimeZone("UTC");

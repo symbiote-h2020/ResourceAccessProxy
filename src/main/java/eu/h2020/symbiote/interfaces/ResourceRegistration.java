@@ -46,6 +46,7 @@ public class ResourceRegistration {
             for(RegisterResourceMessage msg: msgs){
                 String internalId = msg.getInternalId();
                 Resource resource = msg.getResource();
+                String resourceClass = resource.getClass().getName();
                 String symbioteId = resource.getId();
                 /*List<Property> props = null;
                 if(resource instanceof StationarySensor) {
@@ -66,7 +67,7 @@ public class ResourceRegistration {
                     symbioteId = Integer.toString((int)(Math.random() * Integer.MAX_VALUE));
                 }
 
-                log.debug("Registering resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
+                log.info("Registering "+ resourceClass +" with symbioteId: " + symbioteId + ", internalId: " + internalId);
                 addResource(symbioteId, internalId, props);
             }
         } catch (Exception e) {

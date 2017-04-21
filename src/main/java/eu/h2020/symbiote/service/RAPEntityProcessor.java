@@ -176,9 +176,31 @@ public class RAPEntityProcessor implements EntityProcessor{
 
         UriResourceEntitySet uriResourceEntitySet = (UriResourceEntitySet) uriResource;
         EdmEntitySet startEdmEntitySet = uriResourceEntitySet.getEntitySet();
+        EdmEntityType startEntityType = startEdmEntitySet.getEntityType();
+        
+        InputStream requestInputStream = request.getBody();
+        ODataDeserializer deserializer = this.odata.createDeserializer(requestFormat);
 
         if (segmentCount == 1) { // this is the case for: DemoService/DemoService.svc/Categories
-            throw new ODataApplicationException("Not supported", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
+            //throw new ODataApplicationException("Not supported", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
+        
+            
+            // 2.2 do the modification in backend
+            List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
+            
+            
+            ResourceInfo resource = storageHelper.getResourceInfo(startEdmEntitySet,keyPredicates);
+            if (resource == null) {
+                throw new ODataApplicationException("Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+            }
+            
+            
+            DeserializerResult result = deserializer.entity(requestInputStream, startEntityType);
+            Entity requestEntity = result.getEntity();
+                
+            storageHelper.setService(resource, requestEntity, startEntityType);
+        
+        
         } else if (segmentCount == 2) { //navigation: e.g. DemoService.svc/Categories(3)/Products
             UriResource lastSegment = resourceParts.get(1); // don't support more complex URIs
             if (lastSegment instanceof UriResourceNavigation) {
@@ -206,11 +228,10 @@ public class RAPEntityProcessor implements EntityProcessor{
                     if(keyName.equals("id"))
                         serviceId = keyText;
                 }
-                EdmEntityType startEntityType = startEdmEntitySet.getEntityType();
                 
                 
-                InputStream requestInputStream = request.getBody();
-                ODataDeserializer deserializer = this.odata.createDeserializer(requestFormat);
+                
+                
                 DeserializerResult result = deserializer.entity(requestInputStream, targetEntityType);
                 Entity requestEntity = result.getEntity();
                 
