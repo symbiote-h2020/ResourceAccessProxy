@@ -15,15 +15,17 @@ import eu.h2020.symbiote.exceptions.GenericException;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.messages.access.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessSubscribeMessage;
-import eu.h2020.symbiote.core.model.Observation;
+import eu.h2020.symbiote.cloud.model.data.observation.Observation;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceWebSocketCondition;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.apache.olingo.commons.api.http.HttpStatusCode;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -135,10 +137,10 @@ public class WebSocketController extends TextWebSocketHandler {
     }
 
     public void SendMessage(Observation obs) {
-        String resourceId = obs.getResourceId();
-        ResourceInfo resInfo = getResourceInfo(resourceId);
+        String internalId = obs.getResourceId();
+        ResourceInfo resInfo = getResourceByInternalId(internalId);
         List<String> sessionIdList = resInfo.getSessionId();
-        List<WebSocketSession> sessionList = new ArrayList<>();
+        HashSet<WebSocketSession> sessionList = new HashSet<>();
         if (sessionIdList != null && !sessionIdList.isEmpty()) {
             for (String sessionId : sessionIdList) {
                 WebSocketSession session = idSession.get(sessionId);
@@ -158,7 +160,7 @@ public class WebSocketController extends TextWebSocketHandler {
         }
     }
 
-    private static void sendAll(List<WebSocketSession> sessionList, String msg) {
+    private static void sendAll(Set<WebSocketSession> sessionList, String msg) {
         for (WebSocketSession session : sessionList) {
             try {
                 session.sendMessage(new TextMessage(msg)); //.getBasicRemote().sendText(msg);
@@ -179,11 +181,24 @@ public class WebSocketController extends TextWebSocketHandler {
             log.error(e.getMessage());
         }
 
-        //SOLO MOMENTANEO
-        /*if (resInfo == null) {
-            List<ResourceInfo> resInfo2 = resourcesRepo.findAll();
-            resInfo = resInfo2.get(0);
-        }*/
+        return resInfo;
+    }
+    
+    private ResourceInfo getResourceByInternalId(String internalId) {
+        ResourceInfo resInfo = null;
+        try {
+            List<ResourceInfo> resInfoList = resourcesRepo.findByInternalId(internalId);
+            if (resInfoList != null && !resInfoList.isEmpty()) {
+                for(ResourceInfo ri: resInfoList){
+                    resInfo = ri;
+                    List<String> sessionsId = ri.getSessionId();
+                    if(sessionsId != null && !sessionsId.isEmpty())
+                        break;
+                }
+            }
+        } catch (Exception e) {
+            log.error(e.getMessage());
+        }
 
         return resInfo;
     }
