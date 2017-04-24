@@ -79,13 +79,14 @@ public class ResourceRegistration {
             log.info("Resource Unregistration message received: \n" + message + "");
         
             ObjectMapper mapper = new ObjectMapper();
-            UnregisterResourceMessage msg = mapper.readValue(message, UnregisterResourceMessage.class);
-            // TODO: to check if ID at this level is correct
-            String resourceId = msg.getInternalId();
-            
-            log.debug("Unregistering resource with symbioteId %s" + resourceId);
-            deleteResource(resourceId);
-                    
+            List<RegisterResourceMessage> msgs = mapper.readValue(message, new TypeReference<List<UnregisterResourceMessage>>(){});
+            for(RegisterResourceMessage msg: msgs){            
+                // TODO: to check if ID at this level is correct
+                String resourceId = msg.getInternalId();
+
+                log.debug("Unregistering resource with symbioteId %s" + resourceId);
+                deleteResource(resourceId);
+            }
         } catch (Exception e) {
             log.info("Error during unregistration process\n" + e.getMessage());
         }
@@ -96,24 +97,26 @@ public class ResourceRegistration {
             log.info("Resource Update message received: \n" + message + "");
         
             ObjectMapper mapper = new ObjectMapper();
-            UpdateResourceMessage msg = mapper.readValue(message, UpdateResourceMessage.class);
-            String internalId = msg.getInternalId();
-            Resource resource = msg.getResource();
-            String symbioteId = resource.getId();
-            /*List<Property> props = null;
-            if(resource instanceof StationarySensor) {
-                props = ((StationarySensor)resource).getObservesProperty();
-            } else if(resource instanceof MobileSensor) {
-                props = ((MobileSensor)resource).getObservesProperty();
-            }*/
-            List<String> props = null;
-            if(resource instanceof StationarySensor) {
-                props = ((StationarySensor)resource).getObservesProperty();
-            } else if(resource instanceof MobileSensor) {
-                props = ((MobileSensor)resource).getObservesProperty();
+            List<UpdateResourceMessage> msgs = mapper.readValue(message, new TypeReference<List<UpdateResourceMessage>>(){});
+            for(UpdateResourceMessage msg: msgs){            
+                String internalId = msg.getInternalId();
+                Resource resource = msg.getResource();
+                String symbioteId = resource.getId();
+                /*List<Property> props = null;
+                if(resource instanceof StationarySensor) {
+                    props = ((StationarySensor)resource).getObservesProperty();
+                } else if(resource instanceof MobileSensor) {
+                    props = ((MobileSensor)resource).getObservesProperty();
+                }*/
+                List<String> props = null;
+                if(resource instanceof StationarySensor) {
+                    props = ((StationarySensor)resource).getObservesProperty();
+                } else if(resource instanceof MobileSensor) {
+                    props = ((MobileSensor)resource).getObservesProperty();
+                }
+                log.debug("Updating resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
+                addResource(symbioteId, internalId, props);
             }
-            log.debug("Updating resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
-            addResource(symbioteId, internalId, props);
         } catch (Exception e) {
             log.info("Error during registration process\n" + e.getMessage());
         }

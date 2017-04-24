@@ -19,7 +19,7 @@ public class NBInterfaceODataCondition implements Condition {
     @Override
     public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
         Environment env = context.getEnvironment();
-        return env.getProperty("app.northbound.interface.OData", boolean.class, false);
+        return env.getProperty("rap.northbound.interface.OData", boolean.class, false);
     }
 }
 

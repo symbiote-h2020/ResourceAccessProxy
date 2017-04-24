@@ -20,6 +20,6 @@ public class PlatformSpecificPluginCondition implements Condition {
     @Override
     public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
         Environment env = context.getEnvironment();
-        return env.getProperty("app.enableSpecificPlugin", boolean.class, false);
+        return env.getProperty("rap.enableSpecificPlugin", boolean.class, false);
     }
 }
