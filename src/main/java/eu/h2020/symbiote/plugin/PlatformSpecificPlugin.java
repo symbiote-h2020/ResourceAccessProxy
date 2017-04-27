@@ -140,7 +140,7 @@ public class PlatformSpecificPlugin {
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-            String json = mapper.writeValueAsString(msg);
+            byte[] json = mapper.writeValueAsBytes(msg);
 
             rabbitTemplate.convertAndSend(exchange.getName(), RapDefinitions.PLUGIN_REGISTRATION_KEY, json);
         } catch (Exception e ) {
