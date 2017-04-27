@@ -33,6 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -44,6 +45,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
  */
 @Conditional(NBInterfaceWebSocketCondition.class)
 @Component
+@CrossOrigin
 public class WebSocketController extends TextWebSocketHandler {
 
     private static final Logger log = LoggerFactory.getLogger(WebSocketController.class);
