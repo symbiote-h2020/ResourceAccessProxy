@@ -77,16 +77,16 @@ public class ResourceRegistration {
     
     public void receiveUnregistrationMessage(byte[] message) {
         try {
-            log.info("Resource Unregistration message received: \n" + message + "");
-        
             ObjectMapper mapper = new ObjectMapper();
-            List<RegisterResourceMessage> msgs = mapper.readValue(message, new TypeReference<List<UnregisterResourceMessage>>(){});
-            for(RegisterResourceMessage msg: msgs){            
-                // TODO: to check if ID at this level is correct
-                String resourceId = msg.getInternalId();
+            List<String> ids = mapper.readValue(message, new TypeReference<List<String>>(){});
+            log.info("Resource Unregistration message received: \n" + ids + "");
+       
 
-                log.debug("Unregistering resource with symbioteId %s" + resourceId);
-                deleteResource(resourceId);
+            for(String id: ids){            
+                // TODO: to check if ID at this level is correct
+
+                log.info("Unregistering resource with symbioteId " + id);
+                deleteResource(id);
             }
         } catch (Exception e) {
             log.info("Error during unregistration process\n" + e.getMessage());
@@ -115,7 +115,7 @@ public class ResourceRegistration {
                 } else if(resource instanceof MobileSensor) {
                     props = ((MobileSensor)resource).getObservesProperty();
                 }
-                log.debug("Updating resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
+                log.info("Updating resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
                 addResource(symbioteId, internalId, props);
             }
         } catch (Exception e) {
@@ -144,7 +144,8 @@ public class ResourceRegistration {
     }
     
     private void deleteResource(String resourceId) {
-        resourcesRepository.delete(resourceId);
+        ResourceInfo resource = resourcesRepository.findByInternalId(resourceId).get(0);
+        resourcesRepository.delete(resource.getSymbioteId());
     }  
     
 }

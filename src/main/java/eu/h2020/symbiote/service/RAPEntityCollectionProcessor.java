@@ -199,6 +199,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
         //response.setContent(serializerResult.getContent());
         response.setContent(stream);
         response.setStatusCode(HttpStatusCode.OK.getStatusCode());
-        response.setHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
+        response.addHeader("Access-Control-Allow-Origin", "*");
+        response.addHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
     }
 }
