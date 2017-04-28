@@ -37,6 +37,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StreamUtils;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -48,6 +49,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Conditional(NBInterfaceODataCondition.class)
 @RestController
 @RequestMapping("rap")
+@CrossOrigin 
 public class RAPEdmController {
 
     private static String URI = "rap/";

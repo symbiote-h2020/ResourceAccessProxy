@@ -28,7 +28,7 @@ public class WebSocketServerConfiguration implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         if(webSocketHandler != null) {
-            registry.addHandler(webSocketHandler, "/notification");
+            registry.addHandler(webSocketHandler, "/notification").setAllowedOrigins("*");
         }
     }
 }

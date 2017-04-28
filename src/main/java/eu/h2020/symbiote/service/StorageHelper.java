@@ -155,7 +155,9 @@ public class StorageHelper {
                 if (obj == null) {
                     throw new ODataApplicationException("No response from plugin", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
                 } else {
-                    response = new String((byte[]) obj, "UTF-8");
+                    if(obj instanceof byte[]) {
+                        response = new String((byte[]) obj, "UTF-8");
+                    }
                     observations = mapper.readValue(response, new TypeReference<List<Observation>>() {
                     });
 
