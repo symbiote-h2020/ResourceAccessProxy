@@ -158,7 +158,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
                 List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
                 ResourceInfo resource = storageHelper.getResourceInfo(startEdmEntitySet,keyPredicates);
                 if (resource == null) {
-                //    throw new ODataApplicationException("Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+                    throw new ODataApplicationException("Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
                 }
                 EdmEntityType startEntityType = startEdmEntitySet.getEntityType();
                 obj = storageHelper.getRelatedObject(resource, startEntityType, targetEntityType, top, filterQuery);
@@ -199,6 +199,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
         //response.setContent(serializerResult.getContent());
         response.setContent(stream);
         response.setStatusCode(HttpStatusCode.OK.getStatusCode());
-        response.setHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
+        response.addHeader("Access-Control-Allow-Origin", "*");
+        response.addHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
     }
 }
