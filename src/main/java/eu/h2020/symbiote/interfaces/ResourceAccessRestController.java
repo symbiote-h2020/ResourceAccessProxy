@@ -6,11 +6,13 @@
 package eu.h2020.symbiote.interfaces;
 
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
-import eu.h2020.symbiote.resources.db.PluginRepository;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.cloud.model.data.parameter.InputParameter;
+import eu.h2020.symbiote.commons.security.SecurityHandler;
+import eu.h2020.symbiote.commons.security.token.SymbIoTeToken;
+import eu.h2020.symbiote.commons.security.token.TokenVerificationException;
 import eu.h2020.symbiote.exceptions.*;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceRESTCondition;
 import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
@@ -18,7 +20,6 @@ import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessMessage.AccessType;
 import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
 import eu.h2020.symbiote.core.model.Observation;
-import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
@@ -57,14 +58,14 @@ public class ResourceAccessRestController {
     
     @Autowired
     @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
-    TopicExchange exchange;
+    private TopicExchange exchange;
     
     @Autowired
-    ResourcesRepository resourcesRepo;
+    private ResourcesRepository resourcesRepo;
     
     @Autowired
-    PluginRepository pluginRepo;
-
+    private SecurityHandler securityHandler;
+    
     /**
      * Used to retrieve the current value of a registered resource
      * 
@@ -76,6 +77,8 @@ public class ResourceAccessRestController {
     public Observation readResource(@PathVariable String resourceId) {        
         try {
             log.info("Received read resource request for ID = " + resourceId);       
+            
+            //checkToken();
             
             ResourceInfo info = getResourceInfo(resourceId);
             ResourceAccessGetMessage msg = new ResourceAccessGetMessage(info);
@@ -112,6 +115,8 @@ public class ResourceAccessRestController {
     public List<Observation> readResourceHistory(@PathVariable String resourceId) {
         try {
             log.info("Received read resource request for ID = " + resourceId);           
+            
+            //checkToken();
         
             ResourceInfo info = getResourceInfo(resourceId);
             Query q = null;
@@ -149,9 +154,11 @@ public class ResourceAccessRestController {
     public ResponseEntity<?> writeResource(@PathVariable String resourceId, @RequestBody List<InputParameter> valueList) {
         try {
             log.info("Received write resource request for ID = " + resourceId + " with values " + valueList);
+            
+            //checkToken();
 
-            ResourceInfo info = getResourceInfo(resourceId);    
-            ResourceAccessSetMessage msg = new ResourceAccessSetMessage(info, valueList);
+            ResourceInfo info = getResourceInfo(resourceId);
+            ResourceAccessSetMessage msg = new ResourceAccessSetMessage(info, valueList);            
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             mapper.setSerializationInclusion(Include.NON_EMPTY);
@@ -176,5 +183,15 @@ public class ResourceAccessRestController {
             throw new EntityNotFoundException("Resource " + resourceId + " not found");
         
         return resInfo.get();
+    }
+    
+    private void checkToken(String aamUrl, String tokenString) throws Exception {
+        log.debug("RAP received a request for the following token: " + tokenString);
+        try {
+            SymbIoTeToken token = securityHandler.verifyForeignPlatformToken(aamUrl, tokenString);
+            log.debug("Token " + token + " was verified");
+        } catch (TokenVerificationException e) { 
+            log.error("Token " + tokenString + "could not be verified");
+        }
     }
 }
