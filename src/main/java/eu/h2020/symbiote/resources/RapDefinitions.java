@@ -5,11 +5,20 @@
  */
 package eu.h2020.symbiote.resources;
 
+import org.springframework.beans.factory.annotation.Value;
+
 /**
  *
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
 public class RapDefinitions {
+    
+    @Value("${rabbit.host}") 
+    public static String rabbitHost;
+    @Value("${symbiote.coreaam.url}") 
+    public static String coreAAMUrl;
+    @Value("${security.enabled}") 
+    public static boolean securityEnabled;    
         
     public static final String      RESOURCE_REGISTRATION_EXCHANGE_IN = "symbIoTe.rap";
     public static final String      RESOURCE_REGISTRATION_QUEUE = "symbIoTe.rap.registrationHandler.register_resources";

@@ -6,11 +6,14 @@
 package eu.h2020.symbiote.interfaces;
 
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
-import eu.h2020.symbiote.resources.db.PluginRepository;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.cloud.model.data.parameter.InputParameter;
+import eu.h2020.symbiote.commons.security.SecurityHandler;
+import eu.h2020.symbiote.commons.security.exception.DisabledException;
+import eu.h2020.symbiote.commons.security.token.SymbIoTeToken;
+import eu.h2020.symbiote.commons.security.token.TokenVerificationException;
 import eu.h2020.symbiote.exceptions.*;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceRESTCondition;
 import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
@@ -18,7 +21,6 @@ import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessMessage.AccessType;
 import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
 import eu.h2020.symbiote.core.model.Observation;
-import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
@@ -30,11 +32,13 @@ import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -57,25 +61,29 @@ public class ResourceAccessRestController {
     
     @Autowired
     @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
-    TopicExchange exchange;
+    private TopicExchange exchange;
     
     @Autowired
-    ResourcesRepository resourcesRepo;
+    private ResourcesRepository resourcesRepo;
     
     @Autowired
-    PluginRepository pluginRepo;
-
+    private SecurityHandler securityHandler;    
+    
+    
     /**
      * Used to retrieve the current value of a registered resource
      * 
      * 
      * @param resourceId    the id of the resource to query 
+     * @param token 
      * @return  the current value read from the resource
      */
     @RequestMapping(value="/rap/Sensor/{resourceId}", method=RequestMethod.GET)
-    public Observation readResource(@PathVariable String resourceId) {        
+    public Observation readResource(@PathVariable String resourceId, @RequestHeader("X-Auth-Token") String token) {        
         try {
             log.info("Received read resource request for ID = " + resourceId);       
+            
+            checkToken(RapDefinitions.coreAAMUrl, token);
             
             ResourceInfo info = getResourceInfo(resourceId);
             ResourceAccessGetMessage msg = new ResourceAccessGetMessage(info);
@@ -106,12 +114,15 @@ public class ResourceAccessRestController {
      * 
      * 
      * @param resourceId    the id of the resource to query 
+     * @param token 
      * @return  the current value read from the resource
      */
     @RequestMapping(value="/rap/Sensor/{resourceId}/history", method=RequestMethod.GET)
-    public List<Observation> readResourceHistory(@PathVariable String resourceId) {
+    public List<Observation> readResourceHistory(@PathVariable String resourceId, @RequestHeader("X-Auth-Token") String token) {
         try {
             log.info("Received read resource request for ID = " + resourceId);           
+            
+            checkToken(RapDefinitions.coreAAMUrl, token);
         
             ResourceInfo info = getResourceInfo(resourceId);
             Query q = null;
@@ -143,15 +154,19 @@ public class ResourceAccessRestController {
      * 
      * @param resourceId    the id of the resource to query 
      * @param valueList     the value list to write     
+     * @param token     
      * @return              the http response code
      */
     @RequestMapping(value="/rap/Service/{resourceId}", method=RequestMethod.POST)
-    public ResponseEntity<?> writeResource(@PathVariable String resourceId, @RequestBody List<InputParameter> valueList) {
+    public ResponseEntity<?> writeResource(@PathVariable String resourceId, @RequestBody List<InputParameter> valueList,
+                                           @RequestHeader("X-Auth-Token") String token) {
         try {
             log.info("Received write resource request for ID = " + resourceId + " with values " + valueList);
+            
+            checkToken(RapDefinitions.coreAAMUrl, token);
 
-            ResourceInfo info = getResourceInfo(resourceId);    
-            ResourceAccessSetMessage msg = new ResourceAccessSetMessage(info, valueList);
+            ResourceInfo info = getResourceInfo(resourceId);
+            ResourceAccessSetMessage msg = new ResourceAccessSetMessage(info, valueList);            
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             mapper.setSerializationInclusion(Include.NON_EMPTY);
@@ -176,5 +191,17 @@ public class ResourceAccessRestController {
             throw new EntityNotFoundException("Resource " + resourceId + " not found");
         
         return resInfo.get();
+    }
+    
+    private void checkToken(String aamUrl, String tokenString) throws Exception {
+        log.debug("RAP received a request for the following token: " + tokenString);
+        try {
+            SymbIoTeToken token = securityHandler.verifyForeignPlatformToken(aamUrl, tokenString);
+            log.debug("Token " + token + " was verified");
+        }  catch (TokenVerificationException e) { 
+            log.error("Token " + tokenString + "could not be verified - " + e.getMessage());
+        } catch (DisabledException disEx) { 
+            log.error(disEx.getMessage());
+        }
     }
 }

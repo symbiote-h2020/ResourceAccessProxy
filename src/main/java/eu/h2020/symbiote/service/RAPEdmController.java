@@ -9,7 +9,11 @@ package eu.h2020.symbiote.service;
  *
  * @author luca-
  */
+import eu.h2020.symbiote.commons.security.SecurityHandler;
+import eu.h2020.symbiote.commons.security.token.SymbIoTeToken;
+import eu.h2020.symbiote.commons.security.token.TokenVerificationException;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceODataCondition;
+import eu.h2020.symbiote.resources.RapDefinitions;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -17,7 +21,6 @@ import java.util.Enumeration;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
-import org.apache.olingo.commons.api.edmx.EdmxReference;
 import org.apache.olingo.commons.api.ex.ODataException;
 
 import org.apache.olingo.commons.api.http.HttpHeader;
@@ -29,8 +32,10 @@ import org.apache.olingo.server.api.ODataResponse;
 import org.apache.olingo.server.api.ServiceMetadata;
 import org.apache.olingo.server.api.serializer.SerializerException;
 import org.apache.olingo.server.core.ODataHandlerException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -51,123 +56,58 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("rap")
 @CrossOrigin 
 public class RAPEdmController {
+    private static final Logger log = LoggerFactory.getLogger(RAPEdmController.class);
 
-    private static String URI = "rap/";
-
-    /**
-     * The split.
-     */
+    private static final String URI = "rap/";
     private int split = 0;
-    /**
-     * The ctx.
-     */
-    @Autowired
-    private ApplicationContext ctx;
-
-    /**
-     * The edm provider.
-     */
+    
     @Autowired 
     private RAPEdmProvider edmProvider;
     
-    /**
-     * The enity collection processor.
-     */
     @Autowired
     private RAPEntityCollectionProcessor entityCollectionProcessor;
     
     @Autowired
     private RAPEntityProcessor entityProcessor;
+    
+    @Autowired
+    private SecurityHandler securityHandler;
 
     /**
      * Process.
      *
      * @param req the req
      * @return the response entity
+     * @throws java.lang.Exception
      */
-    //@CrossOrigin(origins = "http://localhost:8080")
     @CrossOrigin(origins = "*")
     @RequestMapping(value = "*")
     public ResponseEntity<String> process(HttpServletRequest req) throws Exception {
         split = 0;
         try {
-            OData odata = OData.newInstance();
-            ServiceMetadata edm = odata.createServiceMetadata(edmProvider,
-                    new ArrayList<EdmxReference>());
+            String token = req.getHeader("X-Auth-Token");
+            checkToken(RapDefinitions.coreAAMUrl, token);
             
-            //ODataHandler handler = new ODataHandler(odata, edm);
-            //handler.register(entityCollectionProcessor);
-
-//            ServiceMetadata edm = odata.createServiceMetadata(new DemoEdmProvider(), new ArrayList<EdmxReference>());
-//            ODataHttpHandler handler = odata.createHandler(edm);
-//            handler.register(new DemoEntityCollectionProcessor());
-
+            OData odata = OData.newInstance();
+            ServiceMetadata edm = odata.createServiceMetadata(edmProvider, new ArrayList());
+            
             ODataHttpHandler handler = odata.createHandler(edm);
             handler.register(entityCollectionProcessor);
             handler.register(entityProcessor);
 
 
-            ODataResponse response = handler.process(createODataRequest(req,split));
-            String responseStr = StreamUtils.copyToString(
-                    response.getContent(), Charset.defaultCharset());
+            ODataResponse response = handler.process(createODataRequest(req, split));
+            String responseStr = StreamUtils.copyToString(response.getContent(), Charset.defaultCharset());
             MultiValueMap<String, String> headers = new HttpHeaders();
             headers.add("Access-Control-Allow-Origin", "*");
-//          for (String key : response.getHeaders().keySet()) {
-//              headers.add(key, response.getHeaders().get(key).toString());
-//          }
-//            for (String key : response.getHeaders(URI)) {
-//                headers.add(key, response.getHeaders(URI).get(key).toString());
-//            }
-            return new ResponseEntity<String>(responseStr, headers,
-                    HttpStatus.valueOf(response.getStatusCode()));
-        } catch (Exception ex) {
-            //throw new EdmException();
-            throw ex;
-        }
 
-    }
-
-    
-    @RequestMapping(value = "Subscribe/*")
-    public ResponseEntity<String> processSubscribe(HttpServletRequest req) throws Exception {
-        split = 1;
-        try {
-            OData odata = OData.newInstance();
-            ServiceMetadata edm = odata.createServiceMetadata(edmProvider,
-                    new ArrayList<EdmxReference>());
             
-            //ODataHandler handler = new ODataHandler(odata, edm);
-            //handler.register(entityCollectionProcessor);
-
-//            ServiceMetadata edm = odata.createServiceMetadata(new DemoEdmProvider(), new ArrayList<EdmxReference>());
-//            ODataHttpHandler handler = odata.createHandler(edm);
-//            handler.register(new DemoEntityCollectionProcessor());
-
-            ODataHttpHandler handler = odata.createHandler(edm);
-            handler.register(entityCollectionProcessor);
-            handler.register(entityProcessor);
-
-
-            ODataResponse response = handler.process(createODataRequest(req,split));
-            String responseStr = StreamUtils.copyToString(
-                    response.getContent(), Charset.defaultCharset());
-            MultiValueMap<String, String> headers = new HttpHeaders();
-//          for (String key : response.getHeaders().keySet()) {
-//              headers.add(key, response.getHeaders().get(key).toString());
-//          }
-//            for (String key : response.getHeaders(URI)) {
-//                headers.add(key, response.getHeaders(URI).get(key).toString());
-//            }
-            return new ResponseEntity<String>(responseStr, headers,
-                    HttpStatus.valueOf(response.getStatusCode()));
+            return new ResponseEntity(responseStr, headers, HttpStatus.valueOf(response.getStatusCode()));
         } catch (Exception ex) {
-            //throw new EdmException();
             throw ex;
         }
 
     }
-    
-    
     
     @RequestMapping(value="*('{resourceId}')/*")
     public ResponseEntity<String> processResources(HttpServletRequest req) throws Exception {
@@ -175,18 +115,10 @@ public class RAPEdmController {
         return processRequestPrivate(req);
     }
     
-    /*
-    @RequestMapping(value="Actuators('{resourceId}')/*")
-    public ResponseEntity<String> processActuators(HttpServletRequest req) throws Exception {
-        split = 0;
-        return processRequestPrivate(req);
-    }*/
-    
-    private ResponseEntity<String> processRequestPrivate (HttpServletRequest req) throws Exception{
+    private ResponseEntity<String> processRequestPrivate(HttpServletRequest req) throws Exception {
         try {
             OData odata = OData.newInstance();
-            ServiceMetadata edm = odata.createServiceMetadata(edmProvider,
-                    new ArrayList<EdmxReference>());
+            ServiceMetadata edm = odata.createServiceMetadata(edmProvider, new ArrayList());
 
             ODataHttpHandler handler = odata.createHandler(edm);
             handler.register(entityCollectionProcessor);
@@ -199,21 +131,11 @@ public class RAPEdmController {
             MultiValueMap<String, String> headers = new HttpHeaders();
             headers.add("Access-Control-Allow-Origin", "*");
 
-            return new ResponseEntity<String>(responseStr, headers,
-                    HttpStatus.valueOf(response.getStatusCode()));
+            return new ResponseEntity(responseStr, headers, HttpStatus.valueOf(response.getStatusCode()));
         } catch (Exception ex) {
             throw ex;
         }
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
     /**
      * Creates the o data request.
@@ -223,9 +145,7 @@ public class RAPEdmController {
      * @return the o data request
      * @throws ODataTranslatedException the o data translated exception
      */
-    private ODataRequest createODataRequest(
-            final HttpServletRequest httpRequest, final int split)
-            throws ODataException {
+    private ODataRequest createODataRequest(final HttpServletRequest httpRequest, final int split) throws ODataException {
         try {
             ODataRequest odRequest = new ODataRequest();
 
@@ -248,9 +168,7 @@ public class RAPEdmController {
      * @param httpRequest the http request
      * @throws ODataTranslatedException the o data translated exception
      */
-    private void extractMethod(final ODataRequest odRequest,
-            final HttpServletRequest httpRequest)
-            throws ODataException {
+    private void extractMethod(final ODataRequest odRequest,final HttpServletRequest httpRequest) throws ODataException {
         try {
             HttpMethod httpRequestMethod = HttpMethod.valueOf(httpRequest
                     .getMethod());
@@ -295,8 +213,7 @@ public class RAPEdmController {
      * @param httpRequest the http request
      * @param split the split
      */
-    private void extractUri(final ODataRequest odRequest,
-            final HttpServletRequest httpRequest, final int split) {
+    private void extractUri(final ODataRequest odRequest,final HttpServletRequest httpRequest, final int split) {
         String rawRequestUri = httpRequest.getRequestURL().toString();
 
         String rawODataPath;
@@ -340,8 +257,6 @@ public class RAPEdmController {
                 + httpRequest.getQueryString());
         odRequest.setRawQueryPath(rawQueryPath);
         odRequest.setRawRequestUri(rawRequestUriComplete);
-
-        //rawODataPath = "Products";
         odRequest.setRawODataPath(rawODataPath);
         odRequest.setRawBaseUri(rawBaseUri);
         odRequest.setRawServiceResolutionUri(rawServiceResolutionUri);
@@ -353,19 +268,25 @@ public class RAPEdmController {
      * @param odRequest the od request
      * @param req the req
      */
-    private void extractHeaders(final ODataRequest odRequest,
-            final HttpServletRequest req) {
-        for (Enumeration<?> headerNames = req.getHeaderNames(); headerNames
-                .hasMoreElements();) {
+    private void extractHeaders(final ODataRequest odRequest, final HttpServletRequest req) {
+        for (Enumeration<?> headerNames = req.getHeaderNames(); headerNames.hasMoreElements();) {
             String headerName = (String) headerNames.nextElement();
-            List<String> headerValues = new ArrayList<String>();
-            for (Enumeration<?> headers = req.getHeaders(headerName); headers
-                    .hasMoreElements();) {
+            List<String> headerValues = new ArrayList();
+            for (Enumeration<?> headers = req.getHeaders(headerName); headers.hasMoreElements();) {
                 String value = (String) headers.nextElement();
                 headerValues.add(value);
             }
             odRequest.addHeader(headerName, headerValues);
         }
     }
-
+    
+    private void checkToken(String aamUrl, String tokenString) throws Exception {
+        log.debug("RAP received a request for the following token: " + tokenString);
+        try {
+            SymbIoTeToken token = securityHandler.verifyForeignPlatformToken(aamUrl, tokenString);
+            log.debug("Token " + token + " was verified");
+        } catch (TokenVerificationException e) { 
+            log.error("Token " + tokenString + "could not be verified");
+        }
+    }
 }
