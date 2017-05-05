@@ -66,7 +66,6 @@ public class ResourceAccessRestController {
     private ResourcesRepository resourcesRepo;
     
     @Autowired
-	@Autowired
     private SecurityHandler securityHandler;    
     
     
