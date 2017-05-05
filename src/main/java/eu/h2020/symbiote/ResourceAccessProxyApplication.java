@@ -8,6 +8,8 @@ import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
 public class ResourceAccessProxyApplication {
+        
+        
 
     public static void main(String[] args) {
         SpringApplication.run(ResourceAccessProxyApplication.class, args);
