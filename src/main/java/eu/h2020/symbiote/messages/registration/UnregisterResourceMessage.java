@@ -13,6 +13,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
 public class UnregisterResourceMessage extends ResourceRegistrationMessage {
+    @JsonProperty("id")
+    String internalId;
+    
+    @JsonProperty("id")
+    public String getInternalId() {
+        return internalId;
+    }
     
     @JsonCreator
     public UnregisterResourceMessage(@JsonProperty("id") String resourceId) {
