@@ -9,11 +9,11 @@ package eu.h2020.symbiote.service;
  *
  * @author luca-
  */
+import static eu.h2020.symbiote.SecurityHandlerConfig.coreAAMUrl;
 import eu.h2020.symbiote.commons.security.SecurityHandler;
 import eu.h2020.symbiote.commons.security.token.SymbIoTeToken;
 import eu.h2020.symbiote.commons.security.token.TokenVerificationException;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceODataCondition;
-import eu.h2020.symbiote.resources.RapDefinitions;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -86,7 +86,7 @@ public class RAPEdmController {
         split = 0;
         try {
             String token = req.getHeader("X-Auth-Token");
-            checkToken(RapDefinitions.coreAAMUrl, token);
+            checkToken(coreAAMUrl, token);
             
             OData odata = OData.newInstance();
             ServiceMetadata edm = odata.createServiceMetadata(edmProvider, new ArrayList());

@@ -13,13 +13,6 @@ import org.springframework.beans.factory.annotation.Value;
  */
 public class RapDefinitions {
     
-    @Value("${rabbit.host}") 
-    public static String rabbitHost;
-    @Value("${symbiote.coreaam.url}") 
-    public static String coreAAMUrl;
-    @Value("${security.enabled}") 
-    public static boolean securityEnabled;    
-        
     public static final String      RESOURCE_REGISTRATION_EXCHANGE_IN = "symbIoTe.rap";
     public static final String      RESOURCE_REGISTRATION_QUEUE = "symbIoTe.rap.registrationHandler.register_resources";
     public static final String      RESOURCE_UNREGISTRATION_QUEUE = "symbIoTe.rap.registrationHandler.unregister_resources";

@@ -9,6 +9,7 @@ import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import static eu.h2020.symbiote.SecurityHandlerConfig.coreAAMUrl;
 import eu.h2020.symbiote.cloud.model.data.parameter.InputParameter;
 import eu.h2020.symbiote.commons.security.SecurityHandler;
 import eu.h2020.symbiote.commons.security.exception.DisabledException;
@@ -82,7 +83,7 @@ public class ResourceAccessRestController {
         try {
             log.info("Received read resource request for ID = " + resourceId);       
             
-            checkToken(RapDefinitions.coreAAMUrl, token);
+            checkToken(coreAAMUrl, token);
             
             ResourceInfo info = getResourceInfo(resourceId);
             ResourceAccessGetMessage msg = new ResourceAccessGetMessage(info);
@@ -121,7 +122,7 @@ public class ResourceAccessRestController {
         try {
             log.info("Received read resource request for ID = " + resourceId);           
             
-            checkToken(RapDefinitions.coreAAMUrl, token);
+            checkToken(coreAAMUrl, token);
         
             ResourceInfo info = getResourceInfo(resourceId);
             Query q = null;
@@ -162,7 +163,7 @@ public class ResourceAccessRestController {
         try {
             log.info("Received write resource request for ID = " + resourceId + " with values " + valueList);
             
-            checkToken(RapDefinitions.coreAAMUrl, token);
+            checkToken(coreAAMUrl, token);
 
             ResourceInfo info = getResourceInfo(resourceId);
             ResourceAccessSetMessage msg = new ResourceAccessSetMessage(info, valueList);            
