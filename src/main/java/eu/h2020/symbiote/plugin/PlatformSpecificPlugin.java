@@ -81,7 +81,7 @@ public class PlatformSpecificPlugin {
     }
     
     public List<Observation> readResourceHistory(String resourceId) {
-        List<Observation> value = null;
+        List<Observation> value = new ArrayList();
         //
         // INSERT HERE: query to the platform with internal resource id
         //
@@ -94,7 +94,7 @@ public class PlatformSpecificPlugin {
         return value;
     }
     
-    public String receiveMessage(String message) {
+    public String receiveMessage(byte[] message) {
         String json = "";
         try {            
             ResourceInfo info;
@@ -114,11 +114,13 @@ public class PlatformSpecificPlugin {
                     ResourceAccessHistoryMessage msgHistory = (ResourceAccessHistoryMessage) msg;
                     info = msgHistory.getResourceInfo();
                     List<Observation> observationLst = readResourceHistory(info.getInternalId());
-                    json = mapper.writeValueAsString(observationLst);                    
+                    json = mapper.writeValueAsString(observationLst);       
+                    break;
                 case SET:
                     ResourceAccessSetMessage mess = (ResourceAccessSetMessage)msg;
                     info = mess.getResourceInfo();
                     writeResource(info.getInternalId(), mess.getInputParameters());                    
+                    break;
                 case SUBSCRIBE:
                     // insert here subscription to resource
                     break;
