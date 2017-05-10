@@ -94,7 +94,7 @@ public class PlatformSpecificPlugin {
         return value;
     }
     
-    public String receiveMessage(byte[] message) {
+    public String receiveMessage(String message) {
         String json = "";
         try {            
             ResourceInfo info;
