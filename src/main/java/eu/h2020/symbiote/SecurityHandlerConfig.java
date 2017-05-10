@@ -5,7 +5,7 @@
  */
 package eu.h2020.symbiote;
 
-import eu.h2020.symbiote.commons.security.SecurityHandler;
+import eu.h2020.symbiote.security.SecurityHandler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,15 +19,13 @@ public class SecurityHandlerConfig {
     @Value("${rabbit.host}") 
     private String rabbitHost;
     @Value("${symbiote.coreaam.url}") 
-    private String aamUrl;
+    private String coreAAMUrl;
     @Value("${security.enabled}") 
     private boolean securityEnabled;
     
-    public static String coreAAMUrl;
-    
+
     @Bean
     public SecurityHandler securityHandler() {
-        coreAAMUrl = aamUrl;
-        return new SecurityHandler(aamUrl, rabbitHost, securityEnabled);
+        return new SecurityHandler(coreAAMUrl, rabbitHost, securityEnabled);
     }    
 }

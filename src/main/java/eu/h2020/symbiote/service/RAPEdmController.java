@@ -9,10 +9,10 @@ package eu.h2020.symbiote.service;
  *
  * @author luca-
  */
-import static eu.h2020.symbiote.SecurityHandlerConfig.coreAAMUrl;
-import eu.h2020.symbiote.commons.security.SecurityHandler;
-import eu.h2020.symbiote.commons.security.token.SymbIoTeToken;
-import eu.h2020.symbiote.commons.security.token.TokenVerificationException;
+import eu.h2020.symbiote.security.SecurityHandler;
+import eu.h2020.symbiote.security.exceptions.sh.SecurityHandlerDisabledException;
+import eu.h2020.symbiote.security.token.Token;
+import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceODataCondition;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -45,6 +45,7 @@ import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Value;
 
 
 /*
@@ -73,6 +74,9 @@ public class RAPEdmController {
     @Autowired
     private SecurityHandler securityHandler;
 
+    @Value("${symbiote.platformAAM.url}") 
+    private String platformAAMUrl;
+
     /**
      * Process.
      *
@@ -86,7 +90,7 @@ public class RAPEdmController {
         split = 0;
         try {
             String token = req.getHeader("X-Auth-Token");
-            checkToken(coreAAMUrl, token);
+            checkToken(platformAAMUrl, token);
             
             OData odata = OData.newInstance();
             ServiceMetadata edm = odata.createServiceMetadata(edmProvider, new ArrayList());
@@ -283,10 +287,12 @@ public class RAPEdmController {
     private void checkToken(String aamUrl, String tokenString) throws Exception {
         log.debug("RAP received a request for the following token: " + tokenString);
         try {
-            SymbIoTeToken token = securityHandler.verifyForeignPlatformToken(aamUrl, tokenString);
+            Token token = securityHandler.verifyForeignPlatformToken(aamUrl, tokenString);
             log.debug("Token " + token + " was verified");
-        } catch (TokenVerificationException e) { 
+        } catch (TokenValidationException e) { 
             log.error("Token " + tokenString + "could not be verified");
+        } catch (SecurityHandlerDisabledException disEx) { 
+            log.error(disEx.getMessage());
         }
     }
 }

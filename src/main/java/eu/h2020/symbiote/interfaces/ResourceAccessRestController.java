@@ -9,12 +9,11 @@ import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import static eu.h2020.symbiote.SecurityHandlerConfig.coreAAMUrl;
 import eu.h2020.symbiote.cloud.model.data.parameter.InputParameter;
-import eu.h2020.symbiote.commons.security.SecurityHandler;
-import eu.h2020.symbiote.commons.security.exception.DisabledException;
-import eu.h2020.symbiote.commons.security.token.SymbIoTeToken;
-import eu.h2020.symbiote.commons.security.token.TokenVerificationException;
+import eu.h2020.symbiote.security.SecurityHandler;
+import eu.h2020.symbiote.security.exceptions.sh.SecurityHandlerDisabledException;
+import eu.h2020.symbiote.security.token.Token;
+import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
 import eu.h2020.symbiote.exceptions.*;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceRESTCondition;
 import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
@@ -42,6 +41,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.beans.factory.annotation.Value;
+
 
 /**
  *
@@ -69,7 +70,9 @@ public class ResourceAccessRestController {
     @Autowired
     private SecurityHandler securityHandler;    
     
-    
+    @Value("${symbiote.platformAAM.url}") 
+    private String platformAAMUrl;
+
     /**
      * Used to retrieve the current value of a registered resource
      * 
@@ -83,7 +86,7 @@ public class ResourceAccessRestController {
         try {
             log.info("Received read resource request for ID = " + resourceId);       
             
-            checkToken(coreAAMUrl, token);
+            checkToken(platformAAMUrl, token);
             
             ResourceInfo info = getResourceInfo(resourceId);
             ResourceAccessGetMessage msg = new ResourceAccessGetMessage(info);
@@ -122,7 +125,7 @@ public class ResourceAccessRestController {
         try {
             log.info("Received read resource request for ID = " + resourceId);           
             
-            checkToken(coreAAMUrl, token);
+            checkToken(platformAAMUrl, token);
         
             ResourceInfo info = getResourceInfo(resourceId);
             Query q = null;
@@ -163,7 +166,7 @@ public class ResourceAccessRestController {
         try {
             log.info("Received write resource request for ID = " + resourceId + " with values " + valueList);
             
-            checkToken(coreAAMUrl, token);
+            checkToken(platformAAMUrl, token);
 
             ResourceInfo info = getResourceInfo(resourceId);
             ResourceAccessSetMessage msg = new ResourceAccessSetMessage(info, valueList);            
@@ -196,11 +199,11 @@ public class ResourceAccessRestController {
     private void checkToken(String aamUrl, String tokenString) throws Exception {
         log.debug("RAP received a request for the following token: " + tokenString);
         try {
-            SymbIoTeToken token = securityHandler.verifyForeignPlatformToken(aamUrl, tokenString);
+            Token token = securityHandler.verifyForeignPlatformToken(aamUrl, tokenString);
             log.debug("Token " + token + " was verified");
-        }  catch (TokenVerificationException e) { 
+        }  catch (TokenValidationException e) { 
             log.error("Token " + tokenString + "could not be verified - " + e.getMessage());
-        } catch (DisabledException disEx) { 
+        } catch (SecurityHandlerDisabledException disEx) { 
             log.error(disEx.getMessage());
         }
     }
