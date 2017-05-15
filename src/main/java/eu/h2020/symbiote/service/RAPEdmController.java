@@ -10,15 +10,18 @@ package eu.h2020.symbiote.service;
  * @author luca-
  */
 import eu.h2020.symbiote.security.SecurityHandler;
-import eu.h2020.symbiote.security.exceptions.sh.SecurityHandlerDisabledException;
 import eu.h2020.symbiote.security.token.Token;
+import eu.h2020.symbiote.security.session.AAM;
+import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
+import eu.h2020.symbiote.security.exceptions.SecurityHandlerException;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceODataCondition;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Iterator;
 
 import javax.servlet.http.HttpServletRequest;
 import org.apache.olingo.commons.api.ex.ODataException;
@@ -74,8 +77,12 @@ public class RAPEdmController {
     @Autowired
     private SecurityHandler securityHandler;
 
-    @Value("${symbiote.platformAAM.url}") 
-    private String platformAAMUrl;
+    @Value("${platform.id}") 
+    private String platformId;
+
+    @Autowired
+    private AAM platformAAM;
+
 
     /**
      * Process.
@@ -90,7 +97,7 @@ public class RAPEdmController {
         split = 0;
         try {
             String token = req.getHeader("X-Auth-Token");
-            checkToken(platformAAMUrl, token);
+            checkToken(platformAAM, token);
             
             OData odata = OData.newInstance();
             ServiceMetadata edm = odata.createServiceMetadata(edmProvider, new ArrayList());
@@ -284,15 +291,65 @@ public class RAPEdmController {
         }
     }
     
-    private void checkToken(String aamUrl, String tokenString) throws Exception {
+    private void checkToken(AAM platformAAM, String tokenString) throws Exception {
         log.debug("RAP received a request for the following token: " + tokenString);
         try {
-            Token token = securityHandler.verifyForeignPlatformToken(aamUrl, tokenString);
-            log.debug("Token " + token + " was verified");
+            
+            if (platformAAM.getAamInstanceId() != this.platformId) {
+                refreshPlatformAAM();
+                if (platformAAM.getAamInstanceId() != this.platformId)
+                    throw new TokenValidationException("The platform AAM is not registered");
+            }
+
+            Token token = new Token(tokenString);
+
+            ValidationStatus status = securityHandler.verifyPlatformToken(platformAAM, token);
+            switch (status){
+                case VALID: {
+                    log.info("Token is VALID");  
+                    break;
+                }
+                case VALID_OFFLINE: {
+                    log.info("Token is VALID_OFFLINE");  
+                    break;
+                }
+                case EXPIRED: {
+                    log.info("Token is EXPIRED");
+                    throw new TokenValidationException("Token is EXPIRED");
+                }
+                case REVOKED: {
+                    log.info("Token is REVOKED");  
+                    throw new TokenValidationException("Token is REVOKED");
+                }
+                case INVALID: {
+                    log.info("Token is INVALID");  
+                    throw new TokenValidationException("Token is INVALID");
+                }
+                case NULL: {
+                    log.info("Token is NULL");  
+                    throw new TokenValidationException("Token is NULL");
+                }
+            } 
         } catch (TokenValidationException e) { 
-            log.error("Token " + tokenString + "could not be verified");
-        } catch (SecurityHandlerDisabledException disEx) { 
-            log.error(disEx.getMessage());
+            log.error(e.toString());
+        }
+        catch (SecurityHandlerException e) {
+            log.info(e.toString()); 
+        }
+       
+    }
+
+    private void refreshPlatformAAM() throws SecurityHandlerException {
+        List<AAM> listOfAAMs = securityHandler.getAvailableAAMs();
+
+        for(Iterator iter = listOfAAMs.iterator(); iter.hasNext();) {
+            AAM aam = (AAM) iter.next();
+            if (aam.getAamInstanceId() == this.platformId) {
+                platformAAM.setAamInstanceId(aam.getAamInstanceId());
+                platformAAM.setAamAddress(aam.getAamAddress());
+                platformAAM.setAamInstanceFriendlyName(aam.getAamInstanceFriendlyName());
+                platformAAM.setCertificate(aam.getCertificate());
+            }
         }
     }
 }

@@ -11,9 +11,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.cloud.model.data.parameter.InputParameter;
 import eu.h2020.symbiote.security.SecurityHandler;
-import eu.h2020.symbiote.security.exceptions.sh.SecurityHandlerDisabledException;
+import eu.h2020.symbiote.security.session.AAM;
+import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
+import eu.h2020.symbiote.security.exceptions.SecurityHandlerException;
 import eu.h2020.symbiote.exceptions.*;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceRESTCondition;
 import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
@@ -25,6 +27,7 @@ import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
 import java.util.List;
+import java.util.Iterator;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,9 +72,12 @@ public class ResourceAccessRestController {
     
     @Autowired
     private SecurityHandler securityHandler;    
-    
-    @Value("${symbiote.platformAAM.url}") 
-    private String platformAAMUrl;
+
+    @Value("${platform.id}") 
+    private String platformId;
+
+    @Autowired
+    private AAM platformAAM;
 
     /**
      * Used to retrieve the current value of a registered resource
@@ -86,7 +92,7 @@ public class ResourceAccessRestController {
         try {
             log.info("Received read resource request for ID = " + resourceId);       
             
-            checkToken(platformAAMUrl, token);
+            checkToken(platformAAM, token);
             
             ResourceInfo info = getResourceInfo(resourceId);
             ResourceAccessGetMessage msg = new ResourceAccessGetMessage(info);
@@ -127,7 +133,7 @@ public class ResourceAccessRestController {
         try {
             log.info("Received read resource request for ID = " + resourceId);           
             
-            checkToken(platformAAMUrl, token);
+            checkToken(platformAAM, token);
         
             ResourceInfo info = getResourceInfo(resourceId);
             Query q = null;
@@ -168,7 +174,7 @@ public class ResourceAccessRestController {
         try {
             log.info("Received write resource request for ID = " + resourceId + " with values " + valueList);
             
-            checkToken(platformAAMUrl, token);
+            checkToken(platformAAM, token);
 
             ResourceInfo info = getResourceInfo(resourceId);
             ResourceAccessSetMessage msg = new ResourceAccessSetMessage(info, valueList);            
@@ -198,15 +204,66 @@ public class ResourceAccessRestController {
         return resInfo.get();
     }
     
-    private void checkToken(String aamUrl, String tokenString) throws Exception {
+    private void checkToken(AAM platformAAM, String tokenString) throws Exception {
         log.debug("RAP received a request for the following token: " + tokenString);
         try {
-            Token token = securityHandler.verifyForeignPlatformToken(aamUrl, tokenString);
-            log.debug("Token " + token + " was verified");
-        }  catch (TokenValidationException e) { 
-            log.error("Token " + tokenString + "could not be verified - " + e.getMessage());
-        } catch (SecurityHandlerDisabledException disEx) { 
-            log.error(disEx.getMessage());
+            
+            if (platformAAM.getAamInstanceId() != this.platformId) {
+                refreshPlatformAAM();
+                if (platformAAM.getAamInstanceId() != this.platformId)
+                    throw new TokenValidationException("The platform AAM is not registered");
+            }
+
+            Token token = new Token(tokenString);
+
+            ValidationStatus status = securityHandler.verifyPlatformToken(platformAAM, token);
+            switch (status){
+                case VALID: {
+                    log.info("Token is VALID");  
+                    break;
+                }
+                case VALID_OFFLINE: {
+                    log.info("Token is VALID_OFFLINE");  
+                    break;
+                }
+                case EXPIRED: {
+                    log.info("Token is EXPIRED");
+                    throw new TokenValidationException("Token is EXPIRED");
+                }
+                case REVOKED: {
+                    log.info("Token is REVOKED");  
+                    throw new TokenValidationException("Token is REVOKED");
+                }
+                case INVALID: {
+                    log.info("Token is INVALID");  
+                    throw new TokenValidationException("Token is INVALID");
+                }
+                case NULL: {
+                    log.info("Token is NULL");  
+                    throw new TokenValidationException("Token is NULL");
+                }
+            } 
+        } catch (TokenValidationException e) { 
+            log.error(e.toString());
+        }
+        catch (SecurityHandlerException e) {
+            log.info(e.toString()); 
+        }
+
+    }
+
+    private void refreshPlatformAAM() throws SecurityHandlerException {
+        List<AAM> listOfAAMs = securityHandler.getAvailableAAMs();
+
+        for(Iterator iter = listOfAAMs.iterator(); iter.hasNext();) {
+            AAM aam = (AAM) iter.next();
+            if (aam.getAamInstanceId() == this.platformId) {
+                platformAAM.setAamInstanceId(aam.getAamInstanceId());
+                platformAAM.setAamAddress(aam.getAamAddress());
+                platformAAM.setAamInstanceFriendlyName(aam.getAamInstanceFriendlyName());
+                platformAAM.setCertificate(aam.getCertificate());
+            }
         }
     }
 }
+
