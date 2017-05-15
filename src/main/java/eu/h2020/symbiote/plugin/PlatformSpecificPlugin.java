@@ -64,13 +64,14 @@ public class PlatformSpecificPlugin {
         return PLUGIN_PLATFORM_ID;
     }    
     
-    public Observation readResource(String resourceId) {
-        Observation value;
+    public List<Observation> readResource(String resourceId) {
+        List<Observation> value = new ArrayList();
         //
         // INSERT HERE: query to the platform with internal resource id
         //
         // example
-        value = observationExampleValue();
+        Observation obs = observationExampleValue();
+        value.add(obs);
         
         return value;
     }
@@ -94,7 +95,7 @@ public class PlatformSpecificPlugin {
         return value;
     }
     
-    public String receiveMessage(byte[] message) {
+    public String receiveMessage(String message) {
         String json = "";
         try {            
             ResourceInfo info;
@@ -104,29 +105,34 @@ public class PlatformSpecificPlugin {
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             switch(access) {
-                case GET:          
+                case GET: {
                     ResourceAccessGetMessage msgGet = (ResourceAccessGetMessage) msg;
                     info = msgGet.getResourceInfo();
-                    Observation observation = readResource(info.getInternalId());
-                    json = mapper.writeValueAsString(observation);
+                    List<Observation> observationLst = readResource(info.getInternalId());
+                    json = mapper.writeValueAsString(observationLst);
                     break;
-                case HISTORY:
+                }
+                case HISTORY: {
                     ResourceAccessHistoryMessage msgHistory = (ResourceAccessHistoryMessage) msg;
                     info = msgHistory.getResourceInfo();
                     List<Observation> observationLst = readResourceHistory(info.getInternalId());
                     json = mapper.writeValueAsString(observationLst);       
                     break;
-                case SET:
+                }
+                case SET: {
                     ResourceAccessSetMessage mess = (ResourceAccessSetMessage)msg;
                     info = mess.getResourceInfo();
                     writeResource(info.getInternalId(), mess.getInputParameters());                    
                     break;
-                case SUBSCRIBE:
+                }
+                case SUBSCRIBE: {
                     // insert here subscription to resource
                     break;
-                case UNSUBSCRIBE:
+                }
+                case UNSUBSCRIBE: {
                     // insert here unsubscription to resource
                     break;
+                }
                 default:
                     throw new Exception("Access type " + access.toString() + " not supported");
             }

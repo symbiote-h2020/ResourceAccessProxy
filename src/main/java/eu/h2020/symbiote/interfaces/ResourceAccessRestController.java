@@ -100,9 +100,11 @@ public class ResourceAccessRestController {
             String response = null;
             if(obj != null)
                 response = new String((byte[]) obj, "UTF-8");
-            Observation observation = mapper.readValue(response, Observation.class);
+            List<Observation> observationList = mapper.readValue(response, List.class);
+            if(observationList == null || observationList.isEmpty())
+                throw new Exception("Plugin error");
             
-            return observation;
+            return observationList.get(0);
         } catch(EntityNotFoundException enf) {
             throw enf;
         } catch (Exception e) {

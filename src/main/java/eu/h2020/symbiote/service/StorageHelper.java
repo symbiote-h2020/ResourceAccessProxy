@@ -150,24 +150,26 @@ public class StorageHelper {
                 mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
                 String json = mapper.writeValueAsString(msg);
 
-                Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-                String response = null;
+                Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);                
                 if (obj == null) {
                     throw new ODataApplicationException("No response from plugin", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
-                } else {
-                    if(obj instanceof byte[]) {
-                        response = new String((byte[]) obj, "UTF-8");
-                    }
-                    observations = mapper.readValue(response, new TypeReference<List<Observation>>() {
-                    });
-
-                    if (top != null && top == 1 && observations != null && observations.size() > 0) {
-                        Observation obs = observations.get(0);
-                        return obs;
-                    } else {
-                        return observations;
-                    }
                 }
+                    
+                String response;
+                if(obj instanceof byte[]) {
+                    response = new String((byte[]) obj, "UTF-8");
+                } else {
+                    response = (String) obj;
+                }
+                observations = mapper.readValue(response, new TypeReference<List<Observation>>(){});
+
+                if (top != null && top == 1 && observations != null && observations.size() > 0) {
+                    Observation obs = observations.get(0);
+                    return obs;
+                } else {
+                    return observations;
+                }
+                
             } catch (Exception e) {
                 String err = "Unable to read resource with id: " + resourceInfo.getSymbioteId();
                 err += "\n Error:" + e.getMessage();
