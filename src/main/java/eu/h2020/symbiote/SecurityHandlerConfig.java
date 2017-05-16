@@ -41,14 +41,7 @@ public class SecurityHandlerConfig {
     }   
 
     @Bean
-    public AAM platformAAM(SecurityHandler securityHandler) throws SecurityHandlerException{
-        List<AAM> listOfAAMs = securityHandler.getAvailableAAMs();
-
-        for(Iterator iter = listOfAAMs.iterator(); iter.hasNext();) {
-            AAM aam = (AAM) iter.next();
-            if (aam.getAamInstanceId() == platformId)
-                return aam;
-        }
+    public AAM platformAAM() {
         return new AAM();
     } 
 }

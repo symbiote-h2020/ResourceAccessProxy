@@ -113,6 +113,12 @@ public class ResourceAccessRestController {
             return observationList.get(0);
         } catch(EntityNotFoundException enf) {
             throw enf;
+        } catch (TokenValidationException e) { 
+            log.error(e.toString());
+            throw new GenericException(e.toString());
+        } catch (SecurityHandlerException e) {
+            log.error(e.toString()); 
+            throw new GenericException(e.toString());
         } catch (Exception e) {
             String err = "Unable to read resource with id: " + resourceId;
             log.error(err + "\n" + e.getMessage());
@@ -152,6 +158,12 @@ public class ResourceAccessRestController {
             return observationList;
         } catch(EntityNotFoundException enf) {
             throw enf;
+        } catch (TokenValidationException e) { 
+            log.error(e.toString());
+            throw new GenericException(e.toString());
+        } catch (SecurityHandlerException e) {
+            log.error(e.toString()); 
+            throw new GenericException(e.toString());
         } catch (Exception e) {
             String err = "Unable to read history of resource with id: " + resourceId;
             log.error(err + "\n" + e.getMessage());
@@ -189,6 +201,12 @@ public class ResourceAccessRestController {
             return new ResponseEntity<>(HttpStatus.OK);
         } catch(EntityNotFoundException enf) {
             throw enf;
+        } catch (TokenValidationException e) { 
+            log.error(e.toString());
+            throw new GenericException(e.toString());
+        } catch (SecurityHandlerException e) {
+            log.error(e.toString()); 
+            throw new GenericException(e.toString());
         } catch (Exception e) {
             String err = "Unable to write resource with id: " + resourceId;
             log.error(err + "\n" + e.getMessage());
@@ -204,7 +222,7 @@ public class ResourceAccessRestController {
         return resInfo.get();
     }
     
-    private void checkToken(AAM platformAAM, String tokenString) throws Exception {
+    private void checkToken(AAM platformAAM, String tokenString) throws TokenValidationException, SecurityHandlerException {
         log.debug("RAP received a request for the following token: " + tokenString);
         try {
             

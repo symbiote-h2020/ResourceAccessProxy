@@ -114,6 +114,12 @@ public class RAPEdmController {
 
             
             return new ResponseEntity(responseStr, headers, HttpStatus.valueOf(response.getStatusCode()));
+        } catch (TokenValidationException e) { 
+            log.error(e.toString());
+            throw new Exception(e.toString());
+        } catch (SecurityHandlerException e) {
+            log.error(e.toString()); 
+            throw new Exception(e.toString());
         } catch (Exception ex) {
             throw ex;
         }
@@ -291,7 +297,7 @@ public class RAPEdmController {
         }
     }
     
-    private void checkToken(AAM platformAAM, String tokenString) throws Exception {
+    private void checkToken(AAM platformAAM, String tokenString) throws TokenValidationException, SecurityHandlerException {
         log.debug("RAP received a request for the following token: " + tokenString);
         try {
             
@@ -336,7 +342,7 @@ public class RAPEdmController {
         catch (SecurityHandlerException e) {
             log.info(e.toString()); 
         }
-       
+
     }
 
     private void refreshPlatformAAM() throws SecurityHandlerException {
