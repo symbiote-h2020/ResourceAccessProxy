@@ -128,6 +128,10 @@ public class RAPEdmController {
     
     private ResponseEntity<String> processRequestPrivate(HttpServletRequest req) throws Exception {
         try {
+
+            String token = req.getHeader("X-Auth-Token");
+            checkToken(token);
+            
             OData odata = OData.newInstance();
             ServiceMetadata edm = odata.createServiceMetadata(edmProvider, new ArrayList());
 
@@ -143,6 +147,9 @@ public class RAPEdmController {
             headers.add("Access-Control-Allow-Origin", "*");
 
             return new ResponseEntity(responseStr, headers, HttpStatus.valueOf(response.getStatusCode()));
+        } catch (TokenValidationException e) { 
+            log.error(e.toString());
+            throw new Exception(e.toString());
         } catch (Exception ex) {
             throw ex;
         }
