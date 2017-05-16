@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.cloud.model.data.parameter.InputParameter;
-import eu.h2020.symbiote.security.SecurityHandler;
+import eu.h2020.symbiote.security.InternalSecurityHandler;
 import eu.h2020.symbiote.security.session.AAM;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.token.Token;
@@ -71,7 +71,7 @@ public class ResourceAccessRestController {
     private ResourcesRepository resourcesRepo;
     
     @Autowired
-    private SecurityHandler securityHandler;    
+    private InternalSecurityHandler securityHandler;    
 
     @Value("${platform.id}") 
     private String platformId;
@@ -234,7 +234,7 @@ public class ResourceAccessRestController {
 
             Token token = new Token(tokenString);
 
-            ValidationStatus status = securityHandler.verifyPlatformToken(platformAAM, token);
+            ValidationStatus status = securityHandler.verifyHomeToken(token);
             switch (status){
                 case VALID: {
                     log.info("Token is VALID");  

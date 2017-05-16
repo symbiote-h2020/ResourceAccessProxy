@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 import eu.h2020.symbiote.security.session.AAM;
 import java.util.List;
 import java.util.Iterator;
-import eu.h2020.symbiote.security.exceptions.SecurityHandlerException;
+import eu.h2020.symbiote.security.InternalSecurityHandler;
 
 /**
  *
@@ -36,8 +36,8 @@ public class SecurityHandlerConfig {
     private String platformId;
 
     @Bean
-    public SecurityHandler securityHandler() {
-        return new SecurityHandler(coreAAMUrl, rabbitMQHostIP, rabbitMQUsername, rabbitMQPassword);
+    public InternalSecurityHandler securityHandler() {
+        return new InternalSecurityHandler(coreAAMUrl, rabbitMQHostIP, rabbitMQUsername, rabbitMQPassword);
     }   
 
     @Bean

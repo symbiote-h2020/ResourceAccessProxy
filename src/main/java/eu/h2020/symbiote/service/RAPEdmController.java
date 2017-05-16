@@ -9,7 +9,7 @@ package eu.h2020.symbiote.service;
  *
  * @author luca-
  */
-import eu.h2020.symbiote.security.SecurityHandler;
+import eu.h2020.symbiote.security.InternalSecurityHandler;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.session.AAM;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
@@ -75,7 +75,7 @@ public class RAPEdmController {
     private RAPEntityProcessor entityProcessor;
     
     @Autowired
-    private SecurityHandler securityHandler;
+    private InternalSecurityHandler securityHandler;
 
     @Value("${platform.id}") 
     private String platformId;
@@ -309,7 +309,7 @@ public class RAPEdmController {
 
             Token token = new Token(tokenString);
 
-            ValidationStatus status = securityHandler.verifyPlatformToken(platformAAM, token);
+            ValidationStatus status = securityHandler.verifyHomeToken(token);
             switch (status){
                 case VALID: {
                     log.info("Token is VALID");  
