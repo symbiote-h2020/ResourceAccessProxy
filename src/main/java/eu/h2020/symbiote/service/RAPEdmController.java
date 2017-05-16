@@ -80,9 +80,6 @@ public class RAPEdmController {
     @Value("${platform.id}") 
     private String platformId;
 
-    @Autowired
-    private AAM platformAAM;
-
 
     /**
      * Process.
@@ -97,7 +94,7 @@ public class RAPEdmController {
         split = 0;
         try {
             String token = req.getHeader("X-Auth-Token");
-            checkToken(platformAAM, token);
+            checkToken(token);
             
             OData odata = OData.newInstance();
             ServiceMetadata edm = odata.createServiceMetadata(edmProvider, new ArrayList());
@@ -116,9 +113,6 @@ public class RAPEdmController {
             return new ResponseEntity(responseStr, headers, HttpStatus.valueOf(response.getStatusCode()));
         } catch (TokenValidationException e) { 
             log.error(e.toString());
-            throw new Exception(e.toString());
-        } catch (SecurityHandlerException e) {
-            log.error(e.toString()); 
             throw new Exception(e.toString());
         } catch (Exception ex) {
             throw ex;
@@ -297,65 +291,37 @@ public class RAPEdmController {
         }
     }
     
-    private void checkToken(AAM platformAAM, String tokenString) throws TokenValidationException, SecurityHandlerException {
+    private void checkToken(String tokenString) throws TokenValidationException {
         log.debug("RAP received a request for the following token: " + tokenString);
-        try {
-            
-            if (platformAAM.getAamInstanceId() != this.platformId) {
-                refreshPlatformAAM();
-                if (platformAAM.getAamInstanceId() != this.platformId)
-                    throw new TokenValidationException("The platform AAM is not registered");
+
+        Token token = new Token(tokenString);
+
+        ValidationStatus status = securityHandler.verifyHomeToken(token);
+        switch (status){
+            case VALID: {
+                log.info("Token is VALID");  
+                break;
             }
-
-            Token token = new Token(tokenString);
-
-            ValidationStatus status = securityHandler.verifyHomeToken(token);
-            switch (status){
-                case VALID: {
-                    log.info("Token is VALID");  
-                    break;
-                }
-                case VALID_OFFLINE: {
-                    log.info("Token is VALID_OFFLINE");  
-                    break;
-                }
-                case EXPIRED: {
-                    log.info("Token is EXPIRED");
-                    throw new TokenValidationException("Token is EXPIRED");
-                }
-                case REVOKED: {
-                    log.info("Token is REVOKED");  
-                    throw new TokenValidationException("Token is REVOKED");
-                }
-                case INVALID: {
-                    log.info("Token is INVALID");  
-                    throw new TokenValidationException("Token is INVALID");
-                }
-                case NULL: {
-                    log.info("Token is NULL");  
-                    throw new TokenValidationException("Token is NULL");
-                }
-            } 
-        } catch (TokenValidationException e) { 
-            log.error(e.toString());
-        }
-        catch (SecurityHandlerException e) {
-            log.info(e.toString()); 
-        }
-
-    }
-
-    private void refreshPlatformAAM() throws SecurityHandlerException {
-        List<AAM> listOfAAMs = securityHandler.getAvailableAAMs();
-
-        for(Iterator iter = listOfAAMs.iterator(); iter.hasNext();) {
-            AAM aam = (AAM) iter.next();
-            if (aam.getAamInstanceId() == this.platformId) {
-                platformAAM.setAamInstanceId(aam.getAamInstanceId());
-                platformAAM.setAamAddress(aam.getAamAddress());
-                platformAAM.setAamInstanceFriendlyName(aam.getAamInstanceFriendlyName());
-                platformAAM.setCertificate(aam.getCertificate());
+            case VALID_OFFLINE: {
+                log.info("Token is VALID_OFFLINE");  
+                break;
             }
-        }
+            case EXPIRED: {
+                log.info("Token is EXPIRED");
+                throw new TokenValidationException("Token is EXPIRED");
+            }
+            case REVOKED: {
+                log.info("Token is REVOKED");  
+                throw new TokenValidationException("Token is REVOKED");
+            }
+            case INVALID: {
+                log.info("Token is INVALID");  
+                throw new TokenValidationException("Token is INVALID");
+            }
+            case NULL: {
+                log.info("Token is NULL");  
+                throw new TokenValidationException("Token is NULL");
+            }
+        } 
     }
 }
