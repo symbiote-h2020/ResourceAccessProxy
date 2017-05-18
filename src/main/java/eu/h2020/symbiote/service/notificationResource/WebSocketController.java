@@ -96,18 +96,33 @@ public class WebSocketController extends TextWebSocketHandler {
         String message = jsonTextMessage.getPayload();
         log.info("message received: " + message);
 
-        List<String> resourcesId = null;
+        WebSocketMessage webSocketMessage = null;
+        
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
 
         try {
-            resourcesId = mapper.readValue(message, new TypeReference<List<String>>() {
+            webSocketMessage = mapper.readValue(message, new TypeReference<WebSocketMessage>() {
             });
         } catch (IOException ex) {
             throw new GenericException(HttpStatusCode.BAD_REQUEST.getInfo());
         }
-
+        List<String> resourcesId = webSocketMessage.getIds();
+        if(webSocketMessage.getAction().equals(WebSocketMessage.SUBSCRIBE)){
+            String return_string = Subscribe(session, resourcesId);
+        }
+        else if(webSocketMessage.getAction().equals(WebSocketMessage.UNSUBSCRIBE)){
+            Unsubscribe(session, resourcesId);
+        }
+        else{
+            throw new GenericException(HttpStatusCode.BAD_REQUEST.getInfo());
+        }
+        
+    }
+    
+    private String Subscribe(WebSocketSession session, List<String> resourcesId) throws Exception{
+        String response = null;
         List<ResourceInfo> resInfoList = new ArrayList();
 
         for (String resId : resourcesId) {
@@ -130,12 +145,33 @@ public class WebSocketController extends TextWebSocketHandler {
         msg = new ResourceAccessSubscribeMessage(resInfoList);
         routingKey = ResourceAccessMessage.AccessType.SUBSCRIBE.toString().toLowerCase();
 
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        
         String json = mapper.writeValueAsString(msg);
 
         Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-        String response = new String((byte[]) obj, "UTF-8");
+        if(obj != null)
+            response = new String((byte[]) obj, "UTF-8");
 
         log.info("Response: " + response);
+        return response;
+    }
+    
+    private void Unsubscribe(WebSocketSession session, List<String> resourcesId){
+        for (String resId : resourcesId) {
+            Optional<ResourceInfo> resInfoOptional = resourcesRepo.findById(resId);
+            if (resInfoOptional.isPresent()) {
+                ResourceInfo resInfo = resInfoOptional.get();
+                List<String> sessionsIdOfRes = resInfo.getSessionId();
+                if (sessionsIdOfRes != null) {
+                    sessionsIdOfRes.remove(session.getId());
+                    resInfo.setSessionId(sessionsIdOfRes);
+                    resourcesRepo.save(resInfo);
+                }
+            }
+        }
     }
 
     public void SendMessage(Observation obs) {
