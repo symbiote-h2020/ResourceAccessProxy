@@ -162,12 +162,18 @@ public class StorageHelper {
                     response = (String) obj;
                 }
                 observations = mapper.readValue(response, new TypeReference<List<Observation>>(){});
-
+                
                 if (top != null && top == 1 && observations != null && observations.size() > 0) {
-                    Observation obs = observations.get(0);
-                    return obs;
+                    Observation o = observations.get(0);
+                    Observation ob = new Observation(resourceInfo.getSymbioteId(), o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
+                    return ob;
                 } else {
-                    return observations;
+                    List<Observation> observationsList = new ArrayList<Observation>();
+                    for(Observation o: observations){
+                        Observation ob = new Observation(resourceInfo.getSymbioteId(), o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
+                        observationsList.add(ob);
+                    }
+                    return observationsList;
                 }
                 
             } catch (Exception e) {

@@ -21,10 +21,11 @@ import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessMessage.AccessType;
 import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
-import eu.h2020.symbiote.core.model.Observation;
+import eu.h2020.symbiote.cloud.model.data.observation.Observation;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Iterator;
 import java.util.Optional;
@@ -106,7 +107,9 @@ public class ResourceAccessRestController {
             if(observationList == null || observationList.isEmpty())
                 throw new Exception("Plugin error");
             
-            return observationList.get(0);
+            Observation o = observationList.get(0);
+            Observation ob = new eu.h2020.symbiote.cloud.model.data.observation.Observation(resourceId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
+            return ob;
         } catch(EntityNotFoundException enf) {
             throw enf;
         } catch (TokenValidationException e) { 
@@ -144,11 +147,16 @@ public class ResourceAccessRestController {
             
             String routingKey = AccessType.HISTORY.toString().toLowerCase();
             String response = (String)rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-            List<Observation> observationList = mapper.readValue(response, List.class);
-            if(observationList == null)
+            List<Observation> observations = mapper.readValue(response, List.class);
+            if(observations == null)
                 throw new Exception("Plugin error");
             
-            return observationList;
+            List<Observation> observationsList = new ArrayList<Observation>();
+            for(Observation o: observations){
+                Observation ob = new Observation(resourceId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
+                observationsList.add(ob);
+            }
+            return observationsList;
         } catch(EntityNotFoundException enf) {
             throw enf;
         } catch (TokenValidationException e) { 
