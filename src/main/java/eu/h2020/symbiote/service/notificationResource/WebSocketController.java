@@ -8,7 +8,6 @@ package eu.h2020.symbiote.service.notificationResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.exceptions.GenericException;
@@ -19,6 +18,7 @@ import eu.h2020.symbiote.cloud.model.data.observation.Observation;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceWebSocketCondition;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
+import eu.h2020.symbiote.service.notificationResource.WebSocketMessage.Action;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -93,32 +93,33 @@ public class WebSocketController extends TextWebSocketHandler {
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage jsonTextMessage) throws Exception {
-        String message = jsonTextMessage.getPayload();
-        log.info("message received: " + message);
+        try 
+        {
+            String message = jsonTextMessage.getPayload();
+            log.info("message received: " + message);
 
-        WebSocketMessage webSocketMessage = null;
-        
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);        
+            WebSocketMessage webSocketMessage = mapper.readValue(message, WebSocketMessage.class);
 
-        try {
-            webSocketMessage = mapper.readValue(message, new TypeReference<WebSocketMessage>() {
-            });
-        } catch (IOException ex) {
+            List<String> resourcesId = webSocketMessage.getIds();
+            log.debug("Ids: " + resourcesId);
+            Action act = webSocketMessage.getAction();
+            switch(act) {
+                case SUBSCRIBE:
+                    log.debug("Subscribing resources..");
+                    Subscribe(session, resourcesId);
+                    break;
+                case UNSUBSCRIBE:
+                    log.debug("Unsubscribing resources..");
+                    Unsubscribe(session, resourcesId);
+                    break;
+            }
+        } catch (Exception ex) {
+            log.debug("Generic IO Exception: " + ex.getMessage());
             throw new GenericException(HttpStatusCode.BAD_REQUEST.getInfo());
         }
-        List<String> resourcesId = webSocketMessage.getIds();
-        if(webSocketMessage.getAction().equals(WebSocketMessage.SUBSCRIBE)){
-            Subscribe(session, resourcesId);
-        }
-        else if(webSocketMessage.getAction().equals(WebSocketMessage.UNSUBSCRIBE)){
-            Unsubscribe(session, resourcesId);
-        }
-        else{
-            throw new GenericException(HttpStatusCode.BAD_REQUEST.getInfo());
-        }
-        
     }
     
     private void Subscribe(WebSocketSession session, List<String> resourcesId) throws Exception{

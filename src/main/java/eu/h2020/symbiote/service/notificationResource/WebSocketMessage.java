@@ -12,31 +12,28 @@ import java.util.List;
  * @author Luca Tomaselli <l.tomaselli@nextworks.it>
  */
 public class WebSocketMessage {
-    public static final String SUBSCRIBE = "SUBSCRIBE";
-    public static final String UNSUBSCRIBE = "UNSUBSCRIBE";
-    private String action;
+    
+    public enum Action {
+        SUBSCRIBE, UNSUBSCRIBE
+    }
+    
+    private Action action;
     private List<String> ids;
     
     public WebSocketMessage(){
         
     }
     
-    public WebSocketMessage(String action,List<String> ids){
+    public WebSocketMessage(Action action,List<String> ids){
         this.action = action;
         this.ids = ids;
     }
     
-    public String getAction(){
+    public Action getAction(){
         return this.action;
-    }
-    public void setAction(String action){
-        this.action = action;
     }
     
     public List<String> getIds(){
         return this.ids;
-    }
-    public void setIds(List<String> ids){
-        this.ids = ids;
     }
 }
