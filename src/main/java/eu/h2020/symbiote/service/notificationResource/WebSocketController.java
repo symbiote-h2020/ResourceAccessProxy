@@ -125,7 +125,7 @@ public class WebSocketController extends TextWebSocketHandler {
     private void Subscribe(WebSocketSession session, List<String> resourcesId) throws Exception{
         List<ResourceInfo> resInfoList = new ArrayList();
 
-        for (String resId : resourcesId) {
+        /*for (String resId : resourcesId) {
             ResourceInfo resInfo = getResourceInfo(resId);
             resInfoList.add(resInfo);
 
@@ -137,7 +137,7 @@ public class WebSocketController extends TextWebSocketHandler {
             sessionsIdOfRes.add(session.getId());
             resInfo.setSessionId(sessionsIdOfRes);
             resourcesRepo.save(resInfo);
-        }
+        }*/
 
         ResourceAccessMessage msg;
         String routingKey;
