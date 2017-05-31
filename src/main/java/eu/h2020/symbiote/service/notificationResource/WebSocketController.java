@@ -152,9 +152,14 @@ public class WebSocketController extends TextWebSocketHandler {
         String json = mapper.writeValueAsString(msg);
 
         Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-        if(obj != null)
-            response = new String((byte[]) obj, "UTF-8");
-
+        if(obj != null) {
+            if(obj instanceof byte[])
+                response = new String((byte[]) obj, "UTF-8");
+            else if (obj instanceof String)
+                response = (String)obj;
+            else
+                response = "";
+        }
         log.info("Response: " + response);
         return response;
     }
