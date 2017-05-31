@@ -110,7 +110,7 @@ public class WebSocketController extends TextWebSocketHandler {
         }
         List<String> resourcesId = webSocketMessage.getIds();
         if(webSocketMessage.getAction().equals(WebSocketMessage.SUBSCRIBE)){
-            String return_string = Subscribe(session, resourcesId);
+            Subscribe(session, resourcesId);
         }
         else if(webSocketMessage.getAction().equals(WebSocketMessage.UNSUBSCRIBE)){
             Unsubscribe(session, resourcesId);
@@ -121,8 +121,7 @@ public class WebSocketController extends TextWebSocketHandler {
         
     }
     
-    private String Subscribe(WebSocketSession session, List<String> resourcesId) throws Exception{
-        String response = null;
+    private void Subscribe(WebSocketSession session, List<String> resourcesId) throws Exception{
         List<ResourceInfo> resInfoList = new ArrayList();
 
         for (String resId : resourcesId) {
@@ -151,12 +150,8 @@ public class WebSocketController extends TextWebSocketHandler {
         
         String json = mapper.writeValueAsString(msg);
 
-        Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-        if(obj != null)
-            response = new String((byte[]) obj, "UTF-8");
-
-        log.info("Response: " + response);
-        return response;
+        rabbitTemplate.convertAndSend(exchange.getName(), routingKey, json);
+        
     }
     
     private void Unsubscribe(WebSocketSession session, List<String> resourcesId){
