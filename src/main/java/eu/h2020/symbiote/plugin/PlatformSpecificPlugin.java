@@ -96,7 +96,7 @@ public class PlatformSpecificPlugin {
     }
     
     public String receiveMessage(String message) {
-        String json = "";
+        String json = null;
         try {            
             ResourceInfo info;
             ObjectMapper mapper = new ObjectMapper();
@@ -122,11 +122,12 @@ public class PlatformSpecificPlugin {
                 case SET: {
                     ResourceAccessSetMessage mess = (ResourceAccessSetMessage)msg;
                     info = mess.getResourceInfo();
-                    writeResource(info.getInternalId(), mess.getInputParameters());                    
+                    writeResource(info.getInternalId(), mess.getInputParameters());
                     break;
                 }
                 case SUBSCRIBE: {
                     // insert here subscription to resource
+                    
                     break;
                 }
                 case UNSUBSCRIBE: {

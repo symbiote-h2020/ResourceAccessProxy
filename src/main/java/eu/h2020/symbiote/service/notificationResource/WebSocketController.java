@@ -16,6 +16,7 @@ import eu.h2020.symbiote.messages.access.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessSubscribeMessage;
 import eu.h2020.symbiote.cloud.model.data.observation.Observation;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceWebSocketCondition;
+import eu.h2020.symbiote.messages.access.ResourceAccessUnSubscribeMessage;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.service.notificationResource.WebSocketMessage.Action;
@@ -122,10 +123,9 @@ public class WebSocketController extends TextWebSocketHandler {
         }
     }
     
-    private void Subscribe(WebSocketSession session, List<String> resourcesId) throws Exception{
+    private void Subscribe(WebSocketSession session, List<String> resourcesId) throws Exception {
         List<ResourceInfo> resInfoList = new ArrayList();
-
-        /*for (String resId : resourcesId) {
+        for (String resId : resourcesId) {
             ResourceInfo resInfo = getResourceInfo(resId);
             resInfoList.add(resInfo);
 
@@ -137,37 +137,40 @@ public class WebSocketController extends TextWebSocketHandler {
             sessionsIdOfRes.add(session.getId());
             resInfo.setSessionId(sessionsIdOfRes);
             resourcesRepo.save(resInfo);
-        }*/
-
-        ResourceAccessMessage msg;
-        String routingKey;
-
-        msg = new ResourceAccessSubscribeMessage(resInfoList);
-        routingKey = ResourceAccessMessage.AccessType.SUBSCRIBE.toString().toLowerCase();
+        }
+        ResourceAccessMessage msg = new ResourceAccessSubscribeMessage(resInfoList);
+        String routingKey = ResourceAccessMessage.AccessType.SUBSCRIBE.toString().toLowerCase();
 
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-        
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);        
         String json = mapper.writeValueAsString(msg);
-
-        rabbitTemplate.convertAndSend(exchange.getName(), routingKey, json);
+        
+        rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
         
     }
     
-    private void Unsubscribe(WebSocketSession session, List<String> resourcesId){
+    private void Unsubscribe(WebSocketSession session, List<String> resourcesId) throws Exception {
+        List<ResourceInfo> resInfoList = new ArrayList();
         for (String resId : resourcesId) {
-            Optional<ResourceInfo> resInfoOptional = resourcesRepo.findById(resId);
-            if (resInfoOptional.isPresent()) {
-                ResourceInfo resInfo = resInfoOptional.get();
-                List<String> sessionsIdOfRes = resInfo.getSessionId();
-                if (sessionsIdOfRes != null) {
-                    sessionsIdOfRes.remove(session.getId());
-                    resInfo.setSessionId(sessionsIdOfRes);
-                    resourcesRepo.save(resInfo);
-                }
+            ResourceInfo resInfo = getResourceInfo(resId);
+            resInfoList.add(resInfo);
+            List<String> sessionsIdOfRes = resInfo.getSessionId();
+            if (sessionsIdOfRes != null) {
+                sessionsIdOfRes.remove(session.getId());
+                resInfo.setSessionId(sessionsIdOfRes);
+                resourcesRepo.save(resInfo);            
             }
         }
+        ResourceAccessMessage msg = new ResourceAccessUnSubscribeMessage(resInfoList);
+        String routingKey = ResourceAccessMessage.AccessType.UNSUBSCRIBE.toString().toLowerCase();
+
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);        
+        String json = mapper.writeValueAsString(msg);
+        
+        rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
     }
 
     public void SendMessage(Observation obs) {
