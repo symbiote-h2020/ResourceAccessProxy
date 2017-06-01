@@ -27,7 +27,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.olingo.commons.api.http.HttpStatusCode;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,7 +68,7 @@ public class WebSocketController extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        log.info(String.format("Session %s closed because of %s", session.getId(), status.getReason()));
+        log.info("Session " + session.getId() + " closed with status " + status.getCode());
         idSession.remove(session.getId());
 
         //update DB
@@ -119,7 +118,7 @@ public class WebSocketController extends TextWebSocketHandler {
             }
         } catch (Exception ex) {
             log.debug("Generic IO Exception: " + ex.getMessage());
-            throw new GenericException(HttpStatusCode.BAD_REQUEST.getInfo());
+            //throw new GenericException(HttpStatusCode.BAD_REQUEST.getInfo());
         }
     }
     
