@@ -59,6 +59,8 @@ import org.springframework.beans.factory.annotation.Value;
 public class ResourceAccessRestController {
 
     private static final Logger log = LoggerFactory.getLogger(ResourceAccessRestController.class);
+
+    private final int TOP_LIMIT = 100;
     
     @Autowired
     private RabbitTemplate rabbitTemplate;
@@ -139,7 +141,7 @@ public class ResourceAccessRestController {
         
             ResourceInfo info = getResourceInfo(resourceId);
             Query q = null;
-            ResourceAccessHistoryMessage msg = new ResourceAccessHistoryMessage(info,q);
+            ResourceAccessHistoryMessage msg = new ResourceAccessHistoryMessage(info, TOP_LIMIT, q);
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             mapper.setSerializationInclusion(Include.NON_EMPTY);
