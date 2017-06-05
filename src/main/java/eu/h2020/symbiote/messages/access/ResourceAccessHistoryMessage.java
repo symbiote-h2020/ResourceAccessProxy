@@ -19,24 +19,34 @@ public class ResourceAccessHistoryMessage extends ResourceAccessMessage {
     @JsonProperty("resourceInfo")
     ResourceInfo resInfo;
     
+    @JsonProperty("top")
+    int top;
+    
     @JsonProperty("filter")
     private final Query filter;
     /**
      * JSON Constructor
      * @param resInfo               the resource data information   
+     * @param top                   the size of the requested collection
      * @param filter                the filter for query  
      */
     @JsonCreator
-    public ResourceAccessHistoryMessage(@JsonProperty("resourceInfo") ResourceInfo resInfo, 
+    public ResourceAccessHistoryMessage(@JsonProperty("resourceInfo") ResourceInfo resInfo,
+            @JsonProperty("top") int top,
             @JsonProperty("filter") Query filter){
         this.accessType = AccessType.HISTORY;
         this.resInfo = resInfo;
+        this.top = top;
         this.filter = filter;
     }
     
     @JsonProperty("resourceInfo")
     public ResourceInfo getResourceInfo() {
         return resInfo;
+    }
+    
+    public int getTop() {
+        return top;
     }
     
     public Query getFilter(){

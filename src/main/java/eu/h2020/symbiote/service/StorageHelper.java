@@ -75,6 +75,8 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
  */
 public class StorageHelper {
 
+    private final int TOP_LIMIT = 100;
+    
     private ResourcesRepository resourcesRepo;
     private RabbitTemplate rabbitTemplate;
     private TopicExchange exchange;
@@ -133,15 +135,15 @@ public class StorageHelper {
                 && relatedEntityFqn.equals(RAPEdmProvider.ET_OBSERVATION_FQN)) {
 
             try {
-                List<Observation> observations = null;
+                top = (top == null) ? TOP_LIMIT : top;
+                
                 ResourceAccessMessage msg;
                 String routingKey;
-
-                if (top != null && top == 1) {
+                if (top == 1) {
                     msg = new ResourceAccessGetMessage(resourceInfo);
                     routingKey = ResourceAccessMessage.AccessType.GET.toString().toLowerCase();
-                } else {
-                    msg = new ResourceAccessHistoryMessage(resourceInfo, filterQuery);
+                } else {                    
+                    msg = new ResourceAccessHistoryMessage(resourceInfo, top, filterQuery);
                     routingKey = ResourceAccessMessage.AccessType.HISTORY.toString().toLowerCase();
                 }
 
@@ -161,14 +163,17 @@ public class StorageHelper {
                 } else {
                     response = (String) obj;
                 }
-                observations = mapper.readValue(response, new TypeReference<List<Observation>>(){});
+                List<Observation> observations = mapper.readValue(response, new TypeReference<List<Observation>>(){});
+                if(observations == null || observations.isEmpty()) {
+                    return null;
+                }
                 
-                if (top != null && top == 1 && observations != null && observations.size() > 0) {
+                if (top == 1) {
                     Observation o = observations.get(0);
                     Observation ob = new Observation(resourceInfo.getSymbioteId(), o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
                     return ob;
                 } else {
-                    List<Observation> observationsList = new ArrayList<Observation>();
+                    List<Observation> observationsList = new ArrayList();
                     for(Observation o: observations){
                         Observation ob = new Observation(resourceInfo.getSymbioteId(), o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
                         observationsList.add(ob);
