@@ -158,7 +158,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
                 List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
                 ResourceInfo resource = storageHelper.getResourceInfo(startEdmEntitySet,keyPredicates);
                 if (resource == null) {
-                //    throw new ODataApplicationException("Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+                    throw new ODataApplicationException("Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
                 }
                 EdmEntityType startEntityType = startEdmEntitySet.getEntityType();
                 obj = storageHelper.getRelatedObject(resource, startEntityType, targetEntityType, top, filterQuery);

@@ -49,6 +49,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 
 /*
@@ -56,9 +57,9 @@ import org.springframework.beans.factory.annotation.Value;
 * @author Luca Tomaselli <l.tomaselli@nextworks.it>
 */
 @Conditional(NBInterfaceODataCondition.class)
+@CrossOrigin(origins = "*", methods={RequestMethod.POST, RequestMethod.OPTIONS, RequestMethod.PUT, RequestMethod.GET})
 @RestController
 @RequestMapping("rap")
-@CrossOrigin 
 public class RAPEdmController {
     private static final Logger log = LoggerFactory.getLogger(RAPEdmController.class);
 
@@ -108,6 +109,10 @@ public class RAPEdmController {
             String responseStr = StreamUtils.copyToString(response.getContent(), Charset.defaultCharset());
             MultiValueMap<String, String> headers = new HttpHeaders();
             headers.add("Access-Control-Allow-Origin", "*");
+            headers.add("Access-Control-Allow-Credentials", "true");
+            headers.add("Access-Control-Allow-Methods", "OPTIONS, GET, POST, PUT");
+            headers.add("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token");
+
 
             
             return new ResponseEntity(responseStr, headers, HttpStatus.valueOf(response.getStatusCode()));
@@ -145,6 +150,10 @@ public class RAPEdmController {
                     response.getContent(), Charset.defaultCharset());
             MultiValueMap<String, String> headers = new HttpHeaders();
             headers.add("Access-Control-Allow-Origin", "*");
+            headers.add("Access-Control-Allow-Credentials", "true");
+            headers.add("Access-Control-Allow-Methods", "OPTIONS, GET, POST, PUT");
+            headers.add("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token");
+
 
             return new ResponseEntity(responseStr, headers, HttpStatus.valueOf(response.getStatusCode()));
         } catch (TokenValidationException e) { 
