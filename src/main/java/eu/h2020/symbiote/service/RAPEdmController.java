@@ -90,7 +90,7 @@ public class RAPEdmController {
      * @throws java.lang.Exception
      */
     @CrossOrigin(origins = "*")
-    @RequestMapping(value = "*")
+    @RequestMapping(value = "**")
     public ResponseEntity<String> process(HttpServletRequest req) throws Exception {
         split = 0;
         try {
