@@ -17,6 +17,7 @@ import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessMessage;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
+import java.util.HashMap;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,14 +41,32 @@ public class BimRestController {
     private static final String BIM_FILE = "/bim-0.3.owl";
     
     @RequestMapping(value="/bim", method=RequestMethod.GET)
-    public void readResource() {        
+    public HashMap<String,HashMap<String,String>> readResource() {  
+        HashMap<String,HashMap<String,String>> map = new HashMap<String,HashMap<String,String>>();
         try {
             String c = "CIAO";
             TripleStore t = new TripleStore();
+            map = t.map;
             String b = "CIAO";
         } catch (Exception e) {
             log.error(e.getMessage());
             throw new GenericException(e.getMessage());
-        }        
+        }
+        return map;
+    }
+    
+    @RequestMapping(value="/bim2", method=RequestMethod.GET)
+    public HashMap<String,HashMap<String,String>> readResource2() {  
+        HashMap<String,HashMap<String,String>> map = new HashMap<String,HashMap<String,String>>();
+        try {
+            String c = "CIAO";
+            TripleStore t = new TripleStore("null");
+            map = t.map;
+            String b = "CIAO";
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new GenericException(e.getMessage());
+        }
+        return map;
     }
 }
