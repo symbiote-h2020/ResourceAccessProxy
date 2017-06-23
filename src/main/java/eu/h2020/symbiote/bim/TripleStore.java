@@ -45,7 +45,7 @@ public class TripleStore {
 
     private static final Log log = LogFactory.getLog(TripleStore.class);
 
-    public HashMap<String,HashMap<String,String>> map;
+    public HashMap<String,HashMap<String,ArrayList<String>>> map;
     //For tests only - in memory
     public TripleStore() {
         currentDirectory = null;
@@ -64,9 +64,9 @@ public class TripleStore {
             /*
             String bim_data = IOUtils.toString(TripleStore.class
                     .getResourceAsStream(BIM_FILE));
-            insertGraph("", bim_data, RDFFormat.Turtle);
-            */
-            /*
+            map = insertGraph("", bim_data, RDFFormat.Turtle);
+            
+            
             String mim_data = IOUtils.toString(TripleStore.class
                     .getResourceAsStream(MIM_FILE));
             insertGraph("", mim_data, RDFFormat.Turtle);
@@ -94,7 +94,12 @@ public class TripleStore {
                     .getResourceAsStream(CIM_FILE));
             
             map = insertGraph2("", cim_data, RDFFormat.Turtle);
-
+            
+            /*
+            String bim_data = IOUtils.toString(TripleStore.class
+                    .getResourceAsStream(BIM_FILE));
+            map = insertGraph2("", bim_data, RDFFormat.Turtle);
+            */
         } catch (Exception e) {
             log.fatal("Could not load CIM file: " + e.getMessage(), e);
         }
@@ -102,19 +107,19 @@ public class TripleStore {
 
 
 
-    public HashMap<String,HashMap<String,String>> insertGraph(String uri, String rdf, RDFFormat format) {
+    public HashMap<String,HashMap<String,ArrayList<String>>> insertGraph(String uri, String rdf, RDFFormat format) {
         Model model = ModelFactory.createDefaultModel();
         model.read(new ByteArrayInputStream(rdf.getBytes()), null, format.toString());
         
-        ArrayList<String> objectsList = new ArrayList<String>();
+        /*ArrayList<String> objectsList = new ArrayList<String>();
         NodeIterator ni = model.listObjects();
         while(ni.hasNext()){
             RDFNode rdfnode = ni.next();
             String rdfNodeString = rdfnode.toString();
             objectsList.add(rdfNodeString);
-        }
+        }*/
         
-        HashMap<String,HashMap<String,String>> map = new HashMap<String,HashMap<String,String>>();
+        HashMap<String,HashMap<String,ArrayList<String>>> map = new HashMap<String,HashMap<String,ArrayList<String>>>();
         ArrayList<String> subjectsList = new ArrayList<String>();
         ResIterator ri = model.listSubjects();
         while(ri.hasNext()){
@@ -125,11 +130,18 @@ public class TripleStore {
                 resString = resLocalName;
             else
                 resString = res.toString();
-            HashMap<String,String> key2values = new HashMap<String,String>();
+            
+            String breckpoint ="";
+            if(resString.equals("microgramDayPerCubicMetre"))
+                breckpoint = "YES";
+            
+            
+            HashMap<String,ArrayList<String>> key2values = new HashMap<String,ArrayList<String>>();
             Model resModel = res.getModel();
             StmtIterator pi = res.listProperties();
             while(pi.hasNext()){
                 Statement statement = pi.next();
+                try{
                 Triple tiple = statement.asTriple();
                 
                 Node predicate = tiple.getPredicate();
@@ -146,7 +158,7 @@ public class TripleStore {
                 String objectString = object.toString();
                 if(object.getClass().equals(Node_Literal.class)){
                     Node_Literal objectLiteral = (Node_Literal) object;
-                    objectString = objectLiteral.getLiteralValue().toString() +" ("+
+                    objectString = objectLiteral.getLiteralLexicalForm() +" ("+
                             objectLiteral.getLiteralDatatype().toString() + ")";
                 }
                 else{
@@ -157,7 +169,14 @@ public class TripleStore {
                         log.info(e);
                     }
                 }
-                key2values.put(predicateString, objectString);
+                ArrayList<String> valueOfKey = new ArrayList<String>();
+                if(key2values.containsKey(predicateString))
+                    valueOfKey = key2values.get(predicateString);
+                valueOfKey.add(objectString);
+                key2values.put(predicateString, valueOfKey);
+                }catch(Exception e){
+                    log.info(e);
+                };
             }
             map.put(resString, key2values);
             subjectsList.add(resString);
@@ -171,21 +190,14 @@ public class TripleStore {
     }
 
     
-    public HashMap<String,HashMap<String,String>> insertGraph2(String uri, String rdf, RDFFormat format) {
-        HashMap<String,HashMap<String,String>> classes = new HashMap<String,HashMap<String,String>>();
+    public HashMap<String,HashMap<String,ArrayList<String>>> insertGraph2(String uri, String rdf, RDFFormat format) {
+        HashMap<String,HashMap<String,ArrayList<String>>> classes = new HashMap<String,HashMap<String,ArrayList<String>>>();
         
         Model model = ModelFactory.createDefaultModel();
         model.read(new ByteArrayInputStream(rdf.getBytes()), null, format.toString());
         
-        ArrayList<String> objectsList = new ArrayList<String>();
-        NodeIterator ni = model.listObjects();
-        while(ni.hasNext()){
-            RDFNode rdfnode = ni.next();
-            String rdfNodeString = rdfnode.toString();
-            objectsList.add(rdfNodeString);
-        }
         
-        HashMap<String,HashMap<String,String>> map = new HashMap<String,HashMap<String,String>>();
+        HashMap<String,HashMap<String,ArrayList<String>>> map = new HashMap<String,HashMap<String,ArrayList<String>>>();
         ArrayList<String> subjectsList = new ArrayList<String>();
         ResIterator ri = model.listSubjects();
         while(ri.hasNext()){
@@ -196,7 +208,13 @@ public class TripleStore {
                 resString = resLocalName;
             else
                 resString = res.toString();
-            HashMap<String,String> key2values = new HashMap<String,String>();
+            
+            String breckpoint ="";
+            if(resString.equals("WGS84Location"))
+                breckpoint = "YES";
+            
+            
+            HashMap<String,ArrayList<String>> key2values = new HashMap<String,ArrayList<String>>();
             Model resModel = res.getModel();
             StmtIterator pi = res.listProperties();
             while(pi.hasNext()){
@@ -217,7 +235,7 @@ public class TripleStore {
                 String objectString = object.toString();
                 if(object.getClass().equals(Node_Literal.class)){
                     Node_Literal objectLiteral = (Node_Literal) object;
-                    objectString = objectLiteral.getLiteralValue().toString() +" ("+
+                    objectString = objectLiteral.getLiteralLexicalForm() +" ("+
                             objectLiteral.getLiteralDatatype().toString() + ")";
                 }
                 else{
@@ -228,57 +246,63 @@ public class TripleStore {
                         log.info(e);
                     }
                 }
-                key2values.put(predicateString, objectString);
+                ArrayList<String> valueOfKey = new ArrayList<String>();
+                if(key2values.containsKey(predicateString))
+                    valueOfKey = key2values.get(predicateString);
+                valueOfKey.add(objectString);
+                key2values.put(predicateString, valueOfKey);
             }
             map.put(resString, key2values);
             subjectsList.add(resString);
         }
         
-        String a = "A";
-        //insertGraph(uri, model);
         
         //model.
         for (String key : map.keySet()) {
-            HashMap<String,String> value = map.get(key);
+            HashMap<String,ArrayList<String>> value = map.get(key);
             if(value.containsKey("type")){
-                String type = value.get("type");
+                String type = value.get("type").get(0);
                 if(type.equals("FunctionalProperty") || type.equals("InverseFunctionalProperty") || 
                         type.equals("DatatypeProperty") || type.equals("ObjectProperty")){
                     if(value.containsKey("domain")){
-                        String domain = value.get("domain");
-                        HashMap<String,String> campiclasse = new HashMap<String,String>();
+                        String domain = value.get("domain").get(0);
+                        HashMap<String,ArrayList<String>> campiclasse = new HashMap<String,ArrayList<String>>();
                         if(classes.containsKey(domain))
                             campiclasse = classes.get(domain);
                         else
                             classes.put(domain, campiclasse);
 
                         if(value.containsKey("range")){
-                            String range = value.get("range");
-                            if(type.equals("ObjectProperty"))
+                            String range = value.get("range").get(0);
+                            if(value.get("type").contains("ObjectProperty") &&
+                                    !(value.get("type").contains("FunctionalProperty") ||
+                                    value.get("type").contains("InverseFunctionalProperty")))
                                 range = range+"[]";
-                            campiclasse.put(range, key);
+                            ArrayList<String> valore = new ArrayList<String>();
+                            valore.add(key);
+                            campiclasse.put(range, valore);
                         }
                     }
                     else{
                         if(value.containsKey("range")){
-                            String range = value.get("range");
+                            String range = value.get("range").get(0);
                             if(type.equals("ObjectProperty"))
                                 range = range+"[]";
-                            HashMap<String,String> campiclasse = new HashMap<String,String>();
+                            HashMap<String,ArrayList<String>> campiclasse = new HashMap<String,ArrayList<String>>();
                             campiclasse.put(key, null);
                             classes.put(range, campiclasse);
                         }
                     }
                 }
                 else if(type.equals("Class")){
-                    HashMap<String,String> campiclasse = new HashMap<String,String>();
+                    HashMap<String,ArrayList<String>> campiclasse = new HashMap<String,ArrayList<String>>();
                     if(classes.containsKey(key))
                         campiclasse = classes.get(key);
                     else
                         classes.put(key, campiclasse);
 
                     if(value.containsKey("subClassOf")){
-                        String subClassOf = value.get("subClassOf");
+                        ArrayList<String> subClassOf = value.get("subClassOf");
                         campiclasse.put("subClassOf", subClassOf);
                     }
                 }
