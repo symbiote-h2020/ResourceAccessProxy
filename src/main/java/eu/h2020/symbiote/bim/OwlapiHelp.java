@@ -153,7 +153,6 @@ public class OwlapiHelp {
                             }
                             System.out.println("\t\t +: " + type + " "+namePro);
                         }
-                        alternativeDefinitions.add(associatedTerms);
                 }
             }
             /*
