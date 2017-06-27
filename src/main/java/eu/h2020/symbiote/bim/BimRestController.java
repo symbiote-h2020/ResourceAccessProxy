@@ -84,4 +84,17 @@ public class BimRestController {
         }
         return result;
     }
+    
+    @RequestMapping(value="/bim4", method=RequestMethod.GET)
+    public HashMap<String,HashMap<String,ArrayList<String>>> readResource4() {  
+        HashMap<String,HashMap<String,ArrayList<String>>> result = new HashMap<String,HashMap<String,ArrayList<String>>>();
+        try {
+            OwlapiHelp oah = new OwlapiHelp();
+            result = oah.test2();
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new GenericException(e.getMessage());
+        }
+        return result;
+    }
 }
