@@ -114,9 +114,13 @@ dependencies {
     //Jena
     compile('org.apache.jena:jena-core:3.1.0')
     compile('org.apache.jena:jena-querybuilder:3.1.0')
-    compile('org.apache.jena:jena-spatial:3.1.0') {
-        exclude group: 'org.slf4j' , module: 'slf4j-log4j12'
-    }
+    //compile('org.apache.jena:jena-spatial:3.1.0') {
+        //exclude group: 'org.slf4j' , module: 'slf4j-log4j12'
+    //}
+    
+    //Owlapi
+    compile('net.sourceforge.owlapi:owlapi-distribution:5.1.0')
+    compile('net.sourceforge.owlapi:owlapi-contract:3.4')
 }
 
 
