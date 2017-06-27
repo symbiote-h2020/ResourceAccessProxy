@@ -47,9 +47,10 @@ public class OwlapiHelp {
 
     private static final String CIM_FILE = "/core-v0.6.owl";
     private static final String BIM_FILE = "/bim-0.3.owl";
+    private static final String TIME_FILE = "/time.owl";
 
-    public HashMap<String, HashMap<String, ArrayList<String>>> test2() {
-        HashMap<String, HashMap<String, ArrayList<String>>> map = new HashMap<String, HashMap<String, ArrayList<String>>>();
+    public HashMap<String, HashMap<String, String>> test2() {
+        HashMap<String, HashMap<String, String>> map = new HashMap<String, HashMap<String, String>>();
         String result = "";
         String name = OwlapiHelp.class.getResource(CIM_FILE).getPath();
         File file = new File(name);
@@ -110,9 +111,9 @@ public class OwlapiHelp {
             Iterator<OWLClass> classesIterator = classesStream.iterator();
             while (classesIterator.hasNext()) {
                 OWLClass c = classesIterator.next();
-                HashMap<String, ArrayList<String>> prop2type = new HashMap<String, ArrayList<String>>();
-                ArrayList<String> superclass = new ArrayList<String>();
-                prop2type.put("Superclass", superclass);
+                HashMap<String, String> prop2type = new HashMap<String, String>();
+                String superclass = "";
+                
 
                 System.out.println(c.getIRI().getShortForm());
 
@@ -160,11 +161,12 @@ public class OwlapiHelp {
                         }
 
                         if (!typeClass.isEmpty() && namePro.isEmpty()) {
-                            superclass.add(typeClass);
+                            if(superclass.isEmpty())
+                                superclass = typeClass;
+                            else
+                                superclass += ","+typeClass;
                         } else {
-                            ArrayList<String> typeProperty = new ArrayList<String>();
-                            typeProperty.add(typeClass);
-                            prop2type.put(namePro, typeProperty);
+                            prop2type.put(namePro, typeClass);
                         }
                         System.out.println("\t\t +: " + typeClass + " " + namePro);
                     } else {
@@ -178,9 +180,7 @@ public class OwlapiHelp {
                                 break;
                             }
                         }
-                        ArrayList<String> nameClass = new ArrayList<String>();
-                        nameClass.add(typeClass);
-                        prop2type.put(owlClassAxiom.getAxiomType().getName().toUpperCase(), nameClass);
+                        prop2type.put(owlClassAxiom.getAxiomType().getName().toUpperCase(), typeClass);
                     }
                 }
 
@@ -189,15 +189,13 @@ public class OwlapiHelp {
                     for (String property : property2range.keySet()) {
                         if (!prop2type.containsKey(property)) {
                             String range = property2range.get(property);
-                            ArrayList<String> nameClass = new ArrayList<String>();
-                            nameClass.add(range);
-                            prop2type.put(property, nameClass);
+                            prop2type.put(property, range);
                             System.out.println("\t\t +: " + range + " " + property);
                         }
                     }
 
                 }
-
+                prop2type.put("Superclass", superclass);
                 map.put(c.getIRI().getShortForm(), prop2type);
             }
         } catch (OWLOntologyCreationException ex) {

@@ -86,8 +86,8 @@ public class BimRestController {
     }
     
     @RequestMapping(value="/bim4", method=RequestMethod.GET)
-    public HashMap<String,HashMap<String,ArrayList<String>>> readResource4() {  
-        HashMap<String,HashMap<String,ArrayList<String>>> result = new HashMap<String,HashMap<String,ArrayList<String>>>();
+    public HashMap<String,HashMap<String,String>> readResource4() {  
+        HashMap<String,HashMap<String,String>> result = new HashMap<String,HashMap<String,String>>();
         try {
             OwlapiHelp oah = new OwlapiHelp();
             result = oah.test2();
