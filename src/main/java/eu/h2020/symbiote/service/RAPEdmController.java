@@ -9,6 +9,7 @@ package eu.h2020.symbiote.service;
  *
  * @author luca-
  */
+import eu.h2020.symbiote.cloud.model.data.observation.Observation;
 import eu.h2020.symbiote.security.InternalSecurityHandler;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.session.AAM;
@@ -16,6 +17,10 @@ import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
 import eu.h2020.symbiote.security.exceptions.SecurityHandlerException;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceODataCondition;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -60,6 +65,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 @CrossOrigin(origins = "*", methods={RequestMethod.POST, RequestMethod.OPTIONS, RequestMethod.PUT, RequestMethod.GET})
 @RestController
 @RequestMapping("rap")
+@Api(tags = "Resource Access Proxy OData Interface Controller", description = "Operations of Resource Access Proxy OData interface")
 public class RAPEdmController {
     private static final Logger log = LoggerFactory.getLogger(RAPEdmController.class);
 
@@ -91,6 +97,14 @@ public class RAPEdmController {
      */
     @CrossOrigin(origins = "*")
     @RequestMapping(value = "*")
+    @ApiOperation(value = "OData query",
+            notes = "Get data from resources using OData. The parameters that can be used for such a query are static and defined below",
+            response = ResponseEntity.class)    
+    @ApiResponses(value = { 
+                    @ApiResponse(code = 400, message = "Resource Not Found"),
+                    @ApiResponse(code = 500, message = "Token not valid"),
+                    @ApiResponse(code = 500, message = "Unable to read resource") }
+                 )
     public ResponseEntity<String> process(HttpServletRequest req) throws Exception {
         split = 0;
         try {
@@ -125,7 +139,16 @@ public class RAPEdmController {
 
     }
     
+                     
     @RequestMapping(value="*('{resourceId}')/*")
+    @ApiOperation(value = "OData query",
+            notes = "Get data from resources using OData. The parameters that can be used for such a query are static and defined below",
+            response = ResponseEntity.class)    
+    @ApiResponses(value = { 
+                    @ApiResponse(code = 400, message = "Resource Not Found"),
+                    @ApiResponse(code = 500, message = "Token not valid"),
+                    @ApiResponse(code = 500, message = "Unable to read resource") }
+                 )
     public ResponseEntity<String> processResources(HttpServletRequest req) throws Exception {
         split = 0;
         return processRequestPrivate(req);

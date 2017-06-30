@@ -25,6 +25,11 @@ import eu.h2020.symbiote.cloud.model.data.observation.Observation;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Iterator;
@@ -44,7 +49,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.beans.factory.annotation.Value;
 
 
 /**
@@ -56,6 +60,8 @@ import org.springframework.beans.factory.annotation.Value;
  */
 @Conditional(NBInterfaceRESTCondition.class)
 @RestController
+@RequestMapping("rap")
+@Api(tags = "Resource Access Proxy REST Interface Controller", description = "Operations of Resource Access Proxy REST interface")
 public class ResourceAccessRestController {
 
     private static final Logger log = LoggerFactory.getLogger(ResourceAccessRestController.class);
@@ -75,9 +81,6 @@ public class ResourceAccessRestController {
     @Autowired
     private InternalSecurityHandler securityHandler;    
 
-    @Value("${platform.id}") 
-    private String platformId;
-
     /**
      * Used to retrieve the current value of a registered resource
      * 
@@ -86,8 +89,18 @@ public class ResourceAccessRestController {
      * @param token 
      * @return  the current value read from the resource
      */
-    @RequestMapping(value="/rap/Sensor/{resourceId}", method=RequestMethod.GET)
-    public Observation readResource(@PathVariable String resourceId, @RequestHeader("X-Auth-Token") String token) {        
+    @RequestMapping(value="Sensor/{resourceId}", method=RequestMethod.GET)
+    @ApiOperation(value = "HTTP GET query",
+            notes = "Get data from resources using HTTP GET. The parameters that can be used for such a query are static and defined below",
+            response = Observation.class)    
+    @ApiResponses(value = { 
+                    @ApiResponse(code = 400, message = "Resource Not Found"),
+                    @ApiResponse(code = 500, message = "Token not valid"),
+                    @ApiResponse(code = 500, message = "Unable to read resource")}
+                 )
+    public Observation readResource(
+            @ApiParam(value = "The id of the resource") @PathVariable String resourceId,
+            @ApiParam(value = "A valid token issued by a member of the SymbIoTe Security Roaming")@RequestHeader("X-Auth-Token") String token) {        
         try {
             log.info("Received read resource request for ID = " + resourceId);       
             
@@ -116,7 +129,7 @@ public class ResourceAccessRestController {
             throw enf;
         } catch (TokenValidationException e) { 
             log.error(e.toString());
-            throw new GenericException(e.toString());
+            throw new GenericException("Token not valid");
         } catch (Exception e) {
             String err = "Unable to read resource with id: " + resourceId;
             log.error(err + "\n" + e.getMessage());
@@ -132,8 +145,19 @@ public class ResourceAccessRestController {
      * @param token 
      * @return  the current value read from the resource
      */
-    @RequestMapping(value="/rap/Sensor/{resourceId}/history", method=RequestMethod.GET)
-    public List<Observation> readResourceHistory(@PathVariable String resourceId, @RequestHeader("X-Auth-Token") String token) {
+    @RequestMapping(value="Sensor/{resourceId}/history", method=RequestMethod.GET)
+    @ApiOperation(value = "HTTP GET query",
+            notes = "Get historical data from resources using HTTP GET. The parameters that can be used for such a query are static and defined below",
+            response = Observation.class)    
+    @ApiResponses(value = { 
+                    @ApiResponse(code = 400, message = "Resource Not Found"),
+                    @ApiResponse(code = 500, message = "Token not valid"),
+                    @ApiResponse(code = 500, message = "Unable to read resource")}
+                 )
+    public List<Observation> readResourceHistory(
+            @ApiParam(value = "The id of the resource") @PathVariable String resourceId, 
+            @ApiParam(value = "A valid token issued by a member of the SymbIoTe Security Roaming")@RequestHeader("X-Auth-Token") String token) {
+        
         try {
             log.info("Received read resource request for ID = " + resourceId);           
             
@@ -180,9 +204,18 @@ public class ResourceAccessRestController {
      * @param token     
      * @return              the http response code
      */
-    @RequestMapping(value="/rap/Service/{resourceId}", method=RequestMethod.POST)
-    public ResponseEntity<?> writeResource(@PathVariable String resourceId, @RequestBody List<InputParameter> valueList,
-                                           @RequestHeader("X-Auth-Token") String token) {
+    @RequestMapping(value="Actuator/{resourceId}", method=RequestMethod.POST)
+    @ApiOperation(value = "HTTP POST query",
+            notes = "Send input data to resources using HTTP POST. The parameters that can be used for such a query are static and defined below")    
+    @ApiResponses(value = { 
+                    @ApiResponse(code = 400, message = "Resource Not Found"),
+                    @ApiResponse(code = 500, message = "Token not valid"),
+                    @ApiResponse(code = 500, message = "Unable to write resource")}
+                 )
+    public ResponseEntity<?> writeResource(
+            @ApiParam(value = "The id of the resource") @PathVariable String resourceId, 
+            @ApiParam(value = "The list of the input parameters requested") @RequestBody List<InputParameter> valueList,
+            @ApiParam(value = "A valid token issued by a member of the SymbIoTe Security Roaming")@RequestHeader("X-Auth-Token") String token) {
         try {
             log.info("Received write resource request for ID = " + resourceId + " with values " + valueList);
             
