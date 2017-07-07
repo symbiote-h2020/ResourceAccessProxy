@@ -15,9 +15,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import static org.apache.jena.assembler.Assembler.reasonerFactory;
+import org.apache.jena.ontology.OntModel;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.formats.ManchesterSyntaxDocumentFormat;
 import org.semanticweb.owlapi.formats.OWLXMLDocumentFormat;
@@ -35,7 +38,12 @@ import org.semanticweb.owlapi.util.*;
 import org.semanticweb.owlapi.vocab.OWL2Datatype;
 import org.semanticweb.owlapi.vocab.OWLFacet;
 import org.semanticweb.owlapi.vocab.OWLRDFVocabulary;
+import uk.ac.manchester.cs.owl.owlapi.OWLDataExactCardinalityImpl;
+import uk.ac.manchester.cs.owl.owlapi.OWLDataMaxCardinalityImpl;
+import uk.ac.manchester.cs.owl.owlapi.OWLObjectExactCardinalityImpl;
+import uk.ac.manchester.cs.owl.owlapi.OWLObjectMaxCardinalityImpl;
 import uk.ac.manchester.cs.owl.owlapi.OWLObjectPropertyImpl;
+import uk.ac.manchester.cs.owl.owlapi.OWLSubClassOfAxiomImpl;
 
 /**
  *
@@ -45,10 +53,80 @@ public class OwlapiHelp {
 
     private static final Log log = LogFactory.getLog(OwlapiHelp.class);
 
-    private static final String CIM_FILE = "/core-v0.6.owl";
+    private static final String CIM_FILE_OLD = "/core-v0.6.owl";
+    private static final String CIM_FILE = "/core-v1.0.owl";
     private static final String BIM_FILE = "/bim-0.3.owl";
     private static final String TIME_FILE = "/time.owl";
+    
+    private HashMap<String, HashMap<String, String>> classes;
+    private HashSet<String> classesStart = new HashSet<String>();
+    private HashSet <String> classesRead = new HashSet<String>();
+    private List<OWLOntologyID> allOntology;
+    
+    public HashMap<String, HashMap<String, String>> fromOwlToClasses(){        
+        HashMap<String, HashMap<String, String>> map = test2();
+        classes = new HashMap<String, HashMap<String, String>>();
+        for(String key: map.keySet()){
+            HashMap<String,String> attribute2type = fromOwlToClassesPrivate(key,map.get(key),map);
+        }
+        for(String removeClass: classesRead){
+            classesStart.remove(removeClass);
+        }
+        return classes;
+    }
+    
+    private HashMap<String,String> fromOwlToClassesPrivate(String className, HashMap<String, String> key2value, HashMap<String, HashMap<String, String>> map){
+        HashMap<String,String> attribute2type = new HashMap<String,String>();
+        try{
+        for(String key: key2value.keySet()){
+            //prendere attributi delle superclass
+            String value = key2value.get(key);
+            if(key.equals("Superclass")){
+                String[] superClassArray = value.split(",");
+                for(String superClass: superClassArray){
+                    if(!superClass.equals(className) && map.containsKey(superClass)){
+                        HashMap<String,String> attribute2typeNew;
+                        if(classes.containsKey(superClass))
+                            attribute2typeNew = classes.get(superClass);
+                        else
+                            attribute2typeNew = fromOwlToClassesPrivate(superClass,map.get(superClass),map);
+                        
+                        attribute2type.putAll(attribute2typeNew);
+                    }
+                }
+            }
+            //aggiungere attributi e tipo ma rimuovere Specifiche OWL non utilizzate (es. DISJOINTCLASSES)
+            else if(! StringUtils.isAllUpperCase(key)){
+                attribute2type.put(key, value);
+            }
+        }
+        }catch(Exception e){
+            System.err.println(e);
+        }
+        classes.put(className, attribute2type);
+        return attribute2type;
+    }
+    
+    private OWLOntology addOntology(OWLOntology ontology){
+        Stream<OWLOntology> owlOntologyStream = ontology.imports();
+        Iterator<OWLOntology> owlOntologyiterator = owlOntologyStream.iterator();
+        while(owlOntologyiterator.hasNext()){
+            OWLOntology ontologyImport = owlOntologyiterator.next();
+            if(!allOntology.contains(ontologyImport.getOntologyID())){
+                Stream<OWLAxiom> axiomStream = ontologyImport.axioms();
+                Iterator<OWLAxiom> axiomIterator = axiomStream.iterator();
+                while (axiomIterator.hasNext()) {                        
+                    OWLAxiom axiom = axiomIterator.next();
+                    ontology.addAxiom(axiom);
+                }
+                allOntology.add(ontologyImport.getOntologyID());
+                addOntology(ontology);
+            }
+        }
+        return ontology;
+    }
 
+    
     public HashMap<String, HashMap<String, String>> test2() {
         HashMap<String, HashMap<String, String>> map = new HashMap<String, HashMap<String, String>>();
         String result = "";
@@ -56,10 +134,36 @@ public class OwlapiHelp {
         File file = new File(name);
         OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
         OWLOntology ontology;
-
+        allOntology = new ArrayList<>();
         try {
+            
             ontology = manager.loadOntologyFromOntologyDocument(file);  
+            OWLOntologyID owlOntologyId = ontology.getOntologyID();
+            allOntology.add(owlOntologyId);
+            String startOntologyId = owlOntologyId.toString();
+            if(owlOntologyId.getOntologyIRI().isPresent())
+                startOntologyId = owlOntologyId.getOntologyIRI().get().toString();
 
+            
+            Stream<OWLOntology> owlOntologyStream = ontology.importsClosure();
+            Iterator<OWLOntology> owlOntologyiterator = owlOntologyStream.iterator();
+            while(owlOntologyiterator.hasNext()){
+                OWLOntology ontologyImport = owlOntologyiterator.next();
+                System.out.println(ontologyImport.getOntologyID());
+            }
+            
+            
+            ontology = addOntology(ontology);
+            
+            
+            
+            Stream<OWLOntology> owlOntologyStream0 = manager.ontologies();
+            Iterator<OWLOntology> owlOntologyiterator0 = owlOntologyStream0.iterator();
+            while(owlOntologyiterator0.hasNext()){
+                OWLOntology ontologyImport = owlOntologyiterator0.next();
+                System.out.println(ontologyImport.getOntologyID());
+            }
+            
             //ADD PROPERTY rdf:type owl:ObjectProperty ;
             HashMap<IRI, HashMap<String, String>> property2domain_range = new HashMap<IRI, HashMap<String, String>>();
             HashMap<String, HashMap<String, String>> domain2property2range = new HashMap<String, HashMap<String, String>>();
@@ -72,7 +176,10 @@ public class OwlapiHelp {
                 HashMap<String, String> mapDomain = new HashMap<String, String>();
                 String domainName = op.getDomain().toString();
                 if (op.getDomain().isOWLClass()) {
-                    domainName = op.getDomain().asOWLClass().getIRI().getShortForm();
+                    IRI iriDomain = op.getDomain().asOWLClass().getIRI();
+                    domainName = iriDomain.toString();
+//                    if(domainName.contains(startOntologyId))
+//                        domainName = iriDomain.getShortForm();
                 }
                 mapDomain.put("Domain", domainName);
                 property2domain_range.put(op.getProperty().getNamedProperty().getIRI(), mapDomain);
@@ -96,7 +203,11 @@ public class OwlapiHelp {
 
                     String rangeName = op.getRange().toString();
                     if (op.getRange().isOWLClass()) {
-                        rangeName = op.getRange().asOWLClass().getIRI().getShortForm();
+                        IRI iriRange = op.getRange().asOWLClass().getIRI();
+                        rangeName = iriRange.toString();
+//                        if(rangeName.contains(startOntologyId))
+//                            rangeName = iriRange.getShortForm();
+                        rangeName += "[]";
                     }
                     mapRange.put("Range", rangeName);
 
@@ -111,6 +222,9 @@ public class OwlapiHelp {
             Iterator<OWLClass> classesIterator = classesStream.iterator();
             while (classesIterator.hasNext()) {
                 OWLClass c = classesIterator.next();
+                String className = c.getIRI().toString();
+//                if(className.contains(startOntologyId))
+//                    className = c.getIRI().getShortForm();
                 HashMap<String, String> prop2type = new HashMap<String, String>();
                 String superclass = "";
                 
@@ -128,7 +242,8 @@ public class OwlapiHelp {
                     OWLClassAxiom owlClassAxiom = owlClassAxiomIterator.next();
                     System.out.println("\t" + owlClassAxiom.toString());
                     if (owlClassAxiom.isOfType(AxiomType.SUBCLASS_OF)) {
-
+                        OWLSubClassOfAxiomImpl owlSubClassAxiom = (OWLSubClassOfAxiomImpl) owlClassAxiom;
+                        
                         String typeClass = "";
                         String namePro = "";
 
@@ -155,17 +270,50 @@ public class OwlapiHelp {
                         while (owlClassIterator.hasNext()) {
                             OWLClass owlClass = owlClassIterator.next();
                             if (!owlClass.getIRI().equals(c.getIRI())) {
-                                typeClass = owlClass.getIRI().getShortForm();
+                                typeClass = owlClass.getIRI().toString();
+//                                if(typeClass.contains(startOntologyId))
+//                                    typeClass = owlClass.getIRI().getShortForm();
                                 break;
                             }
                         }
-
+                        
+                        Boolean isArray = true;
+                        OWLClassExpression superClassExpression = owlSubClassAxiom.getSuperClass();
+                        if(superClassExpression != null){
+                            String typeOfSuperClass = superClassExpression.getClass().getName();
+                            if(typeOfSuperClass.equals(OWLDataExactCardinalityImpl.class.getName())){
+                                OWLDataExactCardinalityImpl exactCardinality = (OWLDataExactCardinalityImpl) superClassExpression;
+                                if(exactCardinality.getCardinality() == 1)
+                                    isArray = false;
+                            }
+                            else if(typeOfSuperClass.equals(OWLDataMaxCardinalityImpl.class.getName())){
+                                OWLDataMaxCardinalityImpl maxCardinality = (OWLDataMaxCardinalityImpl) superClassExpression;
+                                if(maxCardinality.getCardinality() == 1)
+                                    isArray = false;
+                            }
+                            else if(typeOfSuperClass.equals(OWLObjectExactCardinalityImpl.class.getName())){
+                                OWLObjectExactCardinalityImpl exactCardinality = (OWLObjectExactCardinalityImpl) superClassExpression;
+                                if(exactCardinality.getCardinality() == 1)
+                                    isArray = false;
+                            }
+                            else if(typeOfSuperClass.equals(OWLObjectMaxCardinalityImpl.class.getName())){
+                                OWLObjectMaxCardinalityImpl maxCardinality = (OWLObjectMaxCardinalityImpl) superClassExpression;
+                                if(maxCardinality.getCardinality() == 1)
+                                    isArray = false;
+                            }
+                        }
+                        
+                        
+                        
                         if (!typeClass.isEmpty() && namePro.isEmpty()) {
                             if(superclass.isEmpty())
                                 superclass = typeClass;
                             else
                                 superclass += ","+typeClass;
                         } else {
+                            classesRead.add(typeClass);
+                            if(!typeClass.isEmpty() && isArray)
+                                typeClass += "[]";
                             prop2type.put(namePro, typeClass);
                         }
                         System.out.println("\t\t +: " + typeClass + " " + namePro);
@@ -176,7 +324,9 @@ public class OwlapiHelp {
                         while (owlClassIterator.hasNext()) {
                             OWLClass owlClass = owlClassIterator.next();
                             if (!owlClass.getIRI().equals(c.getIRI())) {
-                                typeClass = owlClass.getIRI().getShortForm();
+                                typeClass = owlClass.getIRI().toString();
+//                                if(typeClass.contains(startOntologyId))
+//                                    typeClass = owlClass.getIRI().getShortForm();
                                 break;
                             }
                         }
@@ -184,25 +334,30 @@ public class OwlapiHelp {
                     }
                 }
 
-                if (domain2property2range.containsKey(c.getIRI().getShortForm())) {
-                    HashMap<String, String> property2range = domain2property2range.get(c.getIRI().getShortForm());
+                if (domain2property2range.containsKey(className)) {
+                    HashMap<String, String> property2range = domain2property2range.get(className);
                     for (String property : property2range.keySet()) {
                         if (!prop2type.containsKey(property)) {
                             String range = property2range.get(property);
                             prop2type.put(property, range);
                             System.out.println("\t\t +: " + range + " " + property);
+                            classesRead.add(range.replace("[]", ""));
                         }
                     }
 
                 }
+                if(superclass.isEmpty())
+                    classesStart.add(className);
                 prop2type.put("Superclass", superclass);
-                map.put(c.getIRI().getShortForm(), prop2type);
+                map.put(className, prop2type);
             }
         } catch (OWLOntologyCreationException ex) {
             log.error(ex);
         }
         return map;
     }
+    
+    
 
     public HashMap<String, HashMap<String, ArrayList<String>>> test() {
         HashMap<String, HashMap<String, ArrayList<String>>> map = new HashMap<String, HashMap<String, ArrayList<String>>>();

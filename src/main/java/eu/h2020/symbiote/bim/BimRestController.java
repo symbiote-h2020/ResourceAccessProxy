@@ -97,4 +97,30 @@ public class BimRestController {
         }
         return result;
     }
+    
+    @RequestMapping(value="/bimComplete", method=RequestMethod.GET)
+    public HashMap<String,HashMap<String,String>> readResourceComplete() {  
+        HashMap<String,HashMap<String,String>> result = new HashMap<String,HashMap<String,String>>();
+        try {
+            OwlapiHelp oah = new OwlapiHelp();
+            result = oah.fromOwlToClasses();
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new GenericException(e.getMessage());
+        }
+        return result;
+    }
+    
+    @RequestMapping(value="/bimJena", method=RequestMethod.GET)
+    public HashMap<String,HashMap<String,String>> readResourceJena() {  
+        HashMap<String,HashMap<String,String>> result = new HashMap<String,HashMap<String,String>>();
+        try {
+            ApacheJenaParser ajp = new ApacheJenaParser();
+            result = ajp.test1();
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new GenericException(e.getMessage());
+        }
+        return result;
+    }
 }
