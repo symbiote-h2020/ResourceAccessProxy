@@ -82,6 +82,9 @@ public class RAPEdmController {
     private String platformId;
 
 
+    @Value("${debug.CheckTokens}")
+    private boolean checkTokens;
+    
     /**
      * Process.
      *
@@ -309,6 +312,12 @@ public class RAPEdmController {
     
     private void checkToken(String tokenString) throws TokenValidationException {
         log.debug("RAP received a request for the following token: " + tokenString);
+        
+        if (this.checkTokens==false)
+        {
+        	log.warn("Token checking is switched off");
+        	return;
+        }
 
         Token token = new Token(tokenString);
 
