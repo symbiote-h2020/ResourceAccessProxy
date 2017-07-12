@@ -95,7 +95,7 @@ public class RAPEdmController {
         split = 0;
         try {
             String token = req.getHeader("X-Auth-Token");
-            //checkToken(token);
+            checkToken(token);
             
             OData odata = OData.newInstance();
             ServiceMetadata edm = odata.createServiceMetadata(edmProvider, new ArrayList());
@@ -135,7 +135,7 @@ public class RAPEdmController {
         try {
 
             String token = req.getHeader("X-Auth-Token");
-            //checkToken(token);
+            checkToken(token);
             
             OData odata = OData.newInstance();
             ServiceMetadata edm = odata.createServiceMetadata(edmProvider, new ArrayList());
