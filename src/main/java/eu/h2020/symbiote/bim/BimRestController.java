@@ -90,7 +90,7 @@ public class BimRestController {
         HashMap<String,HashMap<String,String>> result = new HashMap<String,HashMap<String,String>>();
         try {
             OwlapiHelp oah = new OwlapiHelp();
-            result = oah.test2();
+            result = oah.createMapClass2PropAndSuperclass();
         } catch (Exception e) {
             log.error(e.getMessage());
             throw new GenericException(e.getMessage());

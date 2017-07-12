@@ -94,7 +94,7 @@ public class ResourceAccessRestController {
             checkToken(token);
             
             ResourceInfo info = getResourceInfo(resourceId);
-            ResourceAccessGetMessage msg = new ResourceAccessGetMessage(info);
+            ResourceAccessGetMessage msg = new ResourceAccessGetMessage(info,null);
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             mapper.setSerializationInclusion(Include.NON_EMPTY);
@@ -141,7 +141,7 @@ public class ResourceAccessRestController {
         
             ResourceInfo info = getResourceInfo(resourceId);
             Query q = null;
-            ResourceAccessHistoryMessage msg = new ResourceAccessHistoryMessage(info, TOP_LIMIT, q);
+            ResourceAccessHistoryMessage msg = new ResourceAccessHistoryMessage(info, TOP_LIMIT, q,null);
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             mapper.setSerializationInclusion(Include.NON_EMPTY);

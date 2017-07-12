@@ -23,6 +23,7 @@ import eu.h2020.symbiote.resources.query.Operator;
 import eu.h2020.symbiote.resources.query.Query;
 import eu.h2020.symbiote.cloud.model.data.parameter.InputParameter;
 import eu.h2020.symbiote.cloud.model.resources.Service;
+import eu.h2020.symbiote.messages.access.RequestInfo;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.DateFormat;
@@ -76,13 +77,10 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 public class StorageHelper {
 
     private final int TOP_LIMIT = 100;
-    
+
     private ResourcesRepository resourcesRepo;
     private RabbitTemplate rabbitTemplate;
     private TopicExchange exchange;
-
-    private List<Entity> resourceList;
-    private List<Entity> observationList;
 
     private static final Pattern PATTERN = Pattern.compile(
             "\\p{Digit}{1,4}-\\p{Digit}{1,2}-\\p{Digit}{1,2}"
@@ -90,15 +88,13 @@ public class StorageHelper {
             + "(Z|([-+]\\p{Digit}{1,2}:\\p{Digit}{2}))?");
 
     public StorageHelper(ResourcesRepository resourcesRepository, RabbitTemplate rabbit, TopicExchange topicExchange) {
-        resourceList = new ArrayList<Entity>();
-        observationList = new ArrayList<Entity>();
         //initSampleData();
         resourcesRepo = resourcesRepository;
         rabbitTemplate = rabbit;
         exchange = topicExchange;
     }
 
-    public ResourceInfo getResourceInfo(EdmEntitySet edmEntitySet, List<UriParameter> keyParams) {
+    public ResourceInfo getResourceInfo(List<UriParameter> keyParams) {
         ResourceInfo resInfo = null;
         final UriParameter key = keyParams.get(0);
 
@@ -110,7 +106,7 @@ public class StorageHelper {
         keyText = keyText.replaceAll("'", "");
 
         try {
-            if (keyName.equals("id")) {
+            if (keyName.equalsIgnoreCase("id")) {
                 Optional<ResourceInfo> resInfoOptional = resourcesRepo.findById(keyText);
                 if (resInfoOptional.isPresent()) {
                     resInfo = resInfoOptional.get();
@@ -121,84 +117,78 @@ public class StorageHelper {
         }
 
         //SOLO MOMENTANEO
-        //if (resInfo == null) {
-        //List<ResourceInfo> resInfo2 = resourcesRepo.findAll();
-        //resInfo = resInfo2.get(0);
-        //}
+        if (resInfo == null) {
+            List<ResourceInfo> resInfo2 = resourcesRepo.findAll();
+            resInfo = resInfo2.get(0);
+        }
         return resInfo;
     }
 
-    public Object getRelatedObject(ResourceInfo resourceInfo, EdmEntityType sourceEntityType, EdmEntityType targetEntityType,
-            Integer top, Query filterQuery) throws ODataApplicationException {
-        FullQualifiedName relatedEntityFqn = targetEntityType.getFullQualifiedName();
-        if (sourceEntityType.getName().equals(RAPEdmProvider.ET_SENSOR_NAME)
-                && relatedEntityFqn.equals(RAPEdmProvider.ET_OBSERVATION_FQN)) {
+    public Object getRelatedObject(ResourceInfo resourceInfo, Integer top, Query filterQuery, ArrayList<RequestInfo> requestInfoList) throws ODataApplicationException {
+        try {
+            top = (top == null) ? TOP_LIMIT : top;
 
-            try {
-                top = (top == null) ? TOP_LIMIT : top;
-                
-                ResourceAccessMessage msg;
-                String routingKey;
-                if (top == 1) {
-                    msg = new ResourceAccessGetMessage(resourceInfo);
-                    routingKey = ResourceAccessMessage.AccessType.GET.toString().toLowerCase();
-                } else {                    
-                    msg = new ResourceAccessHistoryMessage(resourceInfo, top, filterQuery);
-                    routingKey = ResourceAccessMessage.AccessType.HISTORY.toString().toLowerCase();
-                }
-
-                ObjectMapper mapper = new ObjectMapper();
-                mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-                mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-                String json = mapper.writeValueAsString(msg);
-
-                Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);                
-                if (obj == null) {
-                    throw new ODataApplicationException("No response from plugin", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
-                }
-                    
-                String response;
-                if(obj instanceof byte[]) {
-                    response = new String((byte[]) obj, "UTF-8");
-                } else {
-                    response = (String) obj;
-                }
-                List<Observation> observations = mapper.readValue(response, new TypeReference<List<Observation>>(){});
-                if(observations == null || observations.isEmpty()) {
-                    return null;
-                }
-                
-                if (top == 1) {
-                    Observation o = observations.get(0);
-                    Observation ob = new Observation(resourceInfo.getSymbioteId(), o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
-                    return ob;
-                } else {
-                    List<Observation> observationsList = new ArrayList();
-                    for(Observation o: observations){
-                        Observation ob = new Observation(resourceInfo.getSymbioteId(), o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
-                        observationsList.add(ob);
-                    }
-                    return observationsList;
-                }
-                
-            } catch (Exception e) {
-                String err = "Unable to read resource with id: " + resourceInfo.getSymbioteId();
-                err += "\n Error:" + e.getMessage();
-                //log.error(err + "\n" + e.getMessage());
-                throw new ODataApplicationException(err, HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+            ResourceAccessMessage msg;
+            String routingKey;
+            if (top == 1) {
+                msg = new ResourceAccessGetMessage(resourceInfo,requestInfoList);
+                routingKey = ResourceAccessMessage.AccessType.GET.toString().toLowerCase();
+            } else {
+                msg = new ResourceAccessHistoryMessage(resourceInfo, top, filterQuery,requestInfoList);
+                routingKey = ResourceAccessMessage.AccessType.HISTORY.toString().toLowerCase();
             }
+
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+            String json = mapper.writeValueAsString(msg);
+
+            Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+            if (obj == null) {
+                throw new ODataApplicationException("No response from plugin", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+            }
+
+            String response;
+            if (obj instanceof byte[]) {
+                response = new String((byte[]) obj, "UTF-8");
+            } else {
+                response = (String) obj;
+            }
+            List<Observation> observations = mapper.readValue(response, new TypeReference<List<Observation>>() {
+            });
+            if (observations == null || observations.isEmpty()) {
+                return null;
+            }
+
+            if (top == 1) {
+                Observation o = observations.get(0);
+                Observation ob = new Observation(resourceInfo.getSymbioteId(), o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
+                return ob;
+            } else {
+                List<Observation> observationsList = new ArrayList();
+                for (Observation o : observations) {
+                    Observation ob = new Observation(resourceInfo.getSymbioteId(), o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
+                    observationsList.add(ob);
+                }
+                return observationsList;
+            }
+
+        } catch (Exception e) {
+            String err = "Unable to read resource with id: " + resourceInfo.getSymbioteId();
+            err += "\n Error:" + e.getMessage();
+            //log.error(err + "\n" + e.getMessage());
+            throw new ODataApplicationException(err, HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
         }
-        return null;
     }
 
-    public void setService(ResourceInfo resourceInfo, Entity requestBody, EdmEntityType targetEntityType) throws ODataApplicationException {
-        if (targetEntityType.getName().equals(RAPEdmProvider.ET_SERVICE_NAME)) {
+    public void setService(ResourceInfo resourceInfo, Entity requestBody, ArrayList<RequestInfo> requestInfoList) throws ODataApplicationException {
+        //if (targetEntityType.getName().equals(RAPEdmProvider.ET_SERVICE_NAME)) {
             List<InputParameter> inputParameterList = new ArrayList<InputParameter>();
             ResourceAccessMessage msg;
             String routingKey = ResourceAccessMessage.AccessType.SET.toString().toLowerCase();
 
             Property updateProperty = requestBody.getProperty("inputParameters");
-            if (updateProperty.isCollection()) {
+            if (updateProperty != null && updateProperty.isCollection()) {
                 List<ComplexValue> name_value = (List<ComplexValue>) updateProperty.asCollection();
                 for (ComplexValue complexValue : name_value) {
                     List<Property> properties = complexValue.getValue();
@@ -217,7 +207,11 @@ public class StorageHelper {
                     inputParameterList.add(ip);
                 }
             }
-            msg = new ResourceAccessSetMessage(resourceInfo, inputParameterList);
+            
+            List<Property> updatePropertyList = requestBody.getProperties();
+            inputParameterList = fromPropertiesToInputParameter(updatePropertyList,inputParameterList);
+            
+            msg = new ResourceAccessSetMessage(resourceInfo, inputParameterList,requestInfoList);
 
             String json = "";
             try {
@@ -231,22 +225,32 @@ public class StorageHelper {
             }
 
             Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-        } else {
-            throw new ODataApplicationException("Internal Error", HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), Locale.ROOT);
-        }
+        //} else {
+            //throw new ODataApplicationException("Internal Error", HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), Locale.ROOT);
+        //}
     }
-
-    /* PUBLIC FACADE */
-    public EntityCollection readEntitySetData(EdmEntitySet edmEntitySet) throws ODataApplicationException {
-
-        // actually, this is only required if we have more than one Entity Sets
-        if (edmEntitySet.getName().equals(RAPEdmProvider.ES_SENSORS_NAME)) {
-            return getResources();
-        } else if (edmEntitySet.getName().equals(RAPEdmProvider.ES_OBSERVATIONS_NAME)) {
-            return getObservations();
-        }
-
-        return null;
+    
+    private List<InputParameter> fromPropertiesToInputParameter(List<Property> propertyList, List<InputParameter> inputParameter){
+        List<InputParameter> inputParameterNew = new ArrayList<InputParameter>();
+        inputParameterNew.addAll(inputParameter);
+        for(Property p : propertyList){
+                if(p.isCollection()){
+                    List<ComplexValue> name_value = (List<ComplexValue>) p.asCollection();
+                    for (ComplexValue complexValue : name_value) {
+                        List<Property> properties = complexValue.getValue();
+                        List<InputParameter> inputParameterAdd = fromPropertiesToInputParameter(properties,inputParameterNew);
+                        inputParameterNew.addAll(inputParameterAdd);
+                    }
+                }
+                    else{
+                String name = p.getName();
+                String value = p.getValue().toString();
+                InputParameter ip = new InputParameter(name);
+                ip.setValue(value);
+                inputParameterNew.add(ip);
+                            }
+            }
+        return inputParameterNew;
     }
 
     public Entity readEntityData(EdmEntitySet edmEntitySet, List<UriParameter> keyParams) throws ODataApplicationException {
@@ -257,33 +261,17 @@ public class StorageHelper {
         return getElement(edmEntityType, keyParams);
     }
 
-    /*  INTERNAL */
-    private EntityCollection getObservations() {
-        EntityCollection retEntitySet = new EntityCollection();
-        for (Entity productEntity : this.observationList) {
-            retEntitySet.getEntities().add(productEntity);
-        }
-        return retEntitySet;
-    }
-
-    private EntityCollection getResources() {
-        EntityCollection retEntitySet = new EntityCollection();
-        for (Entity productEntity : this.resourceList) {
-            retEntitySet.getEntities().add(productEntity);
-        }
-        return retEntitySet;
-    }
-
     private Entity getElement(EdmEntityType edmEntityType, List<UriParameter> keyParams) throws ODataApplicationException {
         // the list of entities at runtime
         EntityCollection entitySet;
-        if (edmEntityType.getName().equals(RAPEdmProvider.ET_SENSOR_NAME)) {
-            entitySet = getResources();
-        } else if (edmEntityType.getName().equals(RAPEdmProvider.ET_OBSERVATION_NAME)) {
-            entitySet = getObservations();
-        } else {
-            return null;
-        }
+//        if (edmEntityType.getName().equals(RAPEdmProvider.ET_SENSOR_NAME)) {
+//            entitySet = getResources();
+//        } else if (edmEntityType.getName().equals(RAPEdmProvider.ET_OBSERVATION_NAME)) {
+//            entitySet = getObservations();
+//        } else {
+//            return null;
+//        }
+        entitySet = null;
 
         /*  generic approach  to find the requested entity */
         Entity requestedEntity = findEntity(edmEntityType, entitySet, keyParams);
@@ -296,115 +284,6 @@ public class StorageHelper {
         }
 
         return requestedEntity;
-    }
-
-    /* HELPER */
-    private void initSampleData() {
-
-        final ComplexValue location1 = new ComplexValue();
-        location1.getValue().add(new Property(null, "name", ValueType.PRIMITIVE, "Spansko"));
-        location1.getValue().add(new Property(null, "description", ValueType.PRIMITIVE, "City of Zagreb"));
-        location1.getValue().add(new Property(null, "longitude", ValueType.PRIMITIVE, 15.9));
-        location1.getValue().add(new Property(null, "latitude", ValueType.PRIMITIVE, 45.8));
-        location1.getValue().add(new Property(null, "altitude", ValueType.PRIMITIVE, 145));
-
-        final ComplexValue location2 = new ComplexValue();
-        location2.getValue().add(new Property(null, "name", ValueType.PRIMITIVE, "Rome"));
-        location2.getValue().add(new Property(null, "description", ValueType.PRIMITIVE, "City of Rome"));
-        location2.getValue().add(new Property(null, "longitude", ValueType.PRIMITIVE, 175.2));
-        location2.getValue().add(new Property(null, "latitude", ValueType.PRIMITIVE, 120.5));
-        location2.getValue().add(new Property(null, "altitude", ValueType.PRIMITIVE, 20));
-
-        // add some sample observation entities
-        final Entity e1 = new Entity()
-                .addProperty(new Property(null, "resourceId", ValueType.PRIMITIVE, "1"))
-                .addProperty(new Property(null, "location", ValueType.COMPLEX, location1))
-                .addProperty(new Property(null, "resultTime", ValueType.PRIMITIVE, 150))
-                .addProperty(new Property(null, "samplingTime", ValueType.PRIMITIVE, 200));
-        e1.setId(createId(RAPEdmProvider.ES_OBSERVATIONS_NAME, 1));
-        observationList.add(e1);
-
-        final Entity e2 = new Entity()
-                .addProperty(new Property(null, "resourceId", ValueType.PRIMITIVE, "2"))
-                .addProperty(new Property(null, "location", ValueType.COMPLEX, location2))
-                .addProperty(new Property(null, "resultTime", ValueType.PRIMITIVE, 70))
-                .addProperty(new Property(null, "samplingTime", ValueType.PRIMITIVE, 35));
-        e2.setId(createId(RAPEdmProvider.ES_OBSERVATIONS_NAME, 2));
-        observationList.add(e2);
-
-        // add some sample resource entities
-        final Entity r1 = new Entity()
-                .addProperty(new Property(null, "resourceId", ValueType.PRIMITIVE, "res1"))
-                .addProperty(new Property(null, "platformResourceId", ValueType.PRIMITIVE, "1+100"))
-                .addProperty(new Property(null, "platformId", ValueType.PRIMITIVE, "100"));
-        r1.setId(createId(RAPEdmProvider.ES_SENSORS_NAME, "res1"));
-        resourceList.add(r1);
-
-        final Entity r2 = new Entity()
-                .addProperty(new Property(null, "resourceId", ValueType.PRIMITIVE, "res2"))
-                .addProperty(new Property(null, "platformResourceId", ValueType.PRIMITIVE, "2+100"))
-                .addProperty(new Property(null, "platformId", ValueType.PRIMITIVE, "100"));
-        r2.setId(createId(RAPEdmProvider.ES_SENSORS_NAME, "res2"));
-        resourceList.add(r2);
-    }
-
-    private URI createId(String entitySetName, Object id) {
-        try {
-            return new URI(entitySetName + "(" + String.valueOf(id) + ")");
-        } catch (URISyntaxException e) {
-            throw new ODataRuntimeException("Unable to create id for entity: " + entitySetName, e);
-        }
-    }
-
-    public EntityCollection getRelatedEntityCollection(Entity sourceEntity, EdmEntityType sourceEntityType, EdmEntityType targetEntityType) {
-        EntityCollection navigationTargetEntityCollection = new EntityCollection();
-
-        FullQualifiedName relatedEntityFqn = targetEntityType.getFullQualifiedName();
-        //String sourceEntityFqn = sourceEntity.getType();
-
-        if (sourceEntityType.getName().equals(RAPEdmProvider.ET_OBSERVATION_NAME)
-                && relatedEntityFqn.equals(RAPEdmProvider.ET_SENSOR_FQN)) {
-            // relation Products->Category (result all categories)
-            String observationID = sourceEntity.getProperty("resourceId").getValue().toString();
-            if (observationID.equals("1")) {
-                navigationTargetEntityCollection.getEntities().add(resourceList.get(0));
-            } else if (observationID.equals("2")) {
-                navigationTargetEntityCollection.getEntities().add(resourceList.get(2));
-            }
-
-        } else if (sourceEntityType.getName().equals(RAPEdmProvider.ET_SENSOR_NAME)
-                && relatedEntityFqn.equals(RAPEdmProvider.ET_OBSERVATION_FQN)) {
-            // relation Category->Products (result all products)
-
-            String resourceID = (String) sourceEntity.getProperty("resourceId").getValue();
-            if (resourceID.equals("res1")) {
-                // the first 2 products are notebooks
-                navigationTargetEntityCollection.getEntities().addAll(observationList.subList(0, 1));
-            } else if (resourceID.equals("res2")) {
-                // the next 2 products are organizers
-                navigationTargetEntityCollection.getEntities().addAll(observationList.subList(1, 2));
-            }
-        }
-
-        if (navigationTargetEntityCollection.getEntities().isEmpty()) {
-            return null;
-        }
-
-        return navigationTargetEntityCollection;
-    }
-
-    public static EdmEntitySet getEdmEntitySet(UriInfoResource uriInfo) throws ODataApplicationException {
-
-        List<UriResource> resourcePaths = uriInfo.getUriResourceParts();
-        // To get the entity set we have to interpret all URI segments
-        if (!(resourcePaths.get(0) instanceof UriResourceEntitySet)) {
-            throw new ODataApplicationException("Invalid resource type for first segment.",
-                    HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ENGLISH);
-        }
-
-        UriResourceEntitySet uriResource = (UriResourceEntitySet) resourcePaths.get(0);
-
-        return uriResource.getEntitySet();
     }
 
     public static Entity findEntity(EdmEntityType edmEntityType,
@@ -423,6 +302,28 @@ public class StorageHelper {
         }
 
         return null;
+    }
+
+    private URI createId(String entitySetName, Object id) {
+        try {
+            return new URI(entitySetName + "(" + String.valueOf(id) + ")");
+        } catch (URISyntaxException e) {
+            throw new ODataRuntimeException("Unable to create id for entity: " + entitySetName, e);
+        }
+    }
+
+    public static EdmEntitySet getEdmEntitySet(UriInfoResource uriInfo) throws ODataApplicationException {
+
+        List<UriResource> resourcePaths = uriInfo.getUriResourceParts();
+        // To get the entity set we have to interpret all URI segments
+        if (!(resourcePaths.get(0) instanceof UriResourceEntitySet)) {
+            throw new ODataApplicationException("Invalid resource type for first segment.",
+                    HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ENGLISH);
+        }
+
+        UriResourceEntitySet uriResource = (UriResourceEntitySet) resourcePaths.get(0);
+
+        return uriResource.getEntitySet();
     }
 
     public static boolean entityMatchesAllKeys(EdmEntityType edmEntityType, Entity rt_entity, List<UriParameter> keyParams)
@@ -483,6 +384,7 @@ public class StorageHelper {
         EdmEntitySet navigationTargetEntitySet = null;
 
         String navPropName = edmNavigationProperty.getName();
+        navPropName = edmNavigationProperty.getType().getName();
         EdmBindingTarget edmBindingTarget = startEdmEntitySet.getRelatedBindingTarget(navPropName);
         if (edmBindingTarget == null) {
             throw new ODataApplicationException("Not supported.",
@@ -612,5 +514,38 @@ public class StorageHelper {
 
         parsedData = dateFormat.format(date);
         return parsedData;
+    }
+
+    public ArrayList<RequestInfo> getRequestInfoList(ArrayList<String> typeNameList, List<UriParameter> keyPredicates) {
+        ArrayList<RequestInfo> requestInfoList = new ArrayList<RequestInfo>();
+        for(int i = 0; i< typeNameList.size(); i++){
+            String symbioteId = null;
+            String internalId = null;
+            if(i < keyPredicates.size()){
+                ResourceInfo resInfo = null;
+                UriParameter key = keyPredicates.get(i);
+                String keyName = key.getName();
+                String keyText = key.getText();
+                //remove quote
+                keyText = keyText.replaceAll("'", "");
+
+                try {
+                    if (keyName.equalsIgnoreCase("id")) {
+                        symbioteId = keyText;
+                        Optional<ResourceInfo> resInfoOptional = resourcesRepo.findById(keyText);
+                        if (resInfoOptional.isPresent()) {
+                            resInfo = resInfoOptional.get();
+                        }
+                    }
+                } catch (Exception e) {
+                }
+                if (resInfo != null) {
+                    internalId = resInfo.getInternalId();
+                }
+            }
+            RequestInfo ri = new RequestInfo(typeNameList.get(i), symbioteId, internalId);
+            requestInfoList.add(ri);
+        }
+        return requestInfoList;
     }
 }

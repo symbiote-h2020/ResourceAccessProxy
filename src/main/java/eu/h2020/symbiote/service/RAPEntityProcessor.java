@@ -8,11 +8,13 @@ package eu.h2020.symbiote.service;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import eu.h2020.symbiote.messages.access.RequestInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import org.apache.olingo.commons.api.data.ContextURL;
@@ -163,7 +165,8 @@ public class RAPEntityProcessor implements EntityProcessor{
         EntityCollection responseEntityCollection = null; // for the response body
         String responseString = null;
         InputStream stream = null;
-
+        
+        ArrayList<String> typeNameList = new ArrayList<String>();
 
         // 1st retrieve the requested EntitySet from the uriInfo
         List<UriResource> resourceParts = uriInfo.getUriResourceParts();
@@ -173,76 +176,44 @@ public class RAPEntityProcessor implements EntityProcessor{
         if (!(uriResource instanceof UriResourceEntitySet)) {
             throw new ODataApplicationException("Only EntitySet is supported", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
         }
+        
+        InputStream requestInputStream = request.getBody();
+        ODataDeserializer deserializer = this.odata.createDeserializer(requestFormat);
 
         UriResourceEntitySet uriResourceEntitySet = (UriResourceEntitySet) uriResource;
         EdmEntitySet startEdmEntitySet = uriResourceEntitySet.getEntitySet();
         EdmEntityType startEntityType = startEdmEntitySet.getEntityType();
         
-        InputStream requestInputStream = request.getBody();
-        ODataDeserializer deserializer = this.odata.createDeserializer(requestFormat);
+        
+        EdmEntityType targetEntityType = startEntityType;
+        String typeName = startEntityType.getName();
+        typeNameList.add(typeName);
 
-        if (segmentCount == 1) { // this is the case for: DemoService/DemoService.svc/Categories
-            //throw new ODataApplicationException("Not supported", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
-        
-            
-            // 2.2 do the modification in backend
-            List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
-            
-            
-            ResourceInfo resource = storageHelper.getResourceInfo(startEdmEntitySet,keyPredicates);
-            if (resource == null) {
-                throw new ODataApplicationException("Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
-            }
-            
-            
-            DeserializerResult result = deserializer.entity(requestInputStream, startEntityType);
-            Entity requestEntity = result.getEntity();
-                
-            storageHelper.setService(resource, requestEntity, startEntityType);
-        
-        
-        } else if (segmentCount == 2) { //navigation: e.g. DemoService.svc/Categories(3)/Products
-            UriResource lastSegment = resourceParts.get(1); // don't support more complex URIs
-            if (lastSegment instanceof UriResourceNavigation) {
-                UriResourceNavigation uriResourceNavigation = (UriResourceNavigation) lastSegment;
-                EdmNavigationProperty edmNavigationProperty = uriResourceNavigation.getProperty();
-                EdmEntityType targetEntityType = edmNavigationProperty.getType();
-                responseEdmEntitySet = storageHelper.getNavigationTargetEntitySet(startEdmEntitySet, edmNavigationProperty);
-
-                // 2nd: fetch the data from backend
-                // first fetch the entity where the first segment of the URI points to
-                // e.g. Categories(3)/Products first find the single entity: Category(3)
-                List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
-                ResourceInfo resource = storageHelper.getResourceInfo(startEdmEntitySet,keyPredicates);
-                if (resource == null) {
-                    throw new ODataApplicationException("Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+        if (segmentCount > 1) {
+            for (int i = 1; i < segmentCount; i++) {
+                UriResource segment = resourceParts.get(i);
+                if (segment instanceof UriResourceNavigation) {
+                    UriResourceNavigation uriResourceNavigation = (UriResourceNavigation) segment;
+                    EdmNavigationProperty edmNavigationProperty = uriResourceNavigation.getProperty();
+                    targetEntityType = edmNavigationProperty.getType();
+                    String typeNameEntity = targetEntityType.getName();
+                    typeNameList.add(typeNameEntity);
                 }
-                
-                
-                List<UriParameter> navKeyPredicates = uriResourceNavigation.getKeyPredicates();
-                String serviceId = null;
-                if(navKeyPredicates != null && !navKeyPredicates.isEmpty()){
-                    UriParameter key = navKeyPredicates.get(0);
-                    String keyName = key.getName();
-                    String keyText = key.getText();
-                    if(keyName.equals("id"))
-                        serviceId = keyText;
-                }
-                
-                
-                
-                
-                DeserializerResult result = deserializer.entity(requestInputStream, targetEntityType);
-                Entity requestEntity = result.getEntity();
-                
-                
-                //obj = storageHelper.getRelatedObject(resource, startEntityType, targetEntityType, top, jsonFilter);
-                //obj = "RESPONSE";
-                storageHelper.setService(resource, requestEntity, targetEntityType);
             }
-        } else { // this would be the case for e.g. Products(1)/Category/Products
-            throw new ODataApplicationException("Not supported", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
         }
+        
+        List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
+        ResourceInfo resource = storageHelper.getResourceInfo(keyPredicates);
+        if (resource == null) {
+            throw new ODataApplicationException("Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+        }
+        DeserializerResult result = deserializer.entity(requestInputStream, targetEntityType);
+        Entity requestEntity = result.getEntity();
+        
+        ArrayList<RequestInfo> requestInfos = storageHelper.getRequestInfoList(typeNameList,keyPredicates);
+        
+        storageHelper.setService(resource, requestEntity, requestInfos);
+        
 
         try{
             responseString = "";
