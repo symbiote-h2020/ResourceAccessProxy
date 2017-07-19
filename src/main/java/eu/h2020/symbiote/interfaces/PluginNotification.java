@@ -5,9 +5,14 @@
  */
 package eu.h2020.symbiote.interfaces;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.cloud.model.data.observation.Observation;
+import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
 import eu.h2020.symbiote.service.notificationResource.WebSocketController;
+import java.sql.Timestamp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,11 +35,29 @@ public class PluginNotification {
 
             ObjectMapper mapper = new ObjectMapper();
             Observation obs = mapper.readValue(message, Observation.class);            
-            
+            sendSuccessfulPushMessage(obs.getResourceId());
             webSocketController.SendMessage(obs);
             
         } catch (Exception e) {
             log.info("Error during plugin registration process\n" + e.getMessage());
         }
+    }
+    
+    public static void sendSuccessfulPushMessage(String symbioteId){
+        String jsonNotificationMessage = null;
+        ObjectMapper map = new ObjectMapper();
+        map.configure(SerializationFeature.INDENT_OUTPUT, true);
+        map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        NotificationMessage notificationMessage = new NotificationMessage();
+        
+        try{
+            notificationMessage.SetSuccessfulPushes(symbioteId, timestamp);
+            jsonNotificationMessage = map.writeValueAsString(notificationMessage);
+        } catch (JsonProcessingException e) {
+            log.error(e.getMessage());
+        }
+        NotificationMessage.SendSuccessfulPushMessage(jsonNotificationMessage);
     }
 }

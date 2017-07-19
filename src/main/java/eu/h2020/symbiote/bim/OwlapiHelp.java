@@ -57,6 +57,7 @@ public class OwlapiHelp {
     private static final String CIM_FILE = "/core-v1.0.owl";
     private static final String BIM_FILE = "/bim-0.3.owl";
     private static final String TIME_FILE = "/time.owl";
+    private static final String PIM_FILE = "/pim.owl";
     
     private HashMap<String, HashMap<String, String>> map;
     private HashMap<String, HashMap<String, String>> classes;
@@ -66,7 +67,7 @@ public class OwlapiHelp {
     public String filePath;
     
     public OwlapiHelp(){
-        this.filePath = OwlapiHelp.class.getResource(CIM_FILE).getPath();
+        this.filePath = OwlapiHelp.class.getResource(PIM_FILE).getPath();
     }
     
     public OwlapiHelp(String filePath){
@@ -84,6 +85,21 @@ public class OwlapiHelp {
             classesStart.remove(removeClass);
         }
         return classes;
+    }
+    
+    public HashSet<String> getSubClassesOfClass(String classStart){
+        HashSet<String> subClasses = new HashSet<String>();
+            for(String keyClass : map.keySet()){
+                HashMap<String, String> mapClass = map.get(keyClass);
+                String superClassArrayString = mapClass.get("Superclass");
+                String[] superClassArray = superClassArrayString.split(",");
+                for(String superClass : superClassArray)
+                    if(classStart.equals(superClass)){
+                        subClasses.add(keyClass);
+                        subClasses.addAll(getSubClassesOfClass(keyClass));
+                    }
+            }
+        return subClasses;
     }
     
     public HashSet<String> getClassesStart(){

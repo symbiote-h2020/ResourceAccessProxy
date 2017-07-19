@@ -96,24 +96,26 @@ public class StorageHelper {
 
     public ResourceInfo getResourceInfo(List<UriParameter> keyParams) {
         ResourceInfo resInfo = null;
-        final UriParameter key = keyParams.get(0);
+        if(keyParams != null && !keyParams.isEmpty()){
+            final UriParameter key = keyParams.get(0);
 
-        String keyName = key.getName();
+            String keyName = key.getName();
 
-        String keyText = key.getText();
+            String keyText = key.getText();
 
-        //remove quote
-        keyText = keyText.replaceAll("'", "");
+            //remove quote
+            keyText = keyText.replaceAll("'", "");
 
-        try {
-            if (keyName.equalsIgnoreCase("id")) {
-                Optional<ResourceInfo> resInfoOptional = resourcesRepo.findById(keyText);
-                if (resInfoOptional.isPresent()) {
-                    resInfo = resInfoOptional.get();
+            try {
+                if (keyName.equalsIgnoreCase("id")) {
+                    Optional<ResourceInfo> resInfoOptional = resourcesRepo.findById(keyText);
+                    if (resInfoOptional.isPresent()) {
+                        resInfo = resInfoOptional.get();
+                    }
                 }
+            } catch (Exception e) {
+                int a = 0;
             }
-        } catch (Exception e) {
-            int a = 0;
         }
 
         //SOLO MOMENTANEO

@@ -5,8 +5,10 @@
  */
 package eu.h2020.symbiote.interfaces;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.cloud.model.data.parameter.InputParameter;
@@ -22,13 +24,21 @@ import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessMessage.AccessType;
 import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
 import eu.h2020.symbiote.cloud.model.data.observation.Observation;
+import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
+import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
+import io.jsonwebtoken.Claims;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Iterator;
 import java.util.Optional;
+import javax.servlet.http.HttpServletRequest;
+import org.apache.olingo.server.api.ODataResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
@@ -45,6 +55,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.util.StreamUtils;
 
 
 /**
@@ -87,7 +98,9 @@ public class ResourceAccessRestController {
      * @return  the current value read from the resource
      */
     @RequestMapping(value="/rap/Sensor/{resourceId}", method=RequestMethod.GET)
-    public Observation readResource(@PathVariable String resourceId, @RequestHeader("X-Auth-Token") String token) {        
+    public Observation readResource(@PathVariable String resourceId, @RequestHeader("X-Auth-Token") String token) {
+        Exception e = null;
+        String path = "/rap/Sensor/"+resourceId;
         try {
             log.info("Received read resource request for ID = " + resourceId);       
             
@@ -103,25 +116,31 @@ public class ResourceAccessRestController {
             String routingKey = AccessType.GET.toString().toLowerCase();
             Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             String response = null;
-            if(obj != null)
-                response = new String((byte[]) obj, "UTF-8");
+            if(obj == null)
+                throw new Exception("No response from plugin");
+            
+            response = new String((byte[]) obj, "UTF-8");
             List<Observation> observationList = mapper.readValue(response, List.class);
             if(observationList == null || observationList.isEmpty())
                 throw new Exception("Plugin error");
             
             Observation o = observationList.get(0);
             Observation ob = new eu.h2020.symbiote.cloud.model.data.observation.Observation(resourceId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
+            sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
             return ob;
         } catch(EntityNotFoundException enf) {
-            throw enf;
-        } catch (TokenValidationException e) { 
+            e = enf;
             log.error(e.toString());
-            throw new GenericException(e.toString());
-        } catch (Exception e) {
+        } catch (TokenValidationException tokenEx) { 
+            e = tokenEx;
+            log.error(e.toString());
+        } catch (Exception ex) {
+            e = ex;
             String err = "Unable to read resource with id: " + resourceId;
             log.error(err + "\n" + e.getMessage());
-            throw new GenericException(err);
-        }        
+        }     
+        sendFailMessage(path, resourceId, token, e);
+        throw new GenericException(e.getMessage());
     }
     
     /**
@@ -134,6 +153,8 @@ public class ResourceAccessRestController {
      */
     @RequestMapping(value="/rap/Sensor/{resourceId}/history", method=RequestMethod.GET)
     public List<Observation> readResourceHistory(@PathVariable String resourceId, @RequestHeader("X-Auth-Token") String token) {
+        Exception e = null;
+        String path = "/rap/Sensor/"+resourceId+"/history";
         try {
             log.info("Received read resource request for ID = " + resourceId);           
             
@@ -158,17 +179,22 @@ public class ResourceAccessRestController {
                 Observation ob = new Observation(resourceId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
                 observationsList.add(ob);
             }
+            sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
             return observationsList;
         } catch(EntityNotFoundException enf) {
-            throw enf;
-        } catch (TokenValidationException e) { 
+            e = enf;
+            log.error(e.toString());
+        } catch (TokenValidationException tokenEx) { 
+            e = tokenEx;
             log.error(e.toString());
             throw new GenericException(e.toString());
-        } catch (Exception e) {
+        } catch (Exception ex) {
+            e = ex;
             String err = "Unable to read history of resource with id: " + resourceId;
             log.error(err + "\n" + e.getMessage());
-            throw new GenericException(err);
-        }        
+        }  
+        sendFailMessage(path, resourceId, token, e);
+        throw new GenericException(e.getMessage());
     }
     
     /**
@@ -183,6 +209,8 @@ public class ResourceAccessRestController {
     @RequestMapping(value="/rap/Service/{resourceId}", method=RequestMethod.POST)
     public ResponseEntity<?> writeResource(@PathVariable String resourceId, @RequestBody List<InputParameter> valueList,
                                            @RequestHeader("X-Auth-Token") String token) {
+        Exception e = null;
+        String path = "/rap/Service/"+resourceId;
         try {
             log.info("Received write resource request for ID = " + resourceId + " with values " + valueList);
             
@@ -198,17 +226,21 @@ public class ResourceAccessRestController {
             String routingKey = AccessType.SET.toString().toLowerCase();
             rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             
+            sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
             return new ResponseEntity<>(HttpStatus.OK);
         } catch(EntityNotFoundException enf) {
-            throw enf;
-        } catch (TokenValidationException e) { 
+            e = enf;
             log.error(e.toString());
-            throw new GenericException(e.toString());
-        } catch (Exception e) {
+        } catch (TokenValidationException tokenEx) { 
+            e = tokenEx;
+            log.error(e.toString());
+        } catch (Exception ex) {
+            e = ex;
             String err = "Unable to write resource with id: " + resourceId;
             log.error(err + "\n" + e.getMessage());
-            throw new GenericException(err);
         }
+        sendFailMessage(path, resourceId, token, e);
+        throw new GenericException(e.getMessage());
     }
     
     private ResourceInfo getResourceInfo(String resourceId) {
@@ -251,6 +283,74 @@ public class ResourceAccessRestController {
                 throw new TokenValidationException("Token is NULL");
             }
         } 
+    }
+    
+    
+    private void sendFailMessage(String path, String symbioteId, String token, Exception e) {
+        String jsonNotificationMessage = null;
+        String appId = "";String issuer = ""; String validationStatus = "";
+        ObjectMapper mapper = new ObjectMapper();
+        
+        String code = Integer.toString(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        String message = e.getMessage();
+        if(message == null)
+            message = e.toString();
+        
+        if(e.getClass().equals(EntityNotFoundException.class))
+            code = Integer.toString(HttpStatus.NOT_FOUND.value());
+        else if(e.getClass().equals(TokenValidationException.class))
+            code = Integer.toString(HttpStatus.FORBIDDEN.value());
+
+        
+        if(token != null && !token.isEmpty()){
+            try{
+                Token tok = new Token(token);
+                Claims claims = tok.getClaims();
+                appId = claims.getSubject();
+                issuer = claims.getIssuer();
+                ValidationStatus status = securityHandler.verifyHomeToken(tok);
+                validationStatus = status.name();
+            }
+            catch(TokenValidationException tokenExc){
+                validationStatus = tokenExc.getErrorMessage();
+            }
+            catch(Exception ex){
+                log.error(ex.getMessage());
+            }
+        }
+            
+        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        NotificationMessage notificationMessage = new NotificationMessage();
+        try {
+            notificationMessage.SetFailedAttempts(symbioteId, timestamp, 
+            code, message, appId, issuer, validationStatus, path); 
+            jsonNotificationMessage = mapper.writeValueAsString(notificationMessage);
+        } catch (JsonProcessingException jsonEx) {
+            log.error(jsonEx.getMessage());
+        }
+        NotificationMessage.SendFailAccessMessage(jsonNotificationMessage);
+    }
+    
+    public static void sendSuccessfulAccessMessage(String symbioteId, String accessType){
+        String jsonNotificationMessage = null;
+        if(accessType == null || accessType.isEmpty())
+            accessType = SuccessfulAccessMessageInfo.AccessType.NORMAL.name();
+        ObjectMapper map = new ObjectMapper();
+        map.configure(SerializationFeature.INDENT_OUTPUT, true);
+        map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        NotificationMessage notificationMessage = new NotificationMessage();
+        
+        try{
+            notificationMessage.SetSuccessfulAttempts(symbioteId, timestamp, accessType);
+            jsonNotificationMessage = map.writeValueAsString(notificationMessage);
+        } catch (JsonProcessingException e) {
+            log.error(e.getMessage());
+        }
+        NotificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
     }
 }
 
