@@ -6,8 +6,6 @@
 package eu.h2020.symbiote.plugin;
 
 import eu.h2020.symbiote.resources.RapDefinitions;
-import java.util.ArrayList;
-import java.util.List;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
@@ -45,13 +43,10 @@ public class PlatformPluginQueueConfig {
     }
 
     @Bean(name=PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE + "Bindings")
-    List<Binding> specificPluginBindings(@Qualifier(PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE) Queue queue,
-                             @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT) TopicExchange exchange) {
-        ArrayList bindings = new ArrayList();
-        for(String key : PlatformSpecificPlugin.PLUGIN_RES_ACCESS_KEYS)
-            bindings.add(BindingBuilder.bind(queue).to(exchange).with(key));
-
-        return bindings;
+    Binding specificPluginBindings(@Qualifier(PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE) Queue queue,
+                                   @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT) TopicExchange exchange) {
+        
+        return BindingBuilder.bind(queue).to(exchange).with(PlatformSpecificPlugin.PLUGIN_PLATFORM_ID + ".*");
     }
 
     @Bean(name=PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE + "Container")
@@ -67,6 +62,7 @@ public class PlatformPluginQueueConfig {
     @DependsOn(RapDefinitions.PLUGIN_REGISTRATION_EXCHANGE_IN)
     @Bean
     PlatformSpecificPlugin specificPluginReceiver() {
+        // it needs to know the exchange where to send the registration message
         return new PlatformSpecificPlugin(rabbitTemplate, exchange);
     }
 

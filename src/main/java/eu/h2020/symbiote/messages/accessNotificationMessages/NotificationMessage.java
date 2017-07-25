@@ -26,12 +26,12 @@ public class NotificationMessage {
             
     public void SetSuccessfulAttempts (String symbioTeId, Timestamp timestamp, String accessType){
         SuccessfulAccessMessageInfo succAccMess = new SuccessfulAccessMessageInfo(symbioTeId, timestamp, accessType);
-        this.successfulAttempts = new ArrayList<SuccessfulAccessMessageInfo>();
+        this.successfulAttempts = new ArrayList<>();
         this.successfulAttempts.add(succAccMess);
     }
     
     public void SetSuccessfulAttemptsList (List<String> symbioTeIdList, Timestamp timestamp, String accessType){
-        this.successfulAttempts = new ArrayList<SuccessfulAccessMessageInfo>();
+        this.successfulAttempts = new ArrayList<>();
         for(String symbioteId: symbioTeIdList){
             SuccessfulAccessMessageInfo succAccMess = new SuccessfulAccessMessageInfo(symbioteId, timestamp, accessType);
             this.successfulAttempts.add(succAccMess);
@@ -40,7 +40,7 @@ public class NotificationMessage {
     
     public void SetSuccessfulPushes (String symbioTeId, Timestamp timestamp){
         SuccessfulPushesMessageInfo succPushMess = new SuccessfulPushesMessageInfo(symbioTeId, timestamp);
-        this.successfulPushes = new ArrayList<SuccessfulPushesMessageInfo>();
+        this.successfulPushes = new ArrayList<>();
         this.successfulPushes.add(succPushMess);
     }
     
@@ -49,7 +49,7 @@ public class NotificationMessage {
             String validationStatus, String requestParams) {
         FailedAccessMessageInfo failMess= new FailedAccessMessageInfo(symbioTeId, timestamp, 
                 code, message, appId, issuer, validationStatus, requestParams);
-        this.failedAttempts = new ArrayList<FailedAccessMessageInfo>();
+        this.failedAttempts = new ArrayList<>();
         this.failedAttempts.add(failMess);
     }
     

@@ -8,7 +8,6 @@ package eu.h2020.symbiote.resources.db;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import eu.h2020.symbiote.core.model.Property;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.data.annotation.Id;
@@ -30,12 +29,17 @@ public class ResourceInfo {
     private List<String> observedProperties;
     @JsonIgnore
     private List<String> sessionIdList;
+    @JsonIgnore
+    private String pluginId;
+    
     
     public ResourceInfo() {
         this.id = "";
         this.internalId = "";
+        this.pluginId = null;
         this.observedProperties = null;
         this.sessionIdList = null;
+        
     }
     
     @JsonCreator
@@ -43,8 +47,9 @@ public class ResourceInfo {
                         @JsonProperty("internalId") String platformResourceId) {
         this.id = resourceId;
         this.internalId = platformResourceId;
+        this.pluginId = null;
         this.observedProperties = null;
-        this.sessionIdList = null;
+        this.sessionIdList = null;        
     }
     
     @JsonProperty("symbioteId")
@@ -82,5 +87,15 @@ public class ResourceInfo {
         if(this.sessionIdList == null)
             this.sessionIdList = new ArrayList();
         this.sessionIdList.add(sessionId);
+    }
+    
+    @JsonIgnore
+    public String getPluginId() {
+        return pluginId;
+    }
+    
+    @JsonIgnore
+    public void setPluginId(String pluginId) {
+        this.pluginId = pluginId;
     }
 }

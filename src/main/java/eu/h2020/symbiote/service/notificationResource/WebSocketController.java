@@ -23,6 +23,8 @@ import eu.h2020.symbiote.messages.access.ResourceAccessUnSubscribeMessage;
 import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
 import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
+import eu.h2020.symbiote.resources.db.PlatformInfo;
+import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.service.notificationResource.WebSocketMessage.Action;
 import java.io.IOException;
@@ -61,6 +63,10 @@ public class WebSocketController extends TextWebSocketHandler {
 
     @Autowired
     ResourcesRepository resourcesRepo;
+    
+    @Autowired
+    PluginRepository pluginRepo;
+    
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
@@ -153,11 +159,26 @@ public class WebSocketController extends TextWebSocketHandler {
     }
     
     private void Subscribe(WebSocketSession session, List<String> resourcesId) throws Exception {
-        List<ResourceInfo> resInfoList = new ArrayList();
+        HashMap<String, List> subscribeList = new HashMap();
         for (String resId : resourcesId) {
-            ResourceInfo resInfo = getResourceInfo(resId);
-            resInfoList.add(resInfo);
-
+            // adding new resource info to subscribe map, with pluginId as key
+            ResourceInfo resInfo = getResourceInfo(resId);            
+            String pluginId = resInfo.getPluginId();
+            // if no plugin id specified, we assume there's only one plugin attached
+            if(pluginId == null) {
+                List<PlatformInfo> lst = pluginRepo.findAll();
+                if(lst == null || lst.isEmpty())
+                    throw new Exception("No plugin found");                
+                pluginId = lst.get(0).getPlatformId();
+            } 
+            List<ResourceInfo> rl;
+            if(subscribeList.containsKey(pluginId)) {
+                rl = subscribeList.get(pluginId);
+            } else {
+                rl = new ArrayList();
+            }            
+            rl.add(resInfo);
+            subscribeList.put(pluginId, rl);
             //update DB
             List<String> sessionsIdOfRes = resInfo.getSessionId();
             if (sessionsIdOfRes == null) {
@@ -167,25 +188,45 @@ public class WebSocketController extends TextWebSocketHandler {
             resInfo.setSessionId(sessionsIdOfRes);
             resourcesRepo.save(resInfo);
         }
-        ResourceAccessMessage msg = new ResourceAccessSubscribeMessage(resInfoList);
-        String routingKey = ResourceAccessMessage.AccessType.SUBSCRIBE.toString().toLowerCase();
-
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);        
-        String json = mapper.writeValueAsString(msg);
         
-        Object o = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-        if(o == null)
-            throw new Exception("No response from plugin");
-        sendSuccessfulAccessMessage(resourcesId, SuccessfulAccessMessageInfo.AccessType.SUBSCRIPTION_START.name());
+        for(String plugin : subscribeList.keySet() ) {
+            List<ResourceInfo> resList = subscribeList.get(plugin);
+            ResourceAccessMessage msg = new ResourceAccessSubscribeMessage(resList);
+            String routingKey = plugin + "." + ResourceAccessMessage.AccessType.SUBSCRIBE.toString().toLowerCase();
+            
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);        
+            String json = mapper.writeValueAsString(msg);
+
+            rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);            
+            sendSuccessfulAccessMessage(resourcesId, SuccessfulAccessMessageInfo.AccessType.SUBSCRIPTION_START.name());
+        }
+        
     }
     
     private void Unsubscribe(WebSocketSession session, List<String> resourcesId) throws Exception {
-        List<ResourceInfo> resInfoList = new ArrayList();
+        HashMap<String, List> unsubscribeList = new HashMap();
         for (String resId : resourcesId) {
+            // adding new resource info to subscribe map, with pluginId as key
             ResourceInfo resInfo = getResourceInfo(resId);
-            resInfoList.add(resInfo);
+            String pluginId = resInfo.getPluginId();
+            // if no plugin id specified, we assume there's only one plugin attached
+            if(pluginId == null) {
+                List<PlatformInfo> lst = pluginRepo.findAll();
+                if(lst == null || lst.isEmpty())
+                    throw new Exception("No plugin found");                
+                pluginId = lst.get(0).getPlatformId();
+            } 
+            List<ResourceInfo> rl;
+            if(unsubscribeList.containsKey(pluginId)) {
+                rl = unsubscribeList.get(pluginId);
+            } else {
+                rl = new ArrayList();
+            }            
+            rl.add(resInfo);
+            unsubscribeList.put(pluginId, rl);
+            //update DB
             List<String> sessionsIdOfRes = resInfo.getSessionId();
             if (sessionsIdOfRes != null) {
                 sessionsIdOfRes.remove(session.getId());
@@ -193,16 +234,19 @@ public class WebSocketController extends TextWebSocketHandler {
                 resourcesRepo.save(resInfo);            
             }
         }
-        ResourceAccessMessage msg = new ResourceAccessUnSubscribeMessage(resInfoList);
-        String routingKey = ResourceAccessMessage.AccessType.UNSUBSCRIBE.toString().toLowerCase();
+        for(String plugin : unsubscribeList.keySet() ) {
+            List<ResourceInfo> resList = unsubscribeList.get(plugin);
+            ResourceAccessMessage msg = new ResourceAccessUnSubscribeMessage(resList);
+            String routingKey = plugin + "." + ResourceAccessMessage.AccessType.UNSUBSCRIBE.toString().toLowerCase();
 
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);        
-        String json = mapper.writeValueAsString(msg);
-        
-        rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-        sendSuccessfulAccessMessage(resourcesId, SuccessfulAccessMessageInfo.AccessType.SUBSCRIPTION_END.name());
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);        
+            String json = mapper.writeValueAsString(msg);
+
+            rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+            sendSuccessfulAccessMessage(resourcesId, SuccessfulAccessMessageInfo.AccessType.SUBSCRIPTION_END.name());
+        }
     }
 
     public void SendMessage(Observation obs) {

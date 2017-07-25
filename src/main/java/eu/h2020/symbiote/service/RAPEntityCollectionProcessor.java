@@ -15,6 +15,7 @@ import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage
 import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
+import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
 import java.io.ByteArrayInputStream;
@@ -55,7 +56,6 @@ import org.apache.olingo.server.api.uri.queryoption.expression.Expression;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpStatus;
 
 /**
  *
@@ -64,16 +64,14 @@ import org.springframework.http.HttpStatus;
 @Component
 public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
 
-    @Autowired
-    private ApplicationContext ctx;
-
     private static final Logger log = LoggerFactory.getLogger(RAPEntityCollectionProcessor.class);
-
-    private OData odata;
-    private ServiceMetadata serviceMetadata;
-
+    
     @Autowired
     ResourcesRepository resourcesRepo;
+    
+    @Autowired
+    PluginRepository pluginRepo;
+    
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
@@ -85,24 +83,22 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
 
     @Override
     public void init(OData odata, ServiceMetadata sm) {
-        this.odata = odata;
-        this.serviceMetadata = sm;
-
-        storageHelper = new StorageHelper(resourcesRepo, rabbitTemplate, exchange);
+    //    this.odata = odata;
+    //    this.serviceMetadata = sm;
+        storageHelper = new StorageHelper(resourcesRepo, pluginRepo, rabbitTemplate, exchange);
     }
 
     @Override
     public void readEntityCollection(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat)
             throws ODataApplicationException, ODataLibraryException {
-        Object obj = null;
+        Object obj;
         InputStream stream = null;
         
         ObjectMapper map = new ObjectMapper();
         map.configure(SerializationFeature.INDENT_OUTPUT, true);
         
         CustomODataApplicationException customOdataException = null;
-
-        String jsonFilter = null;
+        String jsonFilter;
         Integer top = null;
         //TOP
         TopOption topOption = uriInfo.getTopOption();
@@ -114,7 +110,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
             } else {
                 customOdataException = new CustomODataApplicationException(null,"Invalid value for $top", HttpStatusCode.BAD_REQUEST.getStatusCode(), Locale.ROOT);
                 //throw customOdataException;
-                response = setErrorResponse(response, customOdataException, responseFormat);
+                setErrorResponse(response, customOdataException, responseFormat);
                 return;
             }
         }
@@ -125,13 +121,13 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
         if (filter != null) {
             Expression expression = filter.getExpression();
             try {
-                filterQuery = storageHelper.calculateFilter(expression);
+                filterQuery = StorageHelper.calculateFilter(expression);
             } catch (ODataApplicationException odataExc) {
                 log.error(odataExc.getMessage());
                 customOdataException = new CustomODataApplicationException(null,odataExc.getMessage(),
                         odataExc.getStatusCode(), odataExc.getLocale());
                 //throw customOdataException;
-                response = setErrorResponse(response, customOdataException, responseFormat);
+                setErrorResponse(response, customOdataException, responseFormat);
                 return;
             }
 
@@ -145,7 +141,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
             }
         }
 
-        ArrayList<String> typeNameList = new ArrayList<String>();
+        ArrayList<String> typeNameList = new ArrayList();
 
         // 1st retrieve the requested EntitySet from the uriInfo
         List<UriResource> resourceParts = uriInfo.getUriResourceParts();
@@ -156,7 +152,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
             customOdataException = new CustomODataApplicationException(null,"Only EntitySet is supported", 
                     HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
             //throw customOdataException;
-                response = setErrorResponse(response, customOdataException, responseFormat);
+                setErrorResponse(response, customOdataException, responseFormat);
                 return;
         }
 
@@ -186,7 +182,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
             customOdataException = new CustomODataApplicationException(null,"Entity not found.", 
                     HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
             //throw customOdataException;
-                response = setErrorResponse(response, customOdataException, responseFormat);
+                setErrorResponse(response, customOdataException, responseFormat);
                 return;
         }
         
@@ -200,7 +196,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
             customOdataException = new CustomODataApplicationException(resource.getSymbioteId(),odataExc.getMessage(), 
                     odataExc.getStatusCode(), odataExc.getLocale());
             //throw customOdataException;
-                response = setErrorResponse(response, customOdataException, responseFormat);
+                setErrorResponse(response, customOdataException, responseFormat);
                 return;
         }
 

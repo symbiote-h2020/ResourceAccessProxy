@@ -14,6 +14,7 @@ import eu.h2020.symbiote.messages.access.RequestInfo;
 import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
+import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
 import eu.h2020.symbiote.service.RAPEntityCollectionProcessor;
@@ -53,7 +54,6 @@ import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.apache.olingo.server.api.deserializer.DeserializerResult;
 import org.apache.olingo.server.api.deserializer.ODataDeserializer;
@@ -68,14 +68,15 @@ import org.apache.olingo.server.api.uri.queryoption.expression.Expression;
 
 @Component
 public class RAPEntityProcessor implements EntityProcessor{
-
-    @Autowired
-    private ApplicationContext ctx;
     
     private static final Logger log = LoggerFactory.getLogger(RAPEntityProcessor.class);
     
     @Autowired
     ResourcesRepository resourcesRepo;
+    
+    @Autowired
+    PluginRepository pluginRepo;
+    
     @Autowired
     private RabbitTemplate rabbitTemplate;
     
@@ -93,7 +94,7 @@ public class RAPEntityProcessor implements EntityProcessor{
         this.odata = odata;
         this.serviceMetadata = sm;
         
-        storageHelper = new StorageHelper(resourcesRepo,rabbitTemplate,exchange);
+        storageHelper = new StorageHelper(resourcesRepo, pluginRepo, rabbitTemplate,exchange);
     }
     
     @Override
@@ -106,7 +107,7 @@ public class RAPEntityProcessor implements EntityProcessor{
         
         CustomODataApplicationException customOdataException = null;
 
-        String jsonFilter = null;
+        String jsonFilter;
         Integer top = null;
         //TOP
         TopOption topOption = uriInfo.getTopOption();
@@ -118,24 +119,24 @@ public class RAPEntityProcessor implements EntityProcessor{
             } else {
                 customOdataException = new CustomODataApplicationException(null,"Invalid value for $top", HttpStatusCode.BAD_REQUEST.getStatusCode(), Locale.ROOT);
                 //throw customOdataException;
-                response = RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
+                RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
                 return;
             }
         }
 
         //FILTER
         FilterOption filter = uriInfo.getFilterOption();
-        Query filterQuery = null;
+        Query filterQuery;
         if (filter != null) {
             Expression expression = filter.getExpression();
             try {
-                filterQuery = storageHelper.calculateFilter(expression);
+                filterQuery = StorageHelper.calculateFilter(expression);
             } catch (ODataApplicationException odataExc) {
                 log.error(odataExc.getMessage());
                 customOdataException = new CustomODataApplicationException(null,odataExc.getMessage(),
                         odataExc.getStatusCode(), odataExc.getLocale());
                 //throw customOdataException;
-                response = RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
+                RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
                 return;
             }
 
@@ -149,7 +150,7 @@ public class RAPEntityProcessor implements EntityProcessor{
             }
         }
 
-        ArrayList<String> typeNameList = new ArrayList<String>();
+        ArrayList<String> typeNameList = new ArrayList();
 
         // 1st retrieve the requested EntitySet from the uriInfo
         List<UriResource> resourceParts = uriInfo.getUriResourceParts();
@@ -160,15 +161,13 @@ public class RAPEntityProcessor implements EntityProcessor{
             customOdataException = new CustomODataApplicationException(null,"Only EntitySet is supported", 
                     HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
             //throw customOdataException;
-                response = RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
+                RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
                 return;
         }
 
         UriResourceEntitySet uriResourceEntitySet = (UriResourceEntitySet) uriResource;
-
         EdmEntitySet startEdmEntitySet = uriResourceEntitySet.getEntitySet();
         String typeName = startEdmEntitySet.getEntityType().getName();
-
         typeNameList.add(typeName);
 
         if (segmentCount > 1) {
@@ -190,13 +189,10 @@ public class RAPEntityProcessor implements EntityProcessor{
             customOdataException = new CustomODataApplicationException(null,"Entity not found.", 
                     HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
             //throw customOdataException;
-                response = RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
+                RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
                 return;
-        }
-        
+        }        
         //ArrayList<RequestInfo> requestInfos = storageHelper.getRequestInfoList(typeNameList,keyPredicates);
-        
-
         try {
             map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             String json = map.writeValueAsString(resource);
@@ -237,37 +233,38 @@ public class RAPEntityProcessor implements EntityProcessor{
         Entity entity = storageHelper.readEntityData(edmEntitySet, keyPredicates);
         
         
-        if(segmentCount == 1){ // this is the case for: DemoService/DemoService.svc/Categories
-            ////responseEdmEntitySet = edmEntitySet; // first (and only) entitySet
-            // 2nd: fetch the data from backend for this requested EntitySetName
-            ////responseEntityCollection = storage.readEntitySetData(edmEntitySet);
-        }else if (segmentCount == 2){ //navigation: e.g. DemoService.svc/Categories(3)/Products
-            UriResource lastSegment = resourcePaths.get(1); // don't support more complex URIs
-            if(lastSegment instanceof UriResourceNavigation){
-                UriResourceNavigation uriResourceNavigation = (UriResourceNavigation)lastSegment;
-                EdmNavigationProperty edmNavigationProperty = uriResourceNavigation.getProperty();
-                EdmEntityType targetEntityType = edmNavigationProperty.getType();
-                ////responseEdmEntitySet = Util.getNavigationTargetEntitySet(edmEntitySet, edmNavigationProperty);
-
-                // 2nd: fetch the data from backend
-                // first fetch the entity where the first segment of the URI points to
-                // e.g. Categories(3)/Products first find the single entity: Category(3)
-                
-                Entity sourceEntity = storageHelper.readEntityData(edmEntitySet, keyPredicates);
-                // error handling for e.g.  DemoService.svc/Categories(99)/Products
-                if(sourceEntity == null) {
-                    throw new ODataApplicationException("Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
-                }
-                // then fetch the entity collection where the entity navigates to
-                //responseEntityCollection = getRelatedEntityCollection(sourceEntity, targetEntityType);
-            }
-        }else{ // this would be the case for e.g. Products(1)/Category/Products
-            throw new ODataApplicationException("Not supported", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(),Locale.ROOT);
+        switch (segmentCount) {
+            case 1:
+                // this is the case for: DemoService/DemoService.svc/Categories
+                ////responseEdmEntitySet = edmEntitySet; // first (and only) entitySet
+                // 2nd: fetch the data from backend for this requested EntitySetName
+                ////responseEntityCollection = storage.readEntitySetData(edmEntitySet);
+                break;
+            case 2:
+                //navigation: e.g. DemoService.svc/Categories(3)/Products
+                UriResource lastSegment = resourcePaths.get(1); // don't support more complex URIs
+                if(lastSegment instanceof UriResourceNavigation){
+                    UriResourceNavigation uriResourceNavigation = (UriResourceNavigation)lastSegment;
+                    EdmNavigationProperty edmNavigationProperty = uriResourceNavigation.getProperty();
+                    EdmEntityType targetEntityType = edmNavigationProperty.getType();
+                    ////responseEdmEntitySet = Util.getNavigationTargetEntitySet(edmEntitySet, edmNavigationProperty);
+                    
+                    // 2nd: fetch the data from backend
+                    // first fetch the entity where the first segment of the URI points to
+                    // e.g. Categories(3)/Products first find the single entity: Category(3)
+                    
+                    Entity sourceEntity = storageHelper.readEntityData(edmEntitySet, keyPredicates);
+                    // error handling for e.g.  DemoService.svc/Categories(99)/Products
+                    if(sourceEntity == null) {
+                        throw new ODataApplicationException("Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+                    }
+                    // then fetch the entity collection where the entity navigates to
+                    //responseEntityCollection = getRelatedEntityCollection(sourceEntity, targetEntityType);
+                }   break;
+            default:
+                // this would be the case for e.g. Products(1)/Category/Products
+                throw new ODataApplicationException("Not supported", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(),Locale.ROOT);
         }
-        
-        
-        
-
         // 3. serialize
         EdmEntityType entityType = edmEntitySet.getEntityType();
 
@@ -307,7 +304,7 @@ public class RAPEntityProcessor implements EntityProcessor{
         UriResource uriResource = resourceParts.get(0); // the first segment is the EntitySet
         if (!(uriResource instanceof UriResourceEntitySet)) {
             customOdataException = new CustomODataApplicationException(null,"Only EntitySet is supported", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
-            response = RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
+            RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
             return;
         }
         
@@ -340,7 +337,7 @@ public class RAPEntityProcessor implements EntityProcessor{
         ResourceInfo resource = storageHelper.getResourceInfo(keyPredicates);
         if (resource == null) {
             customOdataException = new CustomODataApplicationException(null,"Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
-            response = RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
+            RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
             return;
         }
         DeserializerResult result = deserializer.entity(requestInputStream, targetEntityType);

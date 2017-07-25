@@ -16,7 +16,6 @@ import eu.h2020.symbiote.security.InternalSecurityHandler;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
-import eu.h2020.symbiote.security.exceptions.SecurityHandlerException;
 import eu.h2020.symbiote.exceptions.*;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceRESTCondition;
 import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
@@ -27,18 +26,15 @@ import eu.h2020.symbiote.cloud.model.data.observation.Observation;
 import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
 import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
+import eu.h2020.symbiote.resources.db.PlatformInfo;
+import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
 import io.jsonwebtoken.Claims;
-import java.io.IOException;
-import java.nio.charset.Charset;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Iterator;
 import java.util.Optional;
-import javax.servlet.http.HttpServletRequest;
-import org.apache.olingo.server.api.ODataResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
@@ -54,8 +50,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.util.StreamUtils;
 
 
 /**
@@ -84,10 +78,10 @@ public class ResourceAccessRestController {
     private ResourcesRepository resourcesRepo;
     
     @Autowired
+    private PluginRepository pluginRepo;
+    
+    @Autowired
     private InternalSecurityHandler securityHandler;    
-
-    @Value("${platform.id}") 
-    private String platformId;
 
     /**
      * Used to retrieve the current value of a registered resource
@@ -113,19 +107,26 @@ public class ResourceAccessRestController {
             mapper.setSerializationInclusion(Include.NON_EMPTY);
             String json = mapper.writeValueAsString(msg);
             
-            String routingKey = AccessType.GET.toString().toLowerCase();
+            String pluginId = info.getPluginId();
+            if(pluginId == null) {
+                List<PlatformInfo> lst = pluginRepo.findAll();
+                if(lst == null || lst.isEmpty())
+                    throw new Exception("No plugin found");
+                
+                pluginId = lst.get(0).getPlatformId();
+            }
+            String routingKey =  pluginId + "." + AccessType.GET.toString().toLowerCase();
             Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-            String response = null;
             if(obj == null)
                 throw new Exception("No response from plugin");
             
-            response = new String((byte[]) obj, "UTF-8");
+            String response = new String((byte[]) obj, "UTF-8");
             List<Observation> observationList = mapper.readValue(response, List.class);
             if(observationList == null || observationList.isEmpty())
                 throw new Exception("Plugin error");
             
             Observation o = observationList.get(0);
-            Observation ob = new eu.h2020.symbiote.cloud.model.data.observation.Observation(resourceId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
+            Observation ob = new Observation(resourceId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
             sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
             return ob;
         } catch(EntityNotFoundException enf) {
@@ -168,13 +169,21 @@ public class ResourceAccessRestController {
             mapper.setSerializationInclusion(Include.NON_EMPTY);
             String json = mapper.writeValueAsString(msg);
             
-            String routingKey = AccessType.HISTORY.toString().toLowerCase();
+            String pluginId = info.getPluginId();
+            if(pluginId == null) {
+                List<PlatformInfo> lst = pluginRepo.findAll();
+                if(lst == null || lst.isEmpty())
+                    throw new Exception("No plugin found");
+                
+                pluginId = lst.get(0).getPlatformId();
+            }
+            String routingKey =  pluginId + "." + AccessType.HISTORY.toString().toLowerCase();
             String response = (String)rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             List<Observation> observations = mapper.readValue(response, List.class);
             if(observations == null)
                 throw new Exception("Plugin error");
             
-            List<Observation> observationsList = new ArrayList<Observation>();
+            List<Observation> observationsList = new ArrayList();
             for(Observation o: observations){
                 Observation ob = new Observation(resourceId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
                 observationsList.add(ob);
@@ -210,7 +219,7 @@ public class ResourceAccessRestController {
     public ResponseEntity<?> writeResource(@PathVariable String resourceId, @RequestBody List<InputParameter> valueList,
                                            @RequestHeader("X-Auth-Token") String token) {
         Exception e = null;
-        String path = "/rap/Service/"+resourceId;
+        String path = "/rap/Service/" + resourceId;
         try {
             log.info("Received write resource request for ID = " + resourceId + " with values " + valueList);
             
@@ -223,16 +232,21 @@ public class ResourceAccessRestController {
             mapper.setSerializationInclusion(Include.NON_EMPTY);
             String json = mapper.writeValueAsString(msg);
             
-            String routingKey = AccessType.SET.toString().toLowerCase();
+            String pluginId = info.getPluginId();
+            if(pluginId == null) {
+                List<PlatformInfo> lst = pluginRepo.findAll();
+                if(lst == null || lst.isEmpty())
+                    throw new Exception("No plugin found");
+                
+                pluginId = lst.get(0).getPlatformId();
+            }
+            String routingKey =  pluginId + "." + AccessType.SET.toString().toLowerCase();
             rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             
             sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
             return new ResponseEntity<>(HttpStatus.OK);
-        } catch(EntityNotFoundException enf) {
+        } catch(EntityNotFoundException | TokenValidationException enf) {
             e = enf;
-            log.error(e.toString());
-        } catch (TokenValidationException tokenEx) { 
-            e = tokenEx;
             log.error(e.toString());
         } catch (Exception ex) {
             e = ex;

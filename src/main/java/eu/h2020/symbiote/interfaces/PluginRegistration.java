@@ -33,7 +33,7 @@ public class PluginRegistration {
             log.debug("Plugin Registration message received.\n" + message);
 
             ObjectMapper mapper = new ObjectMapper();
-            PluginRegistrationMessage msg = mapper.readValue(message, PluginRegistrationMessage.class);            
+            PluginRegistrationMessage msg = mapper.readValue(message, PluginRegistrationMessage.class);
             String platformId = msg.getPlatformId();
             RegistrationAction type = msg.getActionType();
             switch(type) {
@@ -48,7 +48,7 @@ public class PluginRegistration {
                 }
                 case UNREGISTER_PLUGIN: {
                     log.debug("Unregistering plugin for platform with id " + platformId);
-                    deletePlugin(platformId);                       
+                    deletePlugin(platformId);
                     break;
                 }
                 default:

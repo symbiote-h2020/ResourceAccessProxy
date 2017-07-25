@@ -22,8 +22,9 @@ import eu.h2020.symbiote.resources.query.Filter;
 import eu.h2020.symbiote.resources.query.Operator;
 import eu.h2020.symbiote.resources.query.Query;
 import eu.h2020.symbiote.cloud.model.data.parameter.InputParameter;
-import eu.h2020.symbiote.cloud.model.resources.Service;
 import eu.h2020.symbiote.messages.access.RequestInfo;
+import eu.h2020.symbiote.resources.db.PlatformInfo;
+import eu.h2020.symbiote.resources.db.PluginRepository;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.DateFormat;
@@ -43,7 +44,6 @@ import org.apache.olingo.commons.api.data.ComplexValue;
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.data.Property;
-import org.apache.olingo.commons.api.data.ValueType;
 import org.apache.olingo.commons.api.edm.EdmBindingTarget;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
@@ -60,7 +60,6 @@ import org.apache.olingo.commons.api.edm.EdmPrimitiveType;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeException;
 import org.apache.olingo.commons.api.edm.EdmProperty;
 import org.apache.olingo.commons.api.edm.EdmType;
-import org.apache.olingo.commons.api.edm.FullQualifiedName;
 import org.apache.olingo.commons.core.edm.primitivetype.EdmString;
 import org.apache.olingo.server.api.uri.queryoption.expression.Binary;
 import org.apache.olingo.server.api.uri.queryoption.expression.BinaryOperatorKind;
@@ -78,18 +77,21 @@ public class StorageHelper {
 
     private final int TOP_LIMIT = 100;
 
-    private ResourcesRepository resourcesRepo;
-    private RabbitTemplate rabbitTemplate;
-    private TopicExchange exchange;
+    private final ResourcesRepository resourcesRepo;
+    private final PluginRepository pluginRepo;
+    private final RabbitTemplate rabbitTemplate;
+    private final TopicExchange exchange;
 
     private static final Pattern PATTERN = Pattern.compile(
             "\\p{Digit}{1,4}-\\p{Digit}{1,2}-\\p{Digit}{1,2}"
             + "T\\p{Digit}{1,2}:\\p{Digit}{1,2}(?::\\p{Digit}{1,2})?"
             + "(Z|([-+]\\p{Digit}{1,2}:\\p{Digit}{2}))?");
 
-    public StorageHelper(ResourcesRepository resourcesRepository, RabbitTemplate rabbit, TopicExchange topicExchange) {
+    public StorageHelper(ResourcesRepository resourcesRepository, PluginRepository pluginRepository,
+                         RabbitTemplate rabbit, TopicExchange topicExchange) {
         //initSampleData();
         resourcesRepo = resourcesRepository;
+        pluginRepo = pluginRepository;
         rabbitTemplate = rabbit;
         exchange = topicExchange;
     }
@@ -98,14 +100,10 @@ public class StorageHelper {
         ResourceInfo resInfo = null;
         if(keyParams != null && !keyParams.isEmpty()){
             final UriParameter key = keyParams.get(0);
-
             String keyName = key.getName();
-
             String keyText = key.getText();
-
             //remove quote
             keyText = keyText.replaceAll("'", "");
-
             try {
                 if (keyName.equalsIgnoreCase("id")) {
                     Optional<ResourceInfo> resInfoOptional = resourcesRepo.findById(keyText);
@@ -131,13 +129,22 @@ public class StorageHelper {
             top = (top == null) ? TOP_LIMIT : top;
 
             ResourceAccessMessage msg;
+            String pluginId = resourceInfo.getPluginId();
+            if(pluginId == null) {
+                List<PlatformInfo> lst = pluginRepo.findAll();
+                if(lst == null || lst.isEmpty())
+                    throw new Exception("No plugin found");
+                
+                pluginId = lst.get(0).getPlatformId();
+            }
             String routingKey;
             if (top == 1) {
                 msg = new ResourceAccessGetMessage(resourceInfo,requestInfoList);
-                routingKey = ResourceAccessMessage.AccessType.GET.toString().toLowerCase();
+                routingKey =  pluginId + "." + ResourceAccessMessage.AccessType.GET.toString().toLowerCase();
+                
             } else {
                 msg = new ResourceAccessHistoryMessage(resourceInfo, top, filterQuery,requestInfoList);
-                routingKey = ResourceAccessMessage.AccessType.HISTORY.toString().toLowerCase();
+                routingKey =  pluginId + "." + ResourceAccessMessage.AccessType.HISTORY.toString().toLowerCase();
             }
 
             ObjectMapper mapper = new ObjectMapper();
@@ -184,10 +191,18 @@ public class StorageHelper {
     }
 
     public void setService(ResourceInfo resourceInfo, Entity requestBody, ArrayList<RequestInfo> requestInfoList) throws ODataApplicationException {
-        //if (targetEntityType.getName().equals(RAPEdmProvider.ET_SERVICE_NAME)) {
-            List<InputParameter> inputParameterList = new ArrayList<InputParameter>();
+        try {
+            List<InputParameter> inputParameterList = new ArrayList();
             ResourceAccessMessage msg;
-            String routingKey = ResourceAccessMessage.AccessType.SET.toString().toLowerCase();
+            String pluginId = resourceInfo.getPluginId();
+            if(pluginId == null) {
+                List<PlatformInfo> lst = pluginRepo.findAll();
+                if(lst == null || lst.isEmpty())
+                    throw new Exception("No plugin found");
+                
+                pluginId = lst.get(0).getPlatformId();
+            }
+            String routingKey = pluginId + "." + ResourceAccessMessage.AccessType.SET.toString().toLowerCase();
 
             Property updateProperty = requestBody.getProperty("inputParameters");
             if (updateProperty != null && updateProperty.isCollection()) {
@@ -226,14 +241,15 @@ public class StorageHelper {
                 Logger.getLogger(StorageHelper.class.getName()).log(Level.SEVERE, null, ex);
             }
 
-            Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-        //} else {
-            //throw new ODataApplicationException("Internal Error", HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), Locale.ROOT);
-        //}
+            rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+            
+        } catch (Exception e) {
+            throw new ODataApplicationException("Internal Error", HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), Locale.ROOT);
+        }
     }
     
     private List<InputParameter> fromPropertiesToInputParameter(List<Property> propertyList, List<InputParameter> inputParameter){
-        List<InputParameter> inputParameterNew = new ArrayList<InputParameter>();
+        List<InputParameter> inputParameterNew = new ArrayList();
         inputParameterNew.addAll(inputParameter);
         for(Property p : propertyList){
                 if(p.isCollection()){
@@ -384,9 +400,7 @@ public class StorageHelper {
             EdmNavigationProperty edmNavigationProperty) throws ODataApplicationException {
 
         EdmEntitySet navigationTargetEntitySet = null;
-
-        String navPropName = edmNavigationProperty.getName();
-        navPropName = edmNavigationProperty.getType().getName();
+        String navPropName  = edmNavigationProperty.getType().getName();
         EdmBindingTarget edmBindingTarget = startEdmEntitySet.getRelatedBindingTarget(navPropName);
         if (edmBindingTarget == null) {
             throw new ODataApplicationException("Not supported.",
@@ -490,7 +504,7 @@ public class StorageHelper {
 
         dateParse = dateParse.replaceAll("Z", "+00:00");
         Date date = null;
-        String parsedData = null;
+        String parsedData;
         try {
             date = dateFormat3.parse(dateParse);
         } catch (ParseException e3) {
@@ -519,7 +533,7 @@ public class StorageHelper {
     }
 
     public ArrayList<RequestInfo> getRequestInfoList(ArrayList<String> typeNameList, List<UriParameter> keyPredicates) {
-        ArrayList<RequestInfo> requestInfoList = new ArrayList<RequestInfo>();
+        ArrayList<RequestInfo> requestInfoList = new ArrayList();
         for(int i = 0; i< typeNameList.size(); i++){
             String symbioteId = null;
             String internalId = null;
