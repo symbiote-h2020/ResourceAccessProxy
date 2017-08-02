@@ -47,7 +47,9 @@ public class CustomField {
                 this.type.equalsIgnoreCase("string") ||
                 this.type.equalsIgnoreCase("boolean") ||
                 this.type.equalsIgnoreCase("integer") ||
-                this.type.equalsIgnoreCase("double") );
+                this.type.equalsIgnoreCase("double") ||
+                type.equalsIgnoreCase("DateTimeStamp") ||
+                type.equalsIgnoreCase("DateTime") );
     }
     
     public static boolean typeIsPrimitive(String type){
@@ -57,7 +59,9 @@ public class CustomField {
                 type.equalsIgnoreCase("string") ||
                 type.equalsIgnoreCase("boolean") ||
                 type.equalsIgnoreCase("integer") ||
-                type.equalsIgnoreCase("double") );
+                type.equalsIgnoreCase("double") ||
+                type.equalsIgnoreCase("DateTimeStamp") ||
+                type.equalsIgnoreCase("DateTime") );
     }
     
     public String ToString(){

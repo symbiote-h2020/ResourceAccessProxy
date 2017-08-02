@@ -294,6 +294,9 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
             fqn = EdmPrimitiveTypeKind.Int32.getFullQualifiedName();
         } else if (genericType.compareToIgnoreCase("Boolean") == 0) {
             fqn = EdmPrimitiveTypeKind.Boolean.getFullQualifiedName();
+        }else if (genericType.compareToIgnoreCase("DateTimeStamp") == 0
+                || genericType.compareToIgnoreCase("DateTime") == 0) {
+            fqn = EdmPrimitiveTypeKind.DateTimeOffset.getFullQualifiedName();
         }
 
         return fqn;
@@ -438,19 +441,20 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
             ArrayList<CsdlProperty> propList = new ArrayList();
             for (CustomField f : fields) {
                 String name = f.getName();
-                if (f.typeIsPrimitive()) {
-                    FullQualifiedName fqn = getFullQualifiedName(f.getType());
-                    CsdlProperty prop = new CsdlProperty()
+                String type = f.getType();
+                String shortType = getShortClassName(type);
+                FullQualifiedName fqn;
+                if (CustomField.typeIsPrimitive(shortType))
+                    fqn = getFullQualifiedName(shortType);
+                else
+                    fqn = new FullQualifiedName(NAMESPACE, shortType);
+                
+                CsdlProperty prop = new CsdlProperty()
                             .setName(name)
                             .setType(fqn);
-                    propList.add(prop);
-                } else {
-                    String shortName = getShortClassName(f.getType());
-                    CsdlProperty prop = new CsdlProperty()
-                            .setName(name)
-                            .setType(new FullQualifiedName(NAMESPACE, shortName));
-                    propList.add(prop);
-                }
+                if(type.contains("[]"))
+                    prop.setCollection(true);
+                propList.add(prop);
             }
             CsdlComplexType cpx = new CsdlComplexType()
                     .setName(complexTypeName.getName())
