@@ -122,8 +122,8 @@ public class RAPEdmController {
         Exception e = null;
         try {
 
-            //String token = req.getHeader("X-Auth-Token");
-            //checkToken(token);
+            token = req.getHeader("X-Auth-Token");
+            checkToken(token);
             OData odata = OData.newInstance();
             ServiceMetadata edm = odata.createServiceMetadata(edmProvider, new ArrayList());
 
@@ -133,7 +133,7 @@ public class RAPEdmController {
 
             response = handler.process(createODataRequest(req, split));
             
-            String responseStr = "";
+            String responseStr;
             if(response.getStatusCode() != HttpStatus.OK.value())
                 responseStr = sendFailMessage(req, token, response);
             else 
@@ -146,9 +146,9 @@ public class RAPEdmController {
             headers.add("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token");
 
             return new ResponseEntity(responseStr, headers, HttpStatus.valueOf(response.getStatusCode()));
-//        } catch (TokenValidationException ex) { 
-//            e = ex;
-//            log.error(e.toString());
+        } catch (TokenValidationException ex) { 
+            e = ex;
+            log.error(e.toString());
         } catch (Exception exc) {
             e = exc;
             log.error(e.toString());
