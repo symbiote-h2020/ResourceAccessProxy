@@ -12,17 +12,14 @@ package eu.h2020.symbiote.service;
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
 import eu.h2020.symbiote.security.InternalSecurityHandler;
 import eu.h2020.symbiote.security.token.Token;
-import eu.h2020.symbiote.security.session.AAM;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
-import eu.h2020.symbiote.security.exceptions.SecurityHandlerException;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceODataCondition;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
-import java.util.Iterator;
 
 import javax.servlet.http.HttpServletRequest;
 import org.apache.olingo.commons.api.ex.ODataException;
@@ -39,7 +36,6 @@ import org.apache.olingo.server.core.ODataHandlerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -59,12 +55,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
 import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import io.jsonwebtoken.Claims;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
 import java.sql.Timestamp;
-import java.util.logging.Level;
-import org.apache.olingo.server.api.ODataContent;
 
 /*
 *
@@ -122,8 +113,8 @@ public class RAPEdmController {
         Exception e = null;
         try {
 
-            //String token = req.getHeader("X-Auth-Token");
-            //checkToken(token);
+            token = req.getHeader("X-Auth-Token");
+            checkToken(token);
             OData odata = OData.newInstance();
             ServiceMetadata edm = odata.createServiceMetadata(edmProvider, new ArrayList());
 
@@ -146,9 +137,9 @@ public class RAPEdmController {
             headers.add("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token");
 
             return new ResponseEntity(responseStr, headers, HttpStatus.valueOf(response.getStatusCode()));
-//        } catch (TokenValidationException ex) { 
-//            e = ex;
-//            log.error(e.toString());
+        } catch (TokenValidationException ex) { 
+            e = ex;
+            log.error(e.toString());
         } catch (Exception exc) {
             e = exc;
             log.error(e.toString());
