@@ -66,6 +66,7 @@ import org.apache.olingo.server.api.uri.queryoption.expression.BinaryOperatorKin
 import org.apache.olingo.server.api.uri.queryoption.expression.Expression;
 import org.apache.olingo.server.api.uri.queryoption.expression.Literal;
 import org.apache.olingo.server.api.uri.queryoption.expression.Member;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
@@ -74,7 +75,8 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
  * @author Luca Tomaselli <l.tomaselli@nextworks.it>
  */
 public class StorageHelper {
-
+    private static final org.slf4j.Logger log = LoggerFactory.getLogger(StorageHelper.class);
+    
     private final int TOP_LIMIT = 100;
 
     private final ResourcesRepository resourcesRepo;
@@ -204,31 +206,13 @@ public class StorageHelper {
             }
             String routingKey = pluginId + "." + ResourceAccessMessage.AccessType.SET.toString().toLowerCase();
 
-            Property updateProperty = requestBody.getProperty("inputParameters");
-            if (updateProperty != null && updateProperty.isCollection()) {
-                List<ComplexValue> name_value = (List<ComplexValue>) updateProperty.asCollection();
-                for (ComplexValue complexValue : name_value) {
-                    List<Property> properties = complexValue.getValue();
-                    String name = null;
-                    String value = null;
-                    for (Property p : properties) {
-                        String pName = p.getName();
-                        if (pName.equals("name")) {
-                            name = (String) p.getValue();
-                        } else if (pName.equals("value")) {
-                            value = (String) p.getValue();
-                        }
-                    }
-                    InputParameter ip = new InputParameter(name);
-                    ip.setValue(value);
-                    inputParameterList.add(ip);
-                }
-            }
+            
+            String requestBodyStr = requestBody.toString();            
             
             List<Property> updatePropertyList = requestBody.getProperties();
             inputParameterList = fromPropertiesToInputParameter(updatePropertyList,inputParameterList);
             
-            msg = new ResourceAccessSetMessage(resourceInfo, inputParameterList,requestInfoList);
+            msg = new ResourceAccessSetMessage(resourceInfo, requestBodyStr,requestInfoList);
 
             String json = "";
             try {
@@ -240,7 +224,7 @@ public class StorageHelper {
             } catch (JsonProcessingException ex) {
                 Logger.getLogger(StorageHelper.class.getName()).log(Level.SEVERE, null, ex);
             }
-
+            log.info("Message Set: "+json);
             rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             
         } catch (Exception e) {

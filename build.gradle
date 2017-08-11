@@ -119,8 +119,9 @@ dependencies {
     //}
     
     //Owlapi
-    compile('net.sourceforge.owlapi:owlapi-distribution:5.1.0')
-    compile('net.sourceforge.owlapi:owlapi-contract:3.4')
+    compile('net.sourceforge.owlapi:owlapi-distribution:5.1.1')
+    compile('net.sourceforge.owlapi:owlapi-contract:5.1.1')
+    compile('net.sourceforge.owlapi:owlapi-util:3.3')
 }
 
 

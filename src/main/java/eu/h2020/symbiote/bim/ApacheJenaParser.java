@@ -5,6 +5,7 @@
  */
 package eu.h2020.symbiote.bim;
 
+import eu.h2020.symbiote.core.model.RDFFormat;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;

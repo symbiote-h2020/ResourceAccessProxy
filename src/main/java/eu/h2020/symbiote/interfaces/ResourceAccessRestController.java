@@ -216,17 +216,17 @@ public class ResourceAccessRestController {
      * @return              the http response code
      */
     @RequestMapping(value="/rap/Service/{resourceId}", method=RequestMethod.POST)
-    public ResponseEntity<?> writeResource(@PathVariable String resourceId, @RequestBody List<InputParameter> valueList,
+    public ResponseEntity<?> writeResource(@PathVariable String resourceId, @RequestBody String body,
                                            @RequestHeader("X-Auth-Token") String token) {
         Exception e = null;
         String path = "/rap/Service/" + resourceId;
         try {
-            log.info("Received write resource request for ID = " + resourceId + " with values " + valueList);
+            log.info("Received write resource request for ID = " + resourceId + " with values " + body);
             
             checkToken(token);
 
             ResourceInfo info = getResourceInfo(resourceId);
-            ResourceAccessSetMessage msg = new ResourceAccessSetMessage(info, valueList);            
+            ResourceAccessSetMessage msg = new ResourceAccessSetMessage(info, body);            
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             mapper.setSerializationInclusion(Include.NON_EMPTY);

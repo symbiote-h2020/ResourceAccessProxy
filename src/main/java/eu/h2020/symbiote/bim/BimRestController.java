@@ -41,37 +41,10 @@ public class BimRestController {
     
     private static final String BIM_FILE = "/bim-0.3.owl";
     
-    @RequestMapping(value="/bim", method=RequestMethod.GET)
-    public HashMap<String,HashMap<String,ArrayList<String>>> readResource() {  
-        HashMap<String,HashMap<String,ArrayList<String>>> map = new HashMap<String,HashMap<String,ArrayList<String>>>();
-        try {
-            String c = "CIAO";
-            TripleStore t = new TripleStore();
-            map = t.map;
-            String b = "CIAO";
-        } catch (Exception e) {
-            log.error(e.getMessage());
-            throw new GenericException(e.getMessage());
-        }
-        return map;
-    }
+
+
     
-    @RequestMapping(value="/bim2", method=RequestMethod.GET)
-    public HashMap<String,HashMap<String,ArrayList<String>>> readResource2() {  
-        HashMap<String,HashMap<String,ArrayList<String>>> map = new HashMap<String,HashMap<String,ArrayList<String>>>();
-        try {
-            String c = "CIAO";
-            TripleStore t = new TripleStore("null");
-            map = t.map;
-            String b = "CIAO";
-        } catch (Exception e) {
-            log.error(e.getMessage());
-            throw new GenericException(e.getMessage());
-        }
-        return map;
-    }
-    
-    
+    /*
     @RequestMapping(value="/bim3", method=RequestMethod.GET)
     public HashMap<String,HashMap<String,ArrayList<String>>> readResource3() {  
         HashMap<String,HashMap<String,ArrayList<String>>> result = new HashMap<String,HashMap<String,ArrayList<String>>>();
@@ -83,14 +56,14 @@ public class BimRestController {
             throw new GenericException(e.getMessage());
         }
         return result;
-    }
+    }*/
     
     @RequestMapping(value="/bim4", method=RequestMethod.GET)
     public HashMap<String,HashMap<String,String>> readResource4() {  
         HashMap<String,HashMap<String,String>> result = new HashMap<String,HashMap<String,String>>();
         try {
             OwlapiHelp oah = new OwlapiHelp();
-            result = oah.createMapClass2PropAndSuperclass();
+            result = oah.createMapClass2PropAndSuperclassTest();
         } catch (Exception e) {
             log.error(e.getMessage());
             throw new GenericException(e.getMessage());
@@ -103,7 +76,20 @@ public class BimRestController {
         HashMap<String,HashMap<String,String>> result = new HashMap<String,HashMap<String,String>>();
         try {
             OwlapiHelp oah = new OwlapiHelp();
-            result = oah.fromOwlToClasses();
+            result = oah.getClasses();
+        } catch (Exception e) {
+            log.error(e.getMessage());
+            throw new GenericException(e.getMessage());
+        }
+        return result;
+    }
+    
+    @RequestMapping(value="/bimCompleteTest", method=RequestMethod.GET)
+    public HashMap<String,HashMap<String,String>> readResourceCompleteTest() {  
+        HashMap<String,HashMap<String,String>> result = new HashMap<String,HashMap<String,String>>();
+        try {
+            OwlapiHelp oah = new OwlapiHelp(true);
+            result = oah.getClasses();
         } catch (Exception e) {
             log.error(e.getMessage());
             throw new GenericException(e.getMessage());

@@ -70,7 +70,7 @@ public abstract class PlatformPlugin {
                 case SET: {
                     ResourceAccessSetMessage mess = (ResourceAccessSetMessage)msg;
                     ResourceInfo info = mess.getResourceInfo();
-                    writeResource(info.getInternalId(), mess.getInputParameters());
+                    writeResource(info.getInternalId(), mess.getBody());
                     break;
                 }
                 case SUBSCRIBE: {
@@ -124,7 +124,7 @@ public abstract class PlatformPlugin {
     *   OVERRIDE this, inserting here a call to the platform with internal resource id
     *   setting the actuator value
     */
-    public abstract void writeResource(String resourceId, List<InputParameter> valueList);
+    public abstract void writeResource(String resourceId, String body);
         
     /*  
     *   OVERRIDE this, inserting the query to the platform with internal resource id

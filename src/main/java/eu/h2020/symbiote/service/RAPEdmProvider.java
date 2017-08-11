@@ -6,9 +6,7 @@
 package eu.h2020.symbiote.service;
 
 import eu.h2020.symbiote.bim.OwlapiHelp;
-import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeKind;
@@ -27,14 +25,7 @@ import org.apache.olingo.commons.api.edm.provider.CsdlSchema;
 import org.apache.olingo.commons.api.ex.ODataException;
 import org.springframework.stereotype.Component;
 
-import eu.h2020.symbiote.cloud.model.resources.Sensor;
-import eu.h2020.symbiote.cloud.model.data.observation.Observation;
-import eu.h2020.symbiote.cloud.model.resources.Actuator;
-import eu.h2020.symbiote.cloud.model.resources.ActuatingService;
 import eu.h2020.symbiote.interfaces.ResourceAccessRestController;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -43,9 +34,9 @@ import java.util.Set;
 import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.annotation.Id;
 
 import org.semanticweb.owlapi.model.IRI;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * this class is supposed to declare the metadata of the OData service it is
@@ -66,37 +57,18 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
     public static final String CONTAINER_NAME = "Container";
     public static final FullQualifiedName CONTAINER = new FullQualifiedName(NAMESPACE, CONTAINER_NAME);
 
-    // Entity Type Names
-//    public static final String ET_OBSERVATION_NAME = Observation.class.getSimpleName();
-//    public static final FullQualifiedName ET_OBSERVATION_FQN = new FullQualifiedName(NAMESPACE, ET_OBSERVATION_NAME);    
-//    public static final String ET_SENSOR_NAME = Sensor.class.getSimpleName();
-//    public static final FullQualifiedName ET_SENSOR_FQN = new FullQualifiedName(NAMESPACE, ET_SENSOR_NAME);
-//    public static final String ET_ACTUATOR_NAME = Actuator.class.getSimpleName();
-//    public static final FullQualifiedName ET_ACTUATOR_FQN = new FullQualifiedName(NAMESPACE, ET_ACTUATOR_NAME);
-//    public static final String ET_SERVICE_NAME = ActuatingService.class.getSimpleName();
-//    public static final FullQualifiedName ET_SERVICE_FQN = new FullQualifiedName(NAMESPACE, ET_SERVICE_NAME);
-//    // Entity Set Names
-//    public static final String ES_OBSERVATIONS_NAME =  Observation.class.getSimpleName() + "s";
-//    public static final String ES_SENSORS_NAME = Sensor.class.getSimpleName() + "s";    
-//    public static final String ES_ACTUATORS_NAME =  Actuator.class.getSimpleName() + "s";
-//    public static final String ES_SERVICES_NAME = ActuatingService.class.getSimpleName() + "s";    
-    private OwlapiHelp owlApiHelp = null;
+
+    @Autowired
+    private OwlapiHelp owlApiHelp;
     private HashMap<String, HashMap<String, String>> classes;
-    private HashSet<String> classesStart;
     private HashMap<String, List<CustomField>> class2field = new HashMap<String, List<CustomField>>();
 
+
     public void initialize() {
-        int level = 1;
-        owlApiHelp = new OwlapiHelp();
-        classes = owlApiHelp.fromOwlToClasses();
-        classesStart = owlApiHelp.getClassesStart(level);
+        classes = owlApiHelp.getClasses();
     }
 
-    public HashSet<String> getClassesStart() {
-        //if(classesStart == null){
-        //initialize();
-        //}
-        //return classesStart;
+    public HashSet<String> getClassesName() {
         Set<String> setKey = getClasses().keySet();
         HashSet<String> classes = new HashSet<String>();
         classes.addAll(setKey);
@@ -119,7 +91,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
 
             // add EntityTypes
             List<CsdlEntityType> entityTypes = new ArrayList();
-            for (String s : getClassesStart()) {
+            for (String s : getClassesName()) {
                 IRI iri = IRI.create(s);
                 entityTypes.add(getEntityType(new FullQualifiedName(NAMESPACE, iri.getShortForm())));
             }
@@ -128,7 +100,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
             //add ComplexTypes
             List<CsdlComplexType> complexTypes = new ArrayList();
             Map<String, Class> parentClasses = new HashMap();
-            for (String iriString : getClassesStart()) {
+            for (String iriString : getClassesName()) {
                 List<CustomField> fields = getAllFields(iriString);
                 for (CustomField f : fields) {
                     if (f.typeIsPrimitive()) {
@@ -353,7 +325,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
         //create EntityType properties
         try {
             //Class [] classes = {Sensor.class, Actuator.class, ActuatingService.class};
-            String className = getClassLongName(entityTypeName.getName(), getClassesStart());
+            String className = getClassLongName(entityTypeName.getName(), getClassesName());
             List<CustomField> fields = getAllFields(className);
             ArrayList<CsdlProperty> lst = new ArrayList();
             List<CsdlNavigationProperty> navPropList = new ArrayList<>();
@@ -414,7 +386,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
                 entityType.setKey(Collections.singletonList(propertyRef));
             }
 
-            String fath = getContainerClass(className, getClassesStart());
+            String fath = getContainerClass(className, getClassesName());
             if (fath != null) {
                 CsdlNavigationProperty navProp1 = new CsdlNavigationProperty()
                         .setName(getShortClassName(fath))
@@ -436,7 +408,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
     public CsdlComplexType getComplexType(final FullQualifiedName complexTypeName) throws ODataException {
 
         try {
-            String className = getClassLongName(complexTypeName.getName(), getClassesStart());
+            String className = getClassLongName(complexTypeName.getName(), getClassesName());
             List<CustomField> fields = getAllFields(className);
             ArrayList<CsdlProperty> propList = new ArrayList();
             for (CustomField f : fields) {
@@ -472,7 +444,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
     public CsdlEntitySet getEntitySet(FullQualifiedName entityContainer, String entitySetName) throws ODataException {
 
         if (entityContainer.equals(CONTAINER)) {
-            HashSet<String> classess = getClassesStart();
+            HashSet<String> classess = getClassesName();
             Optional<String> classLongName = classess.stream().filter(str -> (getShortClassName(str) + "s").equalsIgnoreCase(entitySetName)).findFirst();
             if (classLongName.isPresent()) {
                 String s = classLongName.get();
@@ -485,7 +457,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
                 List<CustomField> fields = getAllFields(s);
                 for (CustomField f : fields) {
                     String type = f.getType();
-                    if (type.contains("[]") && getClassesStart().contains(type.replace("[]", ""))) {
+                    if (type.contains("[]") && getClassesName().contains(type.replace("[]", ""))) {
                         String typeSimpleName = getShortClassName(type) + "s";
                         //String typeSimpleName = f.getName() + "s";
                         CsdlNavigationPropertyBinding navPropBinding = new CsdlNavigationPropertyBinding();
@@ -508,7 +480,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
 
         // create EntitySets
         List<CsdlEntitySet> entitySets = new ArrayList();
-        for (String s : getClassesStart()) {
+        for (String s : getClassesName()) {
             entitySets.add(getEntitySet(CONTAINER, getShortClassName(s) + "s"));
         }
         // create EntityContainer

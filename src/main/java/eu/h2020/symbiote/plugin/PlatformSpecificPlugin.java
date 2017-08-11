@@ -6,7 +6,6 @@
 package eu.h2020.symbiote.plugin;
 
 import eu.h2020.symbiote.cloud.model.data.observation.Location;
-import eu.h2020.symbiote.cloud.model.data.parameter.InputParameter;
 import eu.h2020.symbiote.cloud.model.data.observation.Observation;
 import eu.h2020.symbiote.cloud.model.data.observation.Property;
 import eu.h2020.symbiote.cloud.model.data.observation.UnitOfMeasurement;
@@ -54,7 +53,7 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
     }
     
     @Override
-    public void writeResource(String resourceId, List<InputParameter> valueList) {
+    public void writeResource(String resourceId, String body) {
         // INSERT HERE: call to the platform with internal resource id
         // setting the actuator value
     }

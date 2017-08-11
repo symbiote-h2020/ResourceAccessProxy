@@ -19,8 +19,8 @@ public class ResourceAccessSetMessage extends ResourceAccessMessage{
     @JsonProperty("resourceInfo")
     private final ResourceInfo resInfo;
     
-    @JsonProperty("inputParameters")
-    private final List<InputParameter> inputParameters;
+    @JsonProperty("body")
+    private final String body;
     
     @JsonProperty("requestInfo")
     private List<RequestInfo> requestInfo;
@@ -28,30 +28,30 @@ public class ResourceAccessSetMessage extends ResourceAccessMessage{
     /**
      * JSON Constructor
      * @param resInfo               the resource data information
-     * @param inputParameters       the list of parameters to set
+     * @param body                  the body of request
      */
     @JsonCreator
     public ResourceAccessSetMessage(@JsonProperty("resourceInfo") ResourceInfo resInfo, 
-                                    @JsonProperty("inputParameters") List<InputParameter> inputParameters) {
+                                    @JsonProperty("body") String body) {
         this.accessType = ResourceAccessMessage.AccessType.SET;
         this.resInfo = resInfo;
-        this.inputParameters = inputParameters;
+        this.body = body;
         requestInfo = null;
     }
     
     /**
      * JSON Constructor
      * @param resInfo               the resource data information
-     * @param inputParameters       the list of parameters to set
+     * @param body                  the body of request
      * @param requestInfo           the path of request
      */
     @JsonCreator
     public ResourceAccessSetMessage(@JsonProperty("resourceInfo") ResourceInfo resInfo, 
-                                    @JsonProperty("inputParameters") List<InputParameter> inputParameters,
+                                    @JsonProperty("body") String body,
                                     @JsonProperty("requestInfo") List<RequestInfo> requestInfo) {
         this.accessType = ResourceAccessMessage.AccessType.SET;
         this.resInfo = resInfo;
-        this.inputParameters = inputParameters;
+        this.body = body;
         this.requestInfo = requestInfo;
     }
     
@@ -60,8 +60,8 @@ public class ResourceAccessSetMessage extends ResourceAccessMessage{
         return resInfo;
     }
     
-    @JsonProperty("inputParameters")
-    public List<InputParameter> getInputParameters() {
-        return inputParameters;
+    @JsonProperty("body")
+    public String getBody() {
+        return body;
     }
 }
