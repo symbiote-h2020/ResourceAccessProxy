@@ -29,9 +29,12 @@ import org.semanticweb.owlapi.search.EntitySearcher;
 import org.springframework.context.annotation.Configuration;
 import uk.ac.manchester.cs.owl.owlapi.OWLDataExactCardinalityImpl;
 import uk.ac.manchester.cs.owl.owlapi.OWLDataMaxCardinalityImpl;
+import uk.ac.manchester.cs.owl.owlapi.OWLDataPropertyImpl;
+import uk.ac.manchester.cs.owl.owlapi.OWLNamedIndividualImpl;
 import uk.ac.manchester.cs.owl.owlapi.OWLObjectExactCardinalityImpl;
 import uk.ac.manchester.cs.owl.owlapi.OWLObjectHasValueImpl;
 import uk.ac.manchester.cs.owl.owlapi.OWLObjectMaxCardinalityImpl;
+import uk.ac.manchester.cs.owl.owlapi.OWLObjectPropertyImpl;
 import uk.ac.manchester.cs.owl.owlapi.OWLSubClassOfAxiomImpl;
 
 /**
@@ -318,23 +321,41 @@ public class OwlapiHelp {
                             //TAKE owl:Restriction 
                             else if(typeOfSuperClass.equals(OWLObjectHasValueImpl.class.getName())){
                                 OWLObjectHasValueImpl owlObjectHasValueImpl = (OWLObjectHasValueImpl) superClassExpression;
-                                OWLObjectPropertyExpression proExp = owlObjectHasValueImpl.getProperty();
-                                OWLObjectProperty property= proExp.getNamedProperty();
                                 OWLIndividual individual = owlObjectHasValueImpl.getFiller();
                                 
                                 Multimap<OWLDataPropertyExpression,OWLLiteral> exprLiteral = EntitySearcher.getDataPropertyValues(individual, ontology);
                                 for(OWLDataPropertyExpression exp : exprLiteral.keys()){
-                                    Collection<OWLLiteral> literalC = exprLiteral.get(exp);
-                                    for(OWLLiteral literal : literalC){
-                                        String literalStr = literal.toString();
+                                    IRI iriDataPropertyImpl = null;
+                                    try{
+                                        OWLDataPropertyImpl dataPropertyImpl = (OWLDataPropertyImpl) exp;
+                                        iriDataPropertyImpl = dataPropertyImpl.getIRI();
+                                    }catch(Exception e){}
+                                    
+                                    if(iriDataPropertyImpl != null && iriDataPropertyImpl.getShortForm().contains("name") ){
+                                        Collection<OWLLiteral> literalC = exprLiteral.get(exp);
+                                        for(OWLLiteral literal : literalC){
+                                            namePro = literal.getLiteral();
+                                        }
                                     }
                                 }
                                 
                                 Multimap<OWLObjectPropertyExpression,OWLIndividual> exprIndividual = EntitySearcher.getObjectPropertyValues(individual, ontology);
                                 for(OWLObjectPropertyExpression exp : exprIndividual.keys()){
-                                    Collection<OWLIndividual> individualC = exprIndividual.get(exp);
-                                    for(OWLIndividual individual0 : individualC){
-                                        String individualStr = individual0.toString();
+                                    IRI iriObjectPropertyImpl = null;
+                                    try{
+                                        OWLObjectPropertyImpl objectPropertyImpl = (OWLObjectPropertyImpl) exp;
+                                        iriObjectPropertyImpl = objectPropertyImpl.getIRI();
+                                    }catch(Exception e){}                                   
+                                    
+                                    if(iriObjectPropertyImpl != null && iriObjectPropertyImpl.getShortForm().contains("hasDatatype") && !namePro.isEmpty()){
+                                        Collection<OWLIndividual> individualC = exprIndividual.get(exp);
+                                        for(OWLIndividual individual0 : individualC){
+                                            try{
+                                                OWLNamedIndividualImpl namedIndividualImpl = (OWLNamedIndividualImpl) individual0;
+                                                typeClass = namedIndividualImpl.getIRI().getShortForm();
+                                                isArray = false;
+                                            }catch(Exception e){}
+                                        }
                                     }
                                 }
                             }

@@ -19,11 +19,15 @@ import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
 import eu.h2020.symbiote.service.RAPEntityCollectionProcessor;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.logging.Level;
+import org.apache.commons.io.IOUtils;
 import org.apache.olingo.commons.api.data.ContextURL;
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
@@ -227,6 +231,7 @@ public class RAPEntityProcessor implements EntityProcessor{
         EntityCollection responseEntityCollection = null; // for the response body
         String responseString = null;
         InputStream stream = null;
+        String body = null;
         
         ArrayList<String> typeNameList = new ArrayList<String>();
 
@@ -273,12 +278,22 @@ public class RAPEntityProcessor implements EntityProcessor{
             RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
             return;
         }
+        
+        
+        try { 
+            body = IOUtils.toString(requestInputStream, "UTF-8");
+        } catch (IOException ex) {
+            java.util.logging.Logger.getLogger(RAPEntityProcessor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        requestInputStream = new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8));
         DeserializerResult result = deserializer.entity(requestInputStream, targetEntityType);
         Entity requestEntity = result.getEntity();
         
+        
+        
         ArrayList<RequestInfo> requestInfos = storageHelper.getRequestInfoList(typeNameList,keyPredicates);
         
-        storageHelper.setService(resource, requestEntity, requestInfos);
+        storageHelper.setService(resource, body, requestInfos);
         
 
         try{

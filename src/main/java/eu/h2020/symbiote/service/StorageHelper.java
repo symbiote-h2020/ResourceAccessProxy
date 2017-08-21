@@ -192,9 +192,8 @@ public class StorageHelper {
         }
     }
 
-    public void setService(ResourceInfo resourceInfo, Entity requestBody, ArrayList<RequestInfo> requestInfoList) throws ODataApplicationException {
+    public void setService(ResourceInfo resourceInfo, String requestBody, ArrayList<RequestInfo> requestInfoList) throws ODataApplicationException {
         try {
-            List<InputParameter> inputParameterList = new ArrayList();
             ResourceAccessMessage msg;
             String pluginId = resourceInfo.getPluginId();
             if(pluginId == null) {
@@ -205,14 +204,8 @@ public class StorageHelper {
                 pluginId = lst.get(0).getPlatformId();
             }
             String routingKey = pluginId + "." + ResourceAccessMessage.AccessType.SET.toString().toLowerCase();
-
             
-            String requestBodyStr = requestBody.toString();            
-            
-            List<Property> updatePropertyList = requestBody.getProperties();
-            inputParameterList = fromPropertiesToInputParameter(updatePropertyList,inputParameterList);
-            
-            msg = new ResourceAccessSetMessage(resourceInfo, requestBodyStr,requestInfoList);
+            msg = new ResourceAccessSetMessage(resourceInfo, requestBody,requestInfoList);
 
             String json = "";
             try {
