@@ -42,8 +42,9 @@ public class ResourceRegistration {
             for(CloudResource msg: msgs){
                 String internalId = msg.getInternalId();
                 Resource resource = msg.getResource();
+                String pluginId = msg.getPluginId();
                 String resourceClass = resource.getClass().getName();
-                String symbioteId = resource.getId();                
+                String symbioteId = resource.getId();
                 List<String> props = null;
                 if(resource instanceof StationarySensor) {
                     props = ((StationarySensor)resource).getObservesProperty();
@@ -54,7 +55,6 @@ public class ResourceRegistration {
                 if(symbioteId == null){
                     symbioteId = Integer.toString((int)(Math.random() * Integer.MAX_VALUE));
                 }
-                String pluginId = /*resource.getPluginId()*/"";
 
                 log.info("Registering "+ resourceClass +" with symbioteId: " + symbioteId + ", internalId: " + internalId);
                 addResource(symbioteId, internalId, props, pluginId);
@@ -89,14 +89,14 @@ public class ResourceRegistration {
             for(CloudResource msg: msgs){
                 String internalId = msg.getInternalId();
                 Resource resource = msg.getResource();
+                String pluginId = msg.getPluginId();
                 String symbioteId = resource.getId();
                 List<String> props = null;
                 if(resource instanceof StationarySensor) {
                     props = ((StationarySensor)resource).getObservesProperty();
                 } else if(resource instanceof MobileSensor) {
                     props = ((MobileSensor)resource).getObservesProperty();
-                }
-                String pluginId = /*resource.getPluginId()*/"";
+                }                
                 
                 log.info("Updating resource with symbioteId: " + symbioteId + ", internalId: " + internalId);                
                 addResource(symbioteId, internalId, props, pluginId);
