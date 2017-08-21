@@ -17,7 +17,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 //@JsonInclude(Include.NON_NULL)
 public class RequestInfo {
     
-    @JsonProperty("obj")
+    @JsonProperty("devicePath")
     private String obj;
     @JsonProperty("symbioteId")
     private String id;
@@ -31,7 +31,7 @@ public class RequestInfo {
      * @param internalId  
      */
     @JsonCreator
-    public RequestInfo(@JsonProperty("obj") String obj, 
+    public RequestInfo(@JsonProperty("devicePath") String obj, 
             @JsonProperty("symbioteId") String id, 
             @JsonProperty("internalId") String internalId) {
         this.obj = obj;

@@ -5,8 +5,6 @@
  */
 package eu.h2020.symbiote.resources;
 
-import org.springframework.beans.factory.annotation.Value;
-
 /**
  *
  * @author Matteo Pardi <m.pardi@nextworks.it>

@@ -124,7 +124,7 @@ public class RAPEdmController {
 
             response = handler.process(createODataRequest(req, split));
             
-            String responseStr = "";
+            String responseStr;
             if(response.getStatusCode() != HttpStatus.OK.value())
                 responseStr = sendFailMessage(req, token, response);
             else 
