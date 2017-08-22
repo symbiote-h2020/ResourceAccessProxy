@@ -22,9 +22,11 @@ public class ResourceInfo {
     
     @Id
     @JsonProperty("symbioteId")
-    private final String id;
+    private String id;
     @JsonProperty("internalId")
-    private final String internalId;
+    private String internalId;
+    @JsonProperty("type")
+    private String type;
     @JsonProperty("observedProperties")
     private List<String> observedProperties;
     @JsonIgnore
@@ -39,7 +41,7 @@ public class ResourceInfo {
         this.pluginId = null;
         this.observedProperties = null;
         this.sessionIdList = null;
-        
+        this.type = null;
     }
     
     @JsonCreator
@@ -49,7 +51,8 @@ public class ResourceInfo {
         this.internalId = platformResourceId;
         this.pluginId = null;
         this.observedProperties = null;
-        this.sessionIdList = null;        
+        this.sessionIdList = null;       
+        this.type = null;
     }
     
     @JsonProperty("symbioteId")
@@ -57,9 +60,19 @@ public class ResourceInfo {
         return id;
     }
     
+    @JsonProperty("symbioteId")
+    public void setSymbioteId(String symbioteId) {
+        this.id = symbioteId;
+    }
+    
     @JsonProperty("internalId")
     public String getInternalId() {
         return internalId;
+    }
+    
+    @JsonProperty("internalId")
+    public void setInternalId(String internalId) {
+        this.internalId = internalId;
     }
     
     @JsonProperty("observedProperties")
@@ -70,6 +83,16 @@ public class ResourceInfo {
     @JsonProperty("observedProperties")
     public void setObservedProperties(List<String> observedProperties) {
         this.observedProperties = observedProperties;
+    }
+    
+    @JsonProperty("type")
+    public String getType() {
+        return type;
+    }
+    
+    @JsonProperty("type")
+    public void setType(String type) {
+        this.type = type;
     }
     
     @JsonIgnore

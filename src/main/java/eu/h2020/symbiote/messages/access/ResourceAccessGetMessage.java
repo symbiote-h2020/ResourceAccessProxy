@@ -17,31 +17,21 @@ import java.util.List;
 public class ResourceAccessGetMessage extends ResourceAccessMessage {
     
     @JsonProperty("resourceInfo")
-    ResourceInfo resInfo;
-    
-    @JsonProperty("requestInfo")
-    List<RequestInfo> requestInfo;
+    List<ResourceInfo> resInfo;
+   
     
     /**
      * JSON Constructor
-     * @param resInfo               the resource data information   
-     * @param requestInfo           the path of request
+     * @param resInfo               the resource data information  
      */
     @JsonCreator
-    public ResourceAccessGetMessage(@JsonProperty("resourceInfo") ResourceInfo resInfo, 
-            @JsonProperty("requestInfo") List<RequestInfo> requestInfo){
+    public ResourceAccessGetMessage(@JsonProperty("resourceInfo") List<ResourceInfo> resInfo){
         this.accessType = AccessType.GET;
         this.resInfo = resInfo;
-        this.requestInfo = requestInfo;
     }
     
     @JsonProperty("resourceInfo")
-    public ResourceInfo getResourceInfo() {
-        return resInfo;
-    }
-    
-    @JsonProperty("requestInfo")
-    public List<RequestInfo> getRequestInfo() {
-        return requestInfo;
+    public List<ResourceInfo> getResourceInfo(){
+        return this.resInfo;
     }
 }

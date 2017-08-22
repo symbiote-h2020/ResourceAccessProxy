@@ -10,7 +10,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
-import eu.h2020.symbiote.messages.access.RequestInfo;
 import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
@@ -272,12 +271,12 @@ public class RAPEntityProcessor implements EntityProcessor{
         }
         
         List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
-        ResourceInfo resource = storageHelper.getResourceInfo(keyPredicates);
+        /*ResourceInfo resource = storageHelper.getResourceInfo(keyPredicates);
         if (resource == null) {
             customOdataException = new CustomODataApplicationException(null,"Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
             RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
             return;
-        }
+        }*/
         
         
         try { 
@@ -290,10 +289,20 @@ public class RAPEntityProcessor implements EntityProcessor{
         Entity requestEntity = result.getEntity();
         
         
+        ArrayList<ResourceInfo> resourceInfoList = null;
+        try{
+            resourceInfoList = storageHelper.getResourceInfoList(typeNameList,keyPredicates);
+        }
+        catch(ODataApplicationException odataExc){
+            log.error(odataExc.getMessage());
+            customOdataException = new CustomODataApplicationException(null,"Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+            RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
+            return;
+        }
         
-        ArrayList<RequestInfo> requestInfos = storageHelper.getRequestInfoList(typeNameList,keyPredicates);
         
-        storageHelper.setService(resource, body, requestInfos);
+        
+        storageHelper.setService(resourceInfoList, body);
         
 
         try{
@@ -305,7 +314,7 @@ public class RAPEntityProcessor implements EntityProcessor{
         }
         
         if(customOdataException == null && stream != null)
-            RAPEdmController.sendSuccessfulAccessMessage(resource.getSymbioteId(),
+            RAPEdmController.sendSuccessfulAccessMessage(resourceInfoList.get(0).getSymbioteId(),
                     SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
         
         // 4th: configure the response object: set the body, headers and status code

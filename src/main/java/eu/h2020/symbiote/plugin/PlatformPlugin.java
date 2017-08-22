@@ -55,22 +55,40 @@ public abstract class PlatformPlugin {
             switch(access) {
                 case GET: {
                     ResourceAccessGetMessage msgGet = (ResourceAccessGetMessage) msg;
-                    ResourceInfo info = msgGet.getResourceInfo();
-                    List<Observation> observationLst = readResource(info.getInternalId());
+                    List<ResourceInfo> resInfoList = msgGet.getResourceInfo();
+                    String internalId = null;
+                    for(ResourceInfo resInfo: resInfoList){
+                        String internalIdTemp = resInfo.getInternalId();
+                        if(internalIdTemp != null && !internalIdTemp.isEmpty())
+                            internalId = internalIdTemp;
+                    }
+                    List<Observation> observationLst = readResource(internalId);
                     json = mapper.writeValueAsString(observationLst);
                     break;
                 }
                 case HISTORY: {
                     ResourceAccessHistoryMessage msgHistory = (ResourceAccessHistoryMessage) msg;
-                    ResourceInfo info = msgHistory.getResourceInfo();
-                    List<Observation> observationLst = readResourceHistory(info.getInternalId());
+                    List<ResourceInfo> resInfoList = msgHistory.getResourceInfo();
+                    String internalId = null;
+                    for(ResourceInfo resInfo: resInfoList){
+                        String internalIdTemp = resInfo.getInternalId();
+                        if(internalIdTemp != null && !internalIdTemp.isEmpty())
+                            internalId = internalIdTemp;
+                    }
+                    List<Observation> observationLst = readResourceHistory(internalId);
                     json = mapper.writeValueAsString(observationLst);       
                     break;
                 }
                 case SET: {
-                    ResourceAccessSetMessage mess = (ResourceAccessSetMessage)msg;
-                    ResourceInfo info = mess.getResourceInfo();
-                    writeResource(info.getInternalId(), mess.getBody());
+                    ResourceAccessSetMessage msgSet = (ResourceAccessSetMessage)msg;
+                    List<ResourceInfo> resInfoList = msgSet.getResourceInfo();
+                    String internalId = null;
+                    for(ResourceInfo resInfo: resInfoList){
+                        String internalIdTemp = resInfo.getInternalId();
+                        if(internalIdTemp != null && !internalIdTemp.isEmpty())
+                            internalId = internalIdTemp;
+                    }
+                    writeResource(internalId, msgSet.getBody());
                     break;
                 }
                 case SUBSCRIBE: {

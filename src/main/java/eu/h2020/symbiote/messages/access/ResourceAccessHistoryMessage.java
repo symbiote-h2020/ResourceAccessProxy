@@ -18,10 +18,7 @@ import java.util.List;
 public class ResourceAccessHistoryMessage extends ResourceAccessMessage {
     
     @JsonProperty("resourceInfo")
-    ResourceInfo resInfo;
-    
-    @JsonProperty("requestInfo")
-    List<RequestInfo> requestInfo;
+    List<ResourceInfo> resInfo;
     
     @JsonProperty("top")
     int top;
@@ -32,31 +29,18 @@ public class ResourceAccessHistoryMessage extends ResourceAccessMessage {
      * JSON Constructor
      * @param resInfo               the resource data information   
      * @param top                   the size of the requested collection
-     * @param filter                the filter for query  
-     * @param requestInfo           the path of request
+     * @param filter                the filter for query
      */
     
     
     @JsonCreator
-    public ResourceAccessHistoryMessage(@JsonProperty("resourceInfo") ResourceInfo resInfo,
+    public ResourceAccessHistoryMessage(@JsonProperty("resourceInfo") List<ResourceInfo> resInfo,
             @JsonProperty("top") int top,
-            @JsonProperty("filter") Query filter,
-            @JsonProperty("requestInfo") List<RequestInfo> requestInfo){
+            @JsonProperty("filter") Query filter){
         this.accessType = AccessType.HISTORY;
         this.resInfo = resInfo;
         this.top = top;
         this.filter = filter;
-        this.requestInfo = requestInfo;
-    }
-    
-    @JsonProperty("resourceInfo")
-    public ResourceInfo getResourceInfo() {
-        return resInfo;
-    }
-    
-    @JsonProperty("requestInfo")
-    public List<RequestInfo> getRequestInfo() {
-        return requestInfo;
     }
     
     public int getTop() {
@@ -67,4 +51,8 @@ public class ResourceAccessHistoryMessage extends ResourceAccessMessage {
         return this.filter;
     }
  
+    @JsonProperty("resourceInfo")
+    public List<ResourceInfo> getResourceInfo(){
+        return this.resInfo;
+    }
 }

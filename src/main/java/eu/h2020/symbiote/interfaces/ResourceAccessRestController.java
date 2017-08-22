@@ -101,7 +101,9 @@ public class ResourceAccessRestController {
             checkToken(token);
             
             ResourceInfo info = getResourceInfo(resourceId);
-            ResourceAccessGetMessage msg = new ResourceAccessGetMessage(info,null);
+            List<ResourceInfo> infoList = new ArrayList<ResourceInfo>();
+            infoList.add(info);
+            ResourceAccessGetMessage msg = new ResourceAccessGetMessage(infoList);
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             mapper.setSerializationInclusion(Include.NON_EMPTY);
@@ -162,8 +164,10 @@ public class ResourceAccessRestController {
             checkToken(token);
         
             ResourceInfo info = getResourceInfo(resourceId);
+            List<ResourceInfo> infoList = new ArrayList<ResourceInfo>();
+            infoList.add(info);
             Query q = null;
-            ResourceAccessHistoryMessage msg = new ResourceAccessHistoryMessage(info, TOP_LIMIT, q,null);
+            ResourceAccessHistoryMessage msg = new ResourceAccessHistoryMessage(infoList, TOP_LIMIT, q);
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             mapper.setSerializationInclusion(Include.NON_EMPTY);
@@ -226,7 +230,9 @@ public class ResourceAccessRestController {
             checkToken(token);
 
             ResourceInfo info = getResourceInfo(resourceId);
-            ResourceAccessSetMessage msg = new ResourceAccessSetMessage(info, body);            
+            List<ResourceInfo> infoList = new ArrayList<ResourceInfo>();
+            infoList.add(info);
+            ResourceAccessSetMessage msg = new ResourceAccessSetMessage(infoList, body);            
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             mapper.setSerializationInclusion(Include.NON_EMPTY);

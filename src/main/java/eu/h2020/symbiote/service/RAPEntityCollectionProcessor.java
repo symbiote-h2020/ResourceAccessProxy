@@ -10,7 +10,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
-import eu.h2020.symbiote.messages.access.RequestInfo;
 import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
 import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
@@ -177,23 +176,38 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
         }
 
         List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
-        ResourceInfo resource = storageHelper.getResourceInfo(keyPredicates);
+        /*ResourceInfo resource = storageHelper.getResourceInfo(keyPredicates);
         if (resource == null) {
             customOdataException = new CustomODataApplicationException(null,"Entity not found.", 
                     HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
             //throw customOdataException;
                 setErrorResponse(response, customOdataException, responseFormat);
                 return;
-        }
-        
-        ArrayList<RequestInfo> requestInfos = storageHelper.getRequestInfoList(typeNameList,keyPredicates);
-        
+        }*/
+        String symbioteId = null;
+        ArrayList<ResourceInfo> resourceInfoList = null;
         try{
-            obj = storageHelper.getRelatedObject(resource, top, filterQuery, requestInfos);
+            resourceInfoList = storageHelper.getResourceInfoList(typeNameList,keyPredicates);
+            for(ResourceInfo resourceInfo: resourceInfoList){
+                String symbioteIdTemp = resourceInfo.getSymbioteId();
+                if(symbioteIdTemp != null && !symbioteIdTemp.isEmpty())
+                    symbioteId = symbioteIdTemp;
+            }
         }
         catch(ODataApplicationException odataExc){
             log.error(odataExc.getMessage());
-            customOdataException = new CustomODataApplicationException(resource.getSymbioteId(),odataExc.getMessage(), 
+            customOdataException = new CustomODataApplicationException(null,"Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+            setErrorResponse(response, customOdataException, responseFormat);
+            return;
+        }
+        
+        
+        try{
+            obj = storageHelper.getRelatedObject(resourceInfoList, top, filterQuery);
+        }
+        catch(ODataApplicationException odataExc){
+            log.error(odataExc.getMessage());
+            customOdataException = new CustomODataApplicationException(symbioteId,odataExc.getMessage(), 
                     odataExc.getStatusCode(), odataExc.getLocale());
             //throw customOdataException;
                 setErrorResponse(response, customOdataException, responseFormat);
@@ -211,7 +225,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
         }
         
         if(customOdataException == null && stream != null)
-            RAPEdmController.sendSuccessfulAccessMessage(resource.getSymbioteId(),
+            RAPEdmController.sendSuccessfulAccessMessage(symbioteId,
                     SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
         
         // 4th: configure the response object: set the body, headers and status code

@@ -22,7 +22,6 @@ import eu.h2020.symbiote.resources.query.Filter;
 import eu.h2020.symbiote.resources.query.Operator;
 import eu.h2020.symbiote.resources.query.Query;
 import eu.h2020.symbiote.cloud.model.data.parameter.InputParameter;
-import eu.h2020.symbiote.messages.access.RequestInfo;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import java.net.URI;
@@ -126,12 +125,21 @@ public class StorageHelper {
         return resInfo;
     }
 
-    public Object getRelatedObject(ResourceInfo resourceInfo, Integer top, Query filterQuery, ArrayList<RequestInfo> requestInfoList) throws ODataApplicationException {
+    public Object getRelatedObject(ArrayList<ResourceInfo> resourceInfoList, Integer top, Query filterQuery) throws ODataApplicationException {
+        String symbioteId = null;
         try {
             top = (top == null) ? TOP_LIMIT : top;
-
             ResourceAccessMessage msg;
-            String pluginId = resourceInfo.getPluginId();
+            
+            String pluginId = null;
+            for(ResourceInfo resourceInfo: resourceInfoList){
+                String symbioteIdTemp = resourceInfo.getSymbioteId();
+                if(symbioteIdTemp != null && !symbioteIdTemp.isEmpty())
+                    symbioteId = symbioteIdTemp;
+                String pluginIdTemp = resourceInfo.getPluginId();
+                if(pluginIdTemp != null && !pluginIdTemp.isEmpty())
+                    pluginId = pluginIdTemp;
+            }
             if(pluginId == null) {
                 List<PlatformInfo> lst = pluginRepo.findAll();
                 if(lst == null || lst.isEmpty())
@@ -141,11 +149,11 @@ public class StorageHelper {
             }
             String routingKey;
             if (top == 1) {
-                msg = new ResourceAccessGetMessage(resourceInfo,requestInfoList);
+                msg = new ResourceAccessGetMessage(resourceInfoList);
                 routingKey =  pluginId + "." + ResourceAccessMessage.AccessType.GET.toString().toLowerCase();
                 
             } else {
-                msg = new ResourceAccessHistoryMessage(resourceInfo, top, filterQuery,requestInfoList);
+                msg = new ResourceAccessHistoryMessage(resourceInfoList, top, filterQuery);
                 routingKey =  pluginId + "." + ResourceAccessMessage.AccessType.HISTORY.toString().toLowerCase();
             }
 
@@ -154,6 +162,8 @@ public class StorageHelper {
             mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             String json = mapper.writeValueAsString(msg);
 
+            log.info("Send Message:");
+            log.info(json);
             Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             if (obj == null) {
                 throw new ODataApplicationException("No response from plugin", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
@@ -170,32 +180,38 @@ public class StorageHelper {
             if (observations == null || observations.isEmpty()) {
                 return null;
             }
-
+            
+            
             if (top == 1) {
                 Observation o = observations.get(0);
-                Observation ob = new Observation(resourceInfo.getSymbioteId(), o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
+                Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
                 return ob;
             } else {
                 List<Observation> observationsList = new ArrayList();
                 for (Observation o : observations) {
-                    Observation ob = new Observation(resourceInfo.getSymbioteId(), o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
+                    Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
                     observationsList.add(ob);
                 }
                 return observationsList;
             }
 
         } catch (Exception e) {
-            String err = "Unable to read resource with id: " + resourceInfo.getSymbioteId();
+            String err = "Unable to read resource with id: " + symbioteId;
             err += "\n Error:" + e.getMessage();
             //log.error(err + "\n" + e.getMessage());
             throw new ODataApplicationException(err, HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
         }
     }
 
-    public void setService(ResourceInfo resourceInfo, String requestBody, ArrayList<RequestInfo> requestInfoList) throws ODataApplicationException {
+    public void setService(ArrayList<ResourceInfo> resourceInfoList, String requestBody) throws ODataApplicationException {
         try {
             ResourceAccessMessage msg;
-            String pluginId = resourceInfo.getPluginId();
+            String pluginId = null;
+            for(ResourceInfo resourceInfo: resourceInfoList){
+                pluginId = resourceInfo.getPluginId();
+                if(pluginId != null)
+                    break;
+            }
             if(pluginId == null) {
                 List<PlatformInfo> lst = pluginRepo.findAll();
                 if(lst == null || lst.isEmpty())
@@ -205,7 +221,7 @@ public class StorageHelper {
             }
             String routingKey = pluginId + "." + ResourceAccessMessage.AccessType.SET.toString().toLowerCase();
             
-            msg = new ResourceAccessSetMessage(resourceInfo, requestBody,requestInfoList);
+            msg = new ResourceAccessSetMessage(resourceInfoList, requestBody);
 
             String json = "";
             try {
@@ -509,13 +525,13 @@ public class StorageHelper {
         return parsedData;
     }
 
-    public ArrayList<RequestInfo> getRequestInfoList(ArrayList<String> typeNameList, List<UriParameter> keyPredicates) {
-        ArrayList<RequestInfo> requestInfoList = new ArrayList();
+    public ArrayList<ResourceInfo> getResourceInfoList(ArrayList<String> typeNameList, List<UriParameter> keyPredicates) throws ODataApplicationException {
+        Boolean noResourceFound = true;
+        ArrayList<ResourceInfo> resourceInfoList = new ArrayList();
         for(int i = 0; i< typeNameList.size(); i++){
-            String symbioteId = null;
-            String internalId = null;
+            ResourceInfo resInfo = new ResourceInfo();
+            resInfo.setType(typeNameList.get(i));
             if(i < keyPredicates.size()){
-                ResourceInfo resInfo = null;
                 UriParameter key = keyPredicates.get(i);
                 String keyName = key.getName();
                 String keyText = key.getText();
@@ -524,21 +540,21 @@ public class StorageHelper {
 
                 try {
                     if (keyName.equalsIgnoreCase("id")) {
-                        symbioteId = keyText;
+                        resInfo.setSymbioteId(keyText);
                         Optional<ResourceInfo> resInfoOptional = resourcesRepo.findById(keyText);
                         if (resInfoOptional.isPresent()) {
-                            resInfo = resInfoOptional.get();
+                            noResourceFound = false;
+                            resInfo.setInternalId(resInfoOptional.get().getInternalId());
                         }
                     }
                 } catch (Exception e) {
                 }
-                if (resInfo != null) {
-                    internalId = resInfo.getInternalId();
-                }
             }
-            RequestInfo ri = new RequestInfo(typeNameList.get(i), symbioteId, internalId);
-            requestInfoList.add(ri);
+            resourceInfoList.add(resInfo);
         }
-        return requestInfoList;
+        if(noResourceFound)
+            throw new ODataApplicationException("Entity not found",
+                    HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+        return resourceInfoList;
     }
 }
