@@ -32,9 +32,14 @@ import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
 import io.jsonwebtoken.Claims;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.TimeZone;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
@@ -341,10 +346,11 @@ public class ResourceAccessRestController {
             
         mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        List<Date> dateList = new ArrayList<Date>();
+        dateList.add(new Date());
         NotificationMessage notificationMessage = new NotificationMessage();
         try {
-            notificationMessage.SetFailedAttempts(symbioteId, timestamp, 
+            notificationMessage.SetFailedAttempts(symbioteId, dateList, 
             code, message, appId, issuer, validationStatus, path); 
             jsonNotificationMessage = mapper.writeValueAsString(notificationMessage);
         } catch (JsonProcessingException jsonEx) {
@@ -361,11 +367,13 @@ public class ResourceAccessRestController {
         map.configure(SerializationFeature.INDENT_OUTPUT, true);
         map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
         
-        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        List<Date> dateList = new ArrayList<Date>();
+        dateList.add(new Date());
         NotificationMessage notificationMessage = new NotificationMessage();
         
+        Date a = new Date();
         try{
-            notificationMessage.SetSuccessfulAttempts(symbioteId, timestamp, accessType);
+            notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
             jsonNotificationMessage = map.writeValueAsString(notificationMessage);
         } catch (JsonProcessingException e) {
             log.error(e.getMessage());

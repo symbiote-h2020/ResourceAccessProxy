@@ -30,6 +30,7 @@ import eu.h2020.symbiote.service.notificationResource.WebSocketMessage.Action;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -320,11 +321,12 @@ public class WebSocketController extends TextWebSocketHandler {
         map.configure(SerializationFeature.INDENT_OUTPUT, true);
         map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
         
-        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        List<Date> dateList = new ArrayList<Date>();
+        dateList.add(new Date());
         NotificationMessage notificationMessage = new NotificationMessage();
         
         try{
-            notificationMessage.SetSuccessfulAttemptsList(symbioteIdList, timestamp, accessType);
+            notificationMessage.SetSuccessfulAttemptsList(symbioteIdList, dateList, accessType);
             jsonNotificationMessage = map.writeValueAsString(notificationMessage);
         } catch (JsonProcessingException e) {
             log.error(e.getMessage());
@@ -350,10 +352,11 @@ public class WebSocketController extends TextWebSocketHandler {
             
         mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        List<Date> dateList = new ArrayList<Date>();
+        dateList.add(new Date());
         NotificationMessage notificationMessage = new NotificationMessage();
         try {
-            notificationMessage.SetFailedAttempts(symbioteId, timestamp, 
+            notificationMessage.SetFailedAttempts(symbioteId, dateList, 
             code, message, appId, issuer, validationStatus, path); 
             jsonNotificationMessage = mapper.writeValueAsString(notificationMessage);
         } catch (JsonProcessingException jsonEx) {

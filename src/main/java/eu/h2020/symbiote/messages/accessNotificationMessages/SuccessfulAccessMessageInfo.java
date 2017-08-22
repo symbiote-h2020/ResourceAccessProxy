@@ -6,7 +6,8 @@
 package eu.h2020.symbiote.messages.accessNotificationMessages;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.sql.Timestamp;
+import java.util.Date;
+import java.util.List;
 
 /**
  *
@@ -20,7 +21,7 @@ public class SuccessfulAccessMessageInfo extends MessageInfo {
     @JsonProperty("accessType")
     private String accessType;
 
-    public SuccessfulAccessMessageInfo(String symbioTeId, Timestamp timestamp, String accessType) {
+    public SuccessfulAccessMessageInfo(String symbioTeId, List<Date> timestamp, String accessType) {
         this.symbioTeId = symbioTeId;
         this.timestamp = timestamp;
         this.accessType = accessType;

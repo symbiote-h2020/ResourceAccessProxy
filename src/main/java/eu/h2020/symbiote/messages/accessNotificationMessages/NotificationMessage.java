@@ -6,8 +6,8 @@
 package eu.h2020.symbiote.messages.accessNotificationMessages;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -24,13 +24,13 @@ public class NotificationMessage {
     @JsonProperty("failedAttempts")
     private List<FailedAccessMessageInfo> failedAttempts;
             
-    public void SetSuccessfulAttempts (String symbioTeId, Timestamp timestamp, String accessType){
+    public void SetSuccessfulAttempts (String symbioTeId, List<Date> timestamp, String accessType){
         SuccessfulAccessMessageInfo succAccMess = new SuccessfulAccessMessageInfo(symbioTeId, timestamp, accessType);
         this.successfulAttempts = new ArrayList<>();
         this.successfulAttempts.add(succAccMess);
     }
     
-    public void SetSuccessfulAttemptsList (List<String> symbioTeIdList, Timestamp timestamp, String accessType){
+    public void SetSuccessfulAttemptsList (List<String> symbioTeIdList, List<Date> timestamp, String accessType){
         this.successfulAttempts = new ArrayList<>();
         for(String symbioteId: symbioTeIdList){
             SuccessfulAccessMessageInfo succAccMess = new SuccessfulAccessMessageInfo(symbioteId, timestamp, accessType);
@@ -38,13 +38,13 @@ public class NotificationMessage {
         }
     }
     
-    public void SetSuccessfulPushes (String symbioTeId, Timestamp timestamp){
+    public void SetSuccessfulPushes (String symbioTeId, List<Date> timestamp){
         SuccessfulPushesMessageInfo succPushMess = new SuccessfulPushesMessageInfo(symbioTeId, timestamp);
         this.successfulPushes = new ArrayList<>();
         this.successfulPushes.add(succPushMess);
     }
     
-    public void SetFailedAttempts (String symbioTeId, Timestamp timestamp, 
+    public void SetFailedAttempts (String symbioTeId, List<Date> timestamp, 
             String code, String message, String appId, String issuer, 
             String validationStatus, String requestParams) {
         FailedAccessMessageInfo failMess= new FailedAccessMessageInfo(symbioTeId, timestamp, 

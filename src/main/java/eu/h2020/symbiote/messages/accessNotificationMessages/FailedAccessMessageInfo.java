@@ -6,7 +6,8 @@
 package eu.h2020.symbiote.messages.accessNotificationMessages;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.sql.Timestamp;
+import java.util.Date;
+import java.util.List;
 
 /**
  *
@@ -31,7 +32,7 @@ public class FailedAccessMessageInfo extends MessageInfo {
     @JsonProperty("requestParams")
     private String requestParams;
 
-    public FailedAccessMessageInfo(String symbioTeId, Timestamp timestamp, 
+    public FailedAccessMessageInfo(String symbioTeId, List<Date> timestamp, 
             String code, String message, String appId, String issuer, 
             String validationStatus, String requestParams) {
         this.symbioTeId = symbioTeId;

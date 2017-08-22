@@ -55,7 +55,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
 import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import io.jsonwebtoken.Claims;
-import java.sql.Timestamp;
+import java.util.Date;
 
 /*
 *
@@ -198,10 +198,11 @@ public class RAPEdmController {
             
         mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        List<Date> dateList = new ArrayList<Date>();
+        dateList.add(new Date());
         NotificationMessage notificationMessage = new NotificationMessage();
         try {
-            notificationMessage.SetFailedAttempts(symbioTeId, timestamp, 
+            notificationMessage.SetFailedAttempts(symbioTeId, dateList, 
             code, message, appId, issuer, validationStatus, request.getRequestURI()); 
             jsonNotificationMessage = mapper.writeValueAsString(notificationMessage);
         } catch (JsonProcessingException jsonEx) {
@@ -219,11 +220,12 @@ public class RAPEdmController {
         map.configure(SerializationFeature.INDENT_OUTPUT, true);
         map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
         
-        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        List<Date> dateList = new ArrayList<Date>();
+        dateList.add(new Date());
         NotificationMessage notificationMessage = new NotificationMessage();
         
         try{
-            notificationMessage.SetSuccessfulAttempts(symbioteId, timestamp, accessType);
+            notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
             jsonNotificationMessage = map.writeValueAsString(notificationMessage);
         } catch (JsonProcessingException e) {
             log.error(e.getMessage());

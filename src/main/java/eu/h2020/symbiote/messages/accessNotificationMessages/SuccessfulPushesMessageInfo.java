@@ -5,7 +5,8 @@
  */
 package eu.h2020.symbiote.messages.accessNotificationMessages;
 
-import java.sql.Timestamp;
+import java.util.Date;
+import java.util.List;
 
 /**
  *
@@ -13,7 +14,7 @@ import java.sql.Timestamp;
  */
 public class SuccessfulPushesMessageInfo extends MessageInfo{
 
-    public SuccessfulPushesMessageInfo(String symbioTeId, Timestamp timestamp) {
+    public SuccessfulPushesMessageInfo(String symbioTeId, List<Date> timestamp) {
         this.symbioTeId = symbioTeId;
         this.timestamp = timestamp;
     }

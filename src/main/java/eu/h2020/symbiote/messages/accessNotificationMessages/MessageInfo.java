@@ -6,17 +6,18 @@
 package eu.h2020.symbiote.messages.accessNotificationMessages;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import java.sql.Timestamp;
+import java.util.Date;
+import java.util.List;
 
 /**
  *
  * @author Luca Tomaselli <l.tomaselli@nextworks.it>
  */
 public class MessageInfo {
-    @JsonProperty("symbioTeId")
+    @JsonProperty("symbIoTeId")
     protected String symbioTeId;
     @JsonProperty("timestamp")
-    protected Timestamp timestamp;
+    protected List<Date> timestamp;
 
     public String getSymbioTeId() {
         return symbioTeId;
@@ -26,11 +27,11 @@ public class MessageInfo {
         this.symbioTeId = symbioTeId;
     }
 
-    public Timestamp getTimestamp() {
+    public List<Date> getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(Timestamp timestamp) {
+    public void setTimestamp(List<Date> timestamp) {
         this.timestamp = timestamp;
     }
 }
