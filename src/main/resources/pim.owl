@@ -30,8 +30,7 @@
                                             
                                             owl:imports 
                                                 <http://purl.oclc.org/NET/ssnx/qu/qu-rec20> ,
-                                                <file:///C:/Users/luca-/Downloads/core-v1.0.1.owl>;
-                                                ###<http://www.symbiote-h2020.eu/ontology/core> ;
+                                                <http://www.symbiote-h2020.eu/ontology/core> ;
                                             
                                             owl:versionIRI <http://www.symbiote-h2020.eu/ontology/bim/1.0> ;
                                             
@@ -545,8 +544,9 @@ bim-sr:CloseEffect rdf:type owl:Class ;
 ###  http://www.symbiote-h2020.eu/ontology/bim/smartresidence#Curtain
 
 bim-sr:Curtain rdf:type owl:Class ;
-               
-               rdfs:subClassOf core:Device .
+                        
+                    rdfs:subClassOf core:Device,
+                            core:Actuator .
 
 
 
