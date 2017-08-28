@@ -18,36 +18,22 @@
 @prefix qu-unit: <http://purl.oclc.org/NET/ssnx/qu/unit#> .
 @prefix property: <http://www.symbiote-h2020.eu/ontology/bim/property#> .
 @prefix qu-quantity: <http://purl.oclc.org/NET/ssnx/qu/quantity#> .
-@base <http://www.symbiote-h2020.eu/ontology/bim> .
+@base <http://www.symbiote-h2020.eu/ontology/bim#> .
 
-<http://www.symbiote-h2020.eu/ontology/bim> rdf:type owl:Ontology ;
+<http://www.symbiote-h2020.eu/ontology/bim#> rdf:type owl:Ontology ;
                                             
                                             rdfs:label "symbIoTe Best Practice Information Model"@en ;
                                             
-                                            owl:versionInfo "v1.0 2017/06/28 12:00:00"^^xsd:string ;
+                                            owl:versionInfo "v1.1 2017/08/10 12:00:00"^^xsd:string ;
                                             
                                             rdfs:comment "Best Practice Information Model of symbIoTe."@en ;
                                             
-                                            owl:imports 
-                                                <http://purl.oclc.org/NET/ssnx/qu/qu-rec20> ,
-                                                <http://www.symbiote-h2020.eu/ontology/core> ;
+                                            owl:imports <http://purl.oclc.org/NET/ssnx/qu/qu-rec20> ,
+                                                        core: ;
                                             
-                                            owl:versionIRI <http://www.symbiote-h2020.eu/ontology/bim/1.0> ;
+                                            owl:versionIRI <http://www.symbiote-h2020.eu/ontology/bim/1.1#> ;
                                             
                                             owl:imports cnt: .
-
-
-#################################################################
-#
-#    Annotation properties
-#
-#################################################################
-
-
-###  http://www.symbiote-h2020.eu/ontology/core#hasParameter
-
-core:hasParameter rdf:type owl:AnnotationProperty .
-
 
 
 
@@ -544,9 +530,8 @@ bim-sr:CloseEffect rdf:type owl:Class ;
 ###  http://www.symbiote-h2020.eu/ontology/bim/smartresidence#Curtain
 
 bim-sr:Curtain rdf:type owl:Class ;
-                        
-                    rdfs:subClassOf core:Device,
-                            core:Actuator .
+               
+               rdfs:subClassOf core:Sensor, core:Actuator .
 
 
 
@@ -587,7 +572,7 @@ bim-sr:DimmerEffect rdf:type owl:Class ;
 
 bim-sr:ElectricityMeter rdf:type owl:Class ;
                         
-                        rdfs:subClassOf core:Device .
+                        rdfs:subClassOf core:Sensor .
 
 
 
@@ -595,7 +580,7 @@ bim-sr:ElectricityMeter rdf:type owl:Class ;
 
 bim-sr:EnviromentalSensor rdf:type owl:Class ;
                           
-                          rdfs:subClassOf core:Device .
+                          rdfs:subClassOf core:Sensor .
 
 
 
@@ -603,7 +588,7 @@ bim-sr:EnviromentalSensor rdf:type owl:Class ;
 
 bim-sr:Fancoil rdf:type owl:Class ;
                
-               rdfs:subClassOf core:Device .
+               rdfs:subClassOf core:Sensor, core:Actuator .
 
 
 
@@ -611,7 +596,7 @@ bim-sr:Fancoil rdf:type owl:Class ;
 
 bim-sr:GaitMeasureDevice rdf:type owl:Class ;
                          
-                         rdfs:subClassOf bim-sr:HealthDevice .
+                         rdfs:subClassOf core:Sensor, bim-sr:HealthDevice .
 
 
 
@@ -627,7 +612,7 @@ bim-sr:HealthDevice rdf:type owl:Class ;
 
 bim-sr:HumiditySensor rdf:type owl:Class ;
                       
-                      rdfs:subClassOf core:Device .
+                      rdfs:subClassOf core:Sensor .
 
 
 
@@ -635,8 +620,7 @@ bim-sr:HumiditySensor rdf:type owl:Class ;
 
 bim-sr:Light rdf:type owl:Class ;
              
-             rdfs:subClassOf core:Device,
-                            core:Actuator .
+             rdfs:subClassOf core:Sensor, core:Actuator .
 
 
 
@@ -708,7 +692,7 @@ bim-sr:Person rdf:type owl:Class .
 
 bim-sr:PowerMeter rdf:type owl:Class ;
                   
-                  rdfs:subClassOf core:Device .
+                  rdfs:subClassOf core:Sensor .
 
 
 
@@ -865,7 +849,7 @@ bim-sr:StopEffect rdf:type owl:Class ;
 
 bim-sr:TemperatureSensor rdf:type owl:Class ;
                          
-                         rdfs:subClassOf core:Device .
+                         rdfs:subClassOf core:Sensor .
 
 
 
@@ -873,7 +857,7 @@ bim-sr:TemperatureSensor rdf:type owl:Class ;
 
 bim-sr:VoltageMeter rdf:type owl:Class ;
                     
-                    rdfs:subClassOf core:Device .
+                    rdfs:subClassOf core:Sensor .
 
 
 
@@ -881,7 +865,7 @@ bim-sr:VoltageMeter rdf:type owl:Class ;
 
 bim-sr:Window rdf:type owl:Class ;
               
-              rdfs:subClassOf core:Device .
+              rdfs:subClassOf core:Sensor, core:Actuator .
 
 
 
@@ -1780,8 +1764,7 @@ unit:SurfaceDensityRateUnit rdf:type owl:Class ;
 
 ###  http://www.symbiote-h2020.eu/ontology/core#Observation
 
-core:Observation rdf:type owl:Class ;
-                 
+core:Observation                
                  rdfs:subClassOf [ rdf:type owl:Restriction ;
                                    owl:onProperty bim-sm:hasObservationType ;
                                    owl:onClass bim-sm:ObservationType ;
@@ -12009,84 +11992,6 @@ unit:revolutionsPerMinute rdf:type qu-dim:RotationalSpeedUnit ,
                           qu:quantityKind qu-quantity:rotationalSpeed ;
                           
                           qu:referenceUnit qu-unit:radianPerSecond .
-
-
-
-###  http://www.symbiote-h2020.eu/ontology/core#Description
-
-core:Description rdf:type owl:NamedIndividual .
-
-
-
-###  http://www.symbiote-h2020.eu/ontology/core#description
-
-core:description rdf:type owl:NamedIndividual .
-
-
-
-###  http://www.symbiote-h2020.eu/ontology/core#name
-
-core:name rdf:type owl:NamedIndividual .
-
-
-
-###  http://www.w3.org/2000/01/rdf-schema#label
-
-rdfs:label rdf:type owl:NamedIndividual .
-
-
-
-###  http://www.w3.org/2001/XMLSchema#boolean
-
-xsd:boolean rdf:type owl:NamedIndividual .
-
-
-
-###  http://www.w3.org/2001/XMLSchema#dateTime
-
-xsd:dateTime rdf:type owl:NamedIndividual .
-
-
-
-###  http://www.w3.org/2001/XMLSchema#decimal
-
-xsd:decimal rdf:type owl:NamedIndividual .
-
-
-
-###  http://www.w3.org/2001/XMLSchema#double
-
-xsd:double rdf:type owl:NamedIndividual .
-
-
-
-###  http://www.w3.org/2001/XMLSchema#integer
-
-xsd:integer rdf:type owl:NamedIndividual .
-
-
-
-###  http://www.w3.org/2001/XMLSchema#string
-
-xsd:string rdf:type owl:NamedIndividual .
-
-
-
-###  http://www.w3.org/2003/01/geo/wgs84_pos#lat
-
-geo:lat rdf:type owl:NamedIndividual .
-
-
-
-###  http://www.w3.org/2003/01/geo/wgs84_pos#long
-
-geo:long rdf:type owl:NamedIndividual .
-
-
-
-###  http://www.w3.org/2011/content#ContentAsBase64
-
-cnt:ContentAsBase64 rdf:type owl:NamedIndividual .
 
 
 
