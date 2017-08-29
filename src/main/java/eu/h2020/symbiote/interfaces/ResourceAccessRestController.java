@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.cloud.model.data.parameter.InputParameter;
@@ -123,16 +124,21 @@ public class ResourceAccessRestController {
                 pluginId = lst.get(0).getPlatformId();
             }
             String routingKey =  pluginId + "." + AccessType.GET.toString().toLowerCase();
-            Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-            if(obj == null)
-                throw new Exception("No response from plugin");
             
-            String response = new String((byte[]) obj, "UTF-8");
-            List<Observation> observationList = mapper.readValue(response, List.class);
-            if(observationList == null || observationList.isEmpty())
+            
+            Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);          
+            String response;
+            if (obj instanceof byte[]) {
+                response = new String((byte[]) obj, "UTF-8");
+            } else {
+                response = (String) obj;
+            }
+            List<Observation> observations = mapper.readValue(response, new TypeReference<List<Observation>>() {});
+            if(observations == null || observations.isEmpty())
                 throw new Exception("Plugin error");
             
-            Observation o = observationList.get(0);
+            
+            Observation o = observations.get(0);
             Observation ob = new Observation(resourceId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
             sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
             return ob;
@@ -187,9 +193,15 @@ public class ResourceAccessRestController {
                 pluginId = lst.get(0).getPlatformId();
             }
             String routingKey =  pluginId + "." + AccessType.HISTORY.toString().toLowerCase();
-            String response = (String)rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-            List<Observation> observations = mapper.readValue(response, List.class);
-            if(observations == null)
+            Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);            
+            String response;
+            if (obj instanceof byte[]) {
+                response = new String((byte[]) obj, "UTF-8");
+            } else {
+                response = (String) obj;
+            }
+            List<Observation> observations = mapper.readValue(response, new TypeReference<List<Observation>>() {});
+            if(observations == null || observations.isEmpty())
                 throw new Exception("Plugin error");
             
             List<Observation> observationsList = new ArrayList();
@@ -224,7 +236,7 @@ public class ResourceAccessRestController {
      * @param token     
      * @return              the http response code
      */
-    @RequestMapping(value="/rap/Service/{resourceId}", method=RequestMethod.POST)
+    @RequestMapping(value="/rap/Actuator/{resourceId}", method=RequestMethod.POST)
     public ResponseEntity<?> writeResource(@PathVariable String resourceId, @RequestBody String body,
                                            @RequestHeader("X-Auth-Token") String token) {
         Exception e = null;
