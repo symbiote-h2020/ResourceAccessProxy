@@ -49,6 +49,7 @@ public class OwlapiHelp {
     private static final String CIM_FILE = "/core-v1.0.owl";
     private static final String BIM_FILE = "/bim.owl";
     private static final String PIM_FILE = "/pim.owl";
+    private static final String PIM_PARTIAL_FILE = "/pim_partial.owl";
     
     private HashMap<String, HashMap<String, String>> map;
     private HashMap<String, HashMap<String, String>> classes;
@@ -98,7 +99,7 @@ public class OwlapiHelp {
         return classes;
     }
     
-    public HashMap<String, HashMap<String, String>> fromOwlToClasses(){        
+    public HashMap<String, HashMap<String, String>> fromOwlToClasses(){     
         map = createMapClass2PropAndSuperclass();
         classes = new HashMap<String, HashMap<String, String>>();
         //this populate this.classes
@@ -411,6 +412,16 @@ public class OwlapiHelp {
             }
         } catch (OWLOntologyCreationException ex) {
             log.error(ex);
+        }
+        catch (UnloadableImportException ie){
+            log.error(ie);
+            URL url = OwlapiHelp.class.getResource(PIM_PARTIAL_FILE);
+            String filePathPartial = url.getPath();
+            if(ie.getMessage().contains("<http://purl.org/dc/terms/>") && !this.filePath.equals(filePathPartial)){
+                this.filePath = filePathPartial;
+                map = createMapClass2PropAndSuperclass();
+                log.info("Load pim partial ");
+            }
         }
         return map;
     }

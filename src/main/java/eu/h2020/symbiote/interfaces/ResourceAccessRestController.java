@@ -39,6 +39,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.TimeZone;
+import javax.servlet.http.HttpServletRequest;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.slf4j.Logger;
@@ -56,6 +57,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.HandlerMapping;
 
 
 /**
@@ -236,11 +238,11 @@ public class ResourceAccessRestController {
      * @param token     
      * @return              the http response code
      */
-    @RequestMapping(value="/rap/Actuator/{resourceId}", method=RequestMethod.POST)
+    @RequestMapping(value={"/rap/Actuator/{resourceId}","/rap/Service/{resourceId}"}, method=RequestMethod.POST)
     public ResponseEntity<?> writeResource(@PathVariable String resourceId, @RequestBody String body,
-                                           @RequestHeader("X-Auth-Token") String token) {
+                                           @RequestHeader("X-Auth-Token") String token, HttpServletRequest request) {
         Exception e = null;
-        String path = "/rap/Service/" + resourceId;
+        String path = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
         try {
             log.info("Received write resource request for ID = " + resourceId + " with values " + body);
             
@@ -264,10 +266,17 @@ public class ResourceAccessRestController {
                 pluginId = lst.get(0).getPlatformId();
             }
             String routingKey =  pluginId + "." + AccessType.SET.toString().toLowerCase();
-            rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-            
+            Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+            String response = "";
+            if(obj != null){
+                if (obj instanceof byte[]) {
+                    response = new String((byte[]) obj, "UTF-8");
+                } else {
+                    response = (String) obj;
+                }
+            }
             sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
-            return new ResponseEntity<>(HttpStatus.OK);
+            return new ResponseEntity<>(response,HttpStatus.OK);
         } catch(EntityNotFoundException | TokenValidationException enf) {
             e = enf;
             log.error(e.toString());

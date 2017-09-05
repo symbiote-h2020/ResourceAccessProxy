@@ -302,11 +302,22 @@ public class RAPEntityProcessor implements EntityProcessor{
         
         
         
-        storageHelper.setService(resourceInfoList, body);
+        Object obj = storageHelper.setService(resourceInfoList, body);
         
+        responseString = "";
+        if(obj != null){
+            if (obj instanceof byte[]) {
+                try {
+                    responseString = new String((byte[]) obj, "UTF-8");
+                } catch (UnsupportedEncodingException ex) {
+                    java.util.logging.Logger.getLogger(RAPEntityProcessor.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            } else {
+                responseString = (String) obj;
+            }
+        }
 
         try{
-            responseString = "";
             stream = new ByteArrayInputStream(responseString.getBytes("UTF-8"));
         }
         catch(Exception e){

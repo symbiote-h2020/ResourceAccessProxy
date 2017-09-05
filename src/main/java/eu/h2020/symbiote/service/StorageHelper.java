@@ -203,7 +203,8 @@ public class StorageHelper {
         }
     }
 
-    public void setService(ArrayList<ResourceInfo> resourceInfoList, String requestBody) throws ODataApplicationException {
+    public Object setService(ArrayList<ResourceInfo> resourceInfoList, String requestBody) throws ODataApplicationException {
+        Object obj = null;
         try {
             ResourceAccessMessage msg;
             String pluginId = null;
@@ -234,11 +235,12 @@ public class StorageHelper {
                 Logger.getLogger(StorageHelper.class.getName()).log(Level.SEVERE, null, ex);
             }
             log.info("Message Set: "+json);
-            rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+            obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             
         } catch (Exception e) {
             throw new ODataApplicationException("Internal Error", HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), Locale.ROOT);
         }
+        return obj;
     }
     
     private List<InputParameter> fromPropertiesToInputParameter(List<Property> propertyList, List<InputParameter> inputParameter){
