@@ -91,7 +91,7 @@ public abstract class PlatformPlugin {
                         if(internalIdTemp != null && !internalIdTemp.isEmpty())
                             internalId = internalIdTemp;
                     }
-                    writeResource(internalId, msgSet.getBody());
+                    json = writeResource(internalId, msgSet.getBody());
                     break;
                 }
                 case SUBSCRIBE: {
@@ -145,7 +145,7 @@ public abstract class PlatformPlugin {
     *   OVERRIDE this, inserting here a call to the platform with internal resource id
     *   setting the actuator value
     */
-    public abstract void writeResource(String resourceId, String body);
+    public abstract String writeResource(String resourceId, String body);
         
     /*  
     *   OVERRIDE this, inserting the query to the platform with internal resource id

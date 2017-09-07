@@ -53,9 +53,10 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
     }
     
     @Override
-    public void writeResource(String resourceId, String body) {
+    public String writeResource(String resourceId, String body) {
         // INSERT HERE: call to the platform with internal resource id
         // setting the actuator value
+        return "";
     }
     
     @Override
