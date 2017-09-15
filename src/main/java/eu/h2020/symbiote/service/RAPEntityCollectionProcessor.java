@@ -14,9 +14,11 @@ import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage
 import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
+import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
+import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -66,10 +68,16 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
     private static final Logger log = LoggerFactory.getLogger(RAPEntityCollectionProcessor.class);
     
     @Autowired
-    ResourcesRepository resourcesRepo;
+    private ResourcesRepository resourcesRepo;
+    
+    @Autowired        
+    private AccessPolicyRepository accessPolicyRepo;
     
     @Autowired
-    PluginRepository pluginRepo;
+    private PluginRepository pluginRepo;
+    
+    @Autowired
+    private IComponentSecurityHandler securityHandler;
     
     @Autowired
     private RabbitTemplate rabbitTemplate;
@@ -79,12 +87,13 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
     TopicExchange exchange;
 
     private StorageHelper storageHelper;
-
+    
     @Override
     public void init(OData odata, ServiceMetadata sm) {
     //    this.odata = odata;
     //    this.serviceMetadata = sm;
-        storageHelper = new StorageHelper(resourcesRepo, pluginRepo, rabbitTemplate, exchange);
+        storageHelper = new StorageHelper(resourcesRepo, pluginRepo, accessPolicyRepo,
+                                        securityHandler, rabbitTemplate, exchange);
     }
 
     @Override
@@ -92,13 +101,12 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
             throws ODataApplicationException, ODataLibraryException {
         Object obj;
         InputStream stream = null;
-        
         ObjectMapper map = new ObjectMapper();
-        map.configure(SerializationFeature.INDENT_OUTPUT, true);
-        
+        map.configure(SerializationFeature.INDENT_OUTPUT, true);        
         CustomODataApplicationException customOdataException = null;
         String jsonFilter;
-        Integer top = null;
+        Integer top = null;        
+        
         //TOP
         TopOption topOption = uriInfo.getTopOption();
         if (topOption != null) {
@@ -196,11 +204,24 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
         }
         catch(ODataApplicationException odataExc){
             log.error(odataExc.getMessage());
-            customOdataException = new CustomODataApplicationException(null,"Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+            customOdataException = new CustomODataApplicationException(null,
+                    "Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
             setErrorResponse(response, customOdataException, responseFormat);
             return;
         }
         
+        // checking access policies
+        try {
+            for(ResourceInfo resource : resourceInfoList) {
+                storageHelper.checkAccessPolicies(request, resource.getInternalId());
+            }
+        } catch (Exception ex) {   
+            log.error(ex.getMessage());
+            customOdataException = new CustomODataApplicationException(symbioteId, ex.getMessage(), 
+                    HttpStatusCode.UNAUTHORIZED.getStatusCode(), Locale.ROOT);
+            setErrorResponse(response, customOdataException, responseFormat);
+            return;
+        }
         
         try{
             obj = storageHelper.getRelatedObject(resourceInfoList, top, filterQuery);

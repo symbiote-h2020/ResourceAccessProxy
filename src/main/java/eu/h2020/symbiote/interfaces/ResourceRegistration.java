@@ -12,11 +12,18 @@ import eu.h2020.symbiote.cloud.model.internal.CloudResource;
 import eu.h2020.symbiote.core.model.resources.MobileSensor;
 import eu.h2020.symbiote.core.model.resources.Resource;
 import eu.h2020.symbiote.core.model.resources.StationarySensor;
+import eu.h2020.symbiote.resources.db.AccessPolicy;
+import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
+import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenAccessPolicySpecifier;
+import eu.h2020.symbiote.security.accesspolicies.common.SingleTokenAccessPolicyFactory;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+
 
 /**
  *
@@ -28,8 +35,12 @@ public class ResourceRegistration {
 
     @Autowired
     ResourcesRepository resourcesRepository;
+    
+    @Autowired
+    AccessPolicyRepository accessPolicyRepository;
+    
     /**
-     * Receive messages from Rabbit queue 
+     * Receive registration messages from RabbitMQ queue 
      * @param message 
      */
     public void receiveRegistrationMessage(byte[] message) {
@@ -55,7 +66,8 @@ public class ResourceRegistration {
                 if(symbioteId == null){
                     symbioteId = Integer.toString((int)(Math.random() * Integer.MAX_VALUE));
                 }
-
+                addPolicy(symbioteId, internalId, msg.getSingleTokenAccessPolicySpecifier());
+                
                 log.info("Registering "+ resourceClass +" with symbioteId: " + symbioteId + ", internalId: " + internalId);
                 addResource(symbioteId, internalId, props, pluginId);
             }
@@ -64,6 +76,10 @@ public class ResourceRegistration {
         }
     }
     
+    /**
+     * Receive unregistration messages from RabbitMQ queue 
+     * @param message 
+     */
     public void receiveUnregistrationMessage(byte[] message) {
         try {
             ObjectMapper mapper = new ObjectMapper();
@@ -80,6 +96,10 @@ public class ResourceRegistration {
         }
     }
     
+    /**
+     * Receive update messages from RabbitMQ queue 
+     * @param message 
+     */
     public void receiveUpdateMessage(byte[] message) {
         try {
             log.info("Resource Update message received: \n" + new String(message) + "");
@@ -122,8 +142,21 @@ public class ResourceRegistration {
             if(resourceList != null && !resourceList.isEmpty())
                 resourcesRepository.delete(resourceList.get(0).getSymbioteId());
         } catch (Exception e) {
-            log.info("Resource with id " + resourceId + " not found");
+            log.error("Resource with id " + resourceId + " not found");
         }
     }  
     
+    private void addPolicy(String resourceId, String internalId, IAccessPolicy accPolicy) throws InvalidArgumentsException {
+        try {
+            if(accPolicy instanceof SingleTokenAccessPolicySpecifier) {            
+                IAccessPolicy policy = SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(
+                                                (SingleTokenAccessPolicySpecifier)accPolicy);
+                AccessPolicy ap = new AccessPolicy(resourceId, internalId, policy);
+                accessPolicyRepository.save(ap);
+            }
+        } catch (InvalidArgumentsException e) {
+            log.error("Invalid Policy definition for resource with id " + resourceId);
+            throw e;
+        }
+    }    
 }

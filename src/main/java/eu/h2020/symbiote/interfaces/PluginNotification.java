@@ -12,7 +12,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.cloud.model.data.observation.Observation;
 import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
 import eu.h2020.symbiote.service.notificationResource.WebSocketController;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;

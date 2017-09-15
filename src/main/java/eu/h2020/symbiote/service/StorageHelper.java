@@ -22,8 +22,14 @@ import eu.h2020.symbiote.resources.query.Filter;
 import eu.h2020.symbiote.resources.query.Operator;
 import eu.h2020.symbiote.resources.query.Query;
 import eu.h2020.symbiote.cloud.model.data.parameter.InputParameter;
+import eu.h2020.symbiote.resources.db.AccessPolicy;
+import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
+import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
+import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.DateFormat;
@@ -31,12 +37,13 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TimeZone;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.olingo.commons.api.data.ComplexValue;
@@ -60,11 +67,13 @@ import org.apache.olingo.commons.api.edm.EdmPrimitiveTypeException;
 import org.apache.olingo.commons.api.edm.EdmProperty;
 import org.apache.olingo.commons.api.edm.EdmType;
 import org.apache.olingo.commons.core.edm.primitivetype.EdmString;
+import org.apache.olingo.server.api.ODataRequest;
 import org.apache.olingo.server.api.uri.queryoption.expression.Binary;
 import org.apache.olingo.server.api.uri.queryoption.expression.BinaryOperatorKind;
 import org.apache.olingo.server.api.uri.queryoption.expression.Expression;
 import org.apache.olingo.server.api.uri.queryoption.expression.Literal;
 import org.apache.olingo.server.api.uri.queryoption.expression.Member;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -74,10 +83,12 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
  * @author Luca Tomaselli <l.tomaselli@nextworks.it>
  */
 public class StorageHelper {
-    private static final org.slf4j.Logger log = LoggerFactory.getLogger(StorageHelper.class);
+    private static final Logger log = LoggerFactory.getLogger(StorageHelper.class);
     
     private final int TOP_LIMIT = 100;
-
+    
+    private final IComponentSecurityHandler securityHandler;
+    private final AccessPolicyRepository accessPolicyRepo;
     private final ResourcesRepository resourcesRepo;
     private final PluginRepository pluginRepo;
     private final RabbitTemplate rabbitTemplate;
@@ -89,10 +100,13 @@ public class StorageHelper {
             + "(Z|([-+]\\p{Digit}{1,2}:\\p{Digit}{2}))?");
 
     public StorageHelper(ResourcesRepository resourcesRepository, PluginRepository pluginRepository,
+                        AccessPolicyRepository accessPolicyRepository, IComponentSecurityHandler securityHandlerComponent,
                          RabbitTemplate rabbit, TopicExchange topicExchange) {
         //initSampleData();
         resourcesRepo = resourcesRepository;
         pluginRepo = pluginRepository;
+        accessPolicyRepo = accessPolicyRepository;
+        securityHandler = securityHandlerComponent;
         rabbitTemplate = rabbit;
         exchange = topicExchange;
     }
@@ -232,7 +246,7 @@ public class StorageHelper {
 
                 json = mapper.writeValueAsString(msg);
             } catch (JsonProcessingException ex) {
-                Logger.getLogger(StorageHelper.class.getName()).log(Level.SEVERE, null, ex);
+                log.error("JSon processing exception: " + ex.getMessage());
             }
             log.info("Message Set: "+json);
             obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
@@ -558,5 +572,38 @@ public class StorageHelper {
             throw new ODataApplicationException("Entity not found",
                     HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
         return resourceInfoList;
+    }
+    
+    public boolean checkAccessPolicies(ODataRequest request, String resourceId) throws Exception {
+        // timestamp header
+        String timestamp = request.getHeader(SecurityConstants.SECURITY_CREDENTIALS_TIMESTAMP_HEADER);
+        // SecurityCredentials set size header
+        String size = request.getHeader(SecurityConstants.SECURITY_CREDENTIALS_SIZE_HEADER);
+        // each SecurityCredentials entry header prefix
+        String prefix = request.getHeader(SecurityConstants.SECURITY_CREDENTIALS_HEADER_PREFIX);
+        Map<String, String> secHdrs = new HashMap();
+        secHdrs.put(SecurityConstants.SECURITY_CREDENTIALS_TIMESTAMP_HEADER, timestamp);
+        secHdrs.put(SecurityConstants.SECURITY_CREDENTIALS_SIZE_HEADER, size);
+        secHdrs.put(SecurityConstants.SECURITY_CREDENTIALS_HEADER_PREFIX, prefix);
+        SecurityRequest securityReq = new SecurityRequest(secHdrs);
+
+        checkAuthorization(securityReq, resourceId);
+        
+        return true;
+    }
+    
+    private void checkAuthorization(SecurityRequest request, String resourceId) throws Exception {
+        log.debug("RAP received a security request : " + request.toString());        
+         // building dummy access policy
+        Map<String, IAccessPolicy> accessPolicyMap = new HashMap<>();
+        // to get policies here
+        AccessPolicy accPolicy = accessPolicyRepo.findById(resourceId).get();
+        if(accPolicy == null)
+            throw new Exception("No access policies for resource");
+        
+        accessPolicyMap.put(resourceId, accPolicy.getPolicy());
+        Set<String> ids = securityHandler.getSatisfiedPoliciesIdentifiers(accessPolicyMap, request);
+        if(!ids.contains(resourceId));
+            throw new Exception("Security Policy is not valid");
     }
 }

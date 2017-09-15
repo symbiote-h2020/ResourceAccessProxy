@@ -13,9 +13,11 @@ import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
 import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
+import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
+import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import eu.h2020.symbiote.service.RAPEntityCollectionProcessor;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -75,29 +77,34 @@ public class RAPEntityProcessor implements EntityProcessor{
     private static final Logger log = LoggerFactory.getLogger(RAPEntityProcessor.class);
     
     @Autowired
-    ResourcesRepository resourcesRepo;
+    private ResourcesRepository resourcesRepo;
     
     @Autowired
-    PluginRepository pluginRepo;
+    private PluginRepository pluginRepo;
+    
+    @Autowired        
+    private AccessPolicyRepository accessPolicyRepo;
+    
+    @Autowired
+    private IComponentSecurityHandler securityHandler;
     
     @Autowired
     private RabbitTemplate rabbitTemplate;
     
     @Autowired
     @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
-    TopicExchange exchange;
+    private TopicExchange exchange;
     
     private OData odata;
-    private ServiceMetadata serviceMetadata;
     
     private StorageHelper storageHelper;
     
     @Override
     public void init(OData odata, ServiceMetadata sm) {
-        this.odata = odata;
-        this.serviceMetadata = sm;
-        
-        storageHelper = new StorageHelper(resourcesRepo, pluginRepo, rabbitTemplate,exchange);
+        this.odata = odata;   
+    //    this.serviceMetadata = sm;
+        storageHelper = new StorageHelper(resourcesRepo, pluginRepo, accessPolicyRepo,
+                                        securityHandler, rabbitTemplate, exchange);
     }
     
     @Override

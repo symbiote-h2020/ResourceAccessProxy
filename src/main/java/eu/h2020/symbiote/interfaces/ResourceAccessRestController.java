@@ -12,11 +12,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import eu.h2020.symbiote.cloud.model.data.parameter.InputParameter;
-import eu.h2020.symbiote.security.InternalSecurityHandler;
-import eu.h2020.symbiote.security.enums.ValidationStatus;
-import eu.h2020.symbiote.security.token.Token;
-import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
+import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import eu.h2020.symbiote.exceptions.*;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceRESTCondition;
 import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
@@ -27,21 +23,25 @@ import eu.h2020.symbiote.cloud.model.data.observation.Observation;
 import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
 import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
+import eu.h2020.symbiote.resources.db.AccessPolicy;
+import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
+import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import io.jsonwebtoken.Claims;
-import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.TimeZone;
+import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
+import org.apache.olingo.server.api.ODataRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
@@ -89,27 +89,31 @@ public class ResourceAccessRestController {
     private PluginRepository pluginRepo;
     
     @Autowired
-    private InternalSecurityHandler securityHandler;    
+    private IComponentSecurityHandler securityHandler; 
+    
+    @Autowired
+    private AccessPolicyRepository accessPolicyRepo;
 
     /**
      * Used to retrieve the current value of a registered resource
      * 
      * 
      * @param resourceId    the id of the resource to query 
-     * @param token 
+     * @param request 
      * @return  the current value read from the resource
      */
     @RequestMapping(value="/rap/Sensor/{resourceId}", method=RequestMethod.GET)
-    public Observation readResource(@PathVariable String resourceId, @RequestHeader("X-Auth-Token") String token) {
+    public Observation readResource(@PathVariable String resourceId, HttpServletRequest request) {
         Exception e = null;
         String path = "/rap/Sensor/"+resourceId;
         try {
             log.info("Received read resource request for ID = " + resourceId);       
             
-            checkToken(token);
+            // checking access policies
+            checkAccessPolicies(request, resourceId);
             
             ResourceInfo info = getResourceInfo(resourceId);
-            List<ResourceInfo> infoList = new ArrayList<ResourceInfo>();
+            List<ResourceInfo> infoList = new ArrayList();
             infoList.add(info);
             ResourceAccessGetMessage msg = new ResourceAccessGetMessage(infoList);
             ObjectMapper mapper = new ObjectMapper();
@@ -147,15 +151,12 @@ public class ResourceAccessRestController {
         } catch(EntityNotFoundException enf) {
             e = enf;
             log.error(e.toString());
-        } catch (TokenValidationException tokenEx) { 
-            e = tokenEx;
-            log.error(e.toString());
         } catch (Exception ex) {
             e = ex;
             String err = "Unable to read resource with id: " + resourceId;
             log.error(err + "\n" + e.getMessage());
         }     
-        sendFailMessage(path, resourceId, token, e);
+        sendFailMessage(path, resourceId, e);
         throw new GenericException(e.getMessage());
     }
     
@@ -164,17 +165,17 @@ public class ResourceAccessRestController {
      * 
      * 
      * @param resourceId    the id of the resource to query 
-     * @param token 
+     * @param request 
      * @return  the current value read from the resource
      */
     @RequestMapping(value="/rap/Sensor/{resourceId}/history", method=RequestMethod.GET)
-    public List<Observation> readResourceHistory(@PathVariable String resourceId, @RequestHeader("X-Auth-Token") String token) {
+    public List<Observation> readResourceHistory(@PathVariable String resourceId, HttpServletRequest request) {
         Exception e = null;
         String path = "/rap/Sensor/"+resourceId+"/history";
         try {
             log.info("Received read resource request for ID = " + resourceId);           
             
-            checkToken(token);
+            checkAccessPolicies(request, resourceId);
         
             ResourceInfo info = getResourceInfo(resourceId);
             List<ResourceInfo> infoList = new ArrayList<ResourceInfo>();
@@ -216,16 +217,12 @@ public class ResourceAccessRestController {
         } catch(EntityNotFoundException enf) {
             e = enf;
             log.error(e.toString());
-        } catch (TokenValidationException tokenEx) { 
-            e = tokenEx;
-            log.error(e.toString());
-            throw new GenericException(e.toString());
         } catch (Exception ex) {
             e = ex;
             String err = "Unable to read history of resource with id: " + resourceId;
             log.error(err + "\n" + e.getMessage());
         }  
-        sendFailMessage(path, resourceId, token, e);
+        sendFailMessage(path, resourceId, e);
         throw new GenericException(e.getMessage());
     }
     
@@ -234,19 +231,18 @@ public class ResourceAccessRestController {
      * 
      * 
      * @param resourceId    the id of the resource to query 
-     * @param valueList     the value list to write     
-     * @param token     
+     * @param body 
+     * @param request 
      * @return              the http response code
      */
     @RequestMapping(value={"/rap/Actuator/{resourceId}","/rap/Service/{resourceId}"}, method=RequestMethod.POST)
-    public ResponseEntity<?> writeResource(@PathVariable String resourceId, @RequestBody String body,
-                                           @RequestHeader("X-Auth-Token") String token, HttpServletRequest request) {
-        Exception e = null;
+    public ResponseEntity<?> writeResource(@PathVariable String resourceId, @RequestBody String body, HttpServletRequest request) {
+        Exception e;
         String path = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
         try {
             log.info("Received write resource request for ID = " + resourceId + " with values " + body);
             
-            checkToken(token);
+            checkAccessPolicies(request, resourceId);
 
             ResourceInfo info = getResourceInfo(resourceId);
             List<ResourceInfo> infoList = new ArrayList<ResourceInfo>();
@@ -277,7 +273,7 @@ public class ResourceAccessRestController {
             }
             sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
             return new ResponseEntity<>(response,HttpStatus.OK);
-        } catch(EntityNotFoundException | TokenValidationException enf) {
+        } catch(EntityNotFoundException enf) {
             e = enf;
             log.error(e.toString());
         } catch (Exception ex) {
@@ -285,7 +281,7 @@ public class ResourceAccessRestController {
             String err = "Unable to write resource with id: " + resourceId;
             log.error(err + "\n" + e.getMessage());
         }
-        sendFailMessage(path, resourceId, token, e);
+        sendFailMessage(path, resourceId, e);
         throw new GenericException(e.getMessage());
     }
     
@@ -297,57 +293,54 @@ public class ResourceAccessRestController {
         return resInfo.get();
     }
     
-    private void checkToken(String tokenString) throws TokenValidationException {
-        log.debug("RAP received a request for the following token: " + tokenString);
+    public boolean checkAccessPolicies(HttpServletRequest request, String resourceId) throws Exception {
+        // timestamp header
+        String timestamp = request.getHeader(SecurityConstants.SECURITY_CREDENTIALS_TIMESTAMP_HEADER);
+        // SecurityCredentials set size header
+        String size = request.getHeader(SecurityConstants.SECURITY_CREDENTIALS_SIZE_HEADER);
+        // each SecurityCredentials entry header prefix
+        String prefix = request.getHeader(SecurityConstants.SECURITY_CREDENTIALS_HEADER_PREFIX);
+        Map<String, String> secHdrs = new HashMap();
+        secHdrs.put(SecurityConstants.SECURITY_CREDENTIALS_TIMESTAMP_HEADER, timestamp);
+        secHdrs.put(SecurityConstants.SECURITY_CREDENTIALS_SIZE_HEADER, size);
+        secHdrs.put(SecurityConstants.SECURITY_CREDENTIALS_HEADER_PREFIX, prefix);
+        SecurityRequest securityReq = new SecurityRequest(secHdrs);
 
-        Token token = new Token(tokenString);
-
-        ValidationStatus status = securityHandler.verifyHomeToken(token);
-        switch (status){
-            case VALID: {
-                log.info("Token is VALID");  
-                break;
-            }
-            case VALID_OFFLINE: {
-                log.info("Token is VALID_OFFLINE");  
-                break;
-            }
-            case EXPIRED: {
-                log.info("Token is EXPIRED");
-                throw new TokenValidationException("Token is EXPIRED");
-            }
-            case REVOKED: {
-                log.info("Token is REVOKED");  
-                throw new TokenValidationException("Token is REVOKED");
-            }
-            case INVALID: {
-                log.info("Token is INVALID");  
-                throw new TokenValidationException("Token is INVALID");
-            }
-            case NULL: {
-                log.info("Token is NULL");  
-                throw new TokenValidationException("Token is NULL");
-            }
-        } 
+        checkAuthorization(securityReq, resourceId);
+        
+        return true;
     }
     
+    private void checkAuthorization(SecurityRequest request, String resourceId) throws Exception {
+        log.debug("RAP received a security request : " + request.toString());        
+         // building dummy access policy
+        Map<String, IAccessPolicy> accessPolicyMap = new HashMap<>();
+        // to get policies here
+        AccessPolicy accPolicy = accessPolicyRepo.findById(resourceId).get();
+        if(accPolicy == null)
+            throw new Exception("No access policies for resource");
+        
+        accessPolicyMap.put(resourceId, accPolicy.getPolicy());
+        Set<String> ids = securityHandler.getSatisfiedPoliciesIdentifiers(accessPolicyMap, request);
+        if(!ids.contains(resourceId));
+            throw new Exception("Security Policy is not valid");
+    }
     
-    private void sendFailMessage(String path, String symbioteId, String token, Exception e) {
+    private void sendFailMessage(String path, String symbioteId, Exception e) {
         String jsonNotificationMessage = null;
         String appId = "";String issuer = ""; String validationStatus = "";
         ObjectMapper mapper = new ObjectMapper();
-        
-        String code = Integer.toString(HttpStatus.INTERNAL_SERVER_ERROR.value());
         String message = e.getMessage();
         if(message == null)
             message = e.toString();
         
+        String code;
         if(e.getClass().equals(EntityNotFoundException.class))
             code = Integer.toString(HttpStatus.NOT_FOUND.value());
-        else if(e.getClass().equals(TokenValidationException.class))
+        else
             code = Integer.toString(HttpStatus.FORBIDDEN.value());
 
-        
+        /*
         if(token != null && !token.isEmpty()){
             try{
                 Token tok = new Token(token);
@@ -363,7 +356,7 @@ public class ResourceAccessRestController {
             catch(Exception ex){
                 log.error(ex.getMessage());
             }
-        }
+        }*/
             
         mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);

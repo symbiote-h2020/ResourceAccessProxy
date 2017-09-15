@@ -10,10 +10,8 @@ package eu.h2020.symbiote.service;
  * @author Luca Tomaselli <l.tomaselli@nextworks.it>
  */
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
-import eu.h2020.symbiote.security.InternalSecurityHandler;
-import eu.h2020.symbiote.security.token.Token;
-import eu.h2020.symbiote.security.enums.ValidationStatus;
-import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
+import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
+import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceODataCondition;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -54,7 +52,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
 import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
-import io.jsonwebtoken.Claims;
+import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import java.util.Date;
 
 /*
@@ -69,6 +67,12 @@ public class RAPEdmController {
 
     private static final Logger log = LoggerFactory.getLogger(RAPEdmController.class);
 
+    @Value("${platform.id}") 
+    private String platformId;
+    
+    @Value("${platform.owner}") 
+    private String platformOwner;            
+    
     private static final String URI = "rap/";
     private int split = 0;
 
@@ -80,12 +84,6 @@ public class RAPEdmController {
 
     @Autowired
     private RAPEntityProcessor entityProcessor;
-
-    @Autowired
-    private InternalSecurityHandler securityHandler;
-
-    @Value("${platform.id}")
-    private String platformId;
 
     /**
      * Process.
@@ -109,50 +107,43 @@ public class RAPEdmController {
 
     private ResponseEntity<String> processRequestPrivate(HttpServletRequest req) throws Exception {
         ODataResponse response = null;
-        String token = null;
-        Exception e = null;
-        try {
-
-            token = req.getHeader("X-Auth-Token");
-            checkToken(token);
+        String responseStr = null;
+        SecurityRequest securityReq = null;
+        MultiValueMap<String, String> headers = new HttpHeaders();
+        try {            
             OData odata = OData.newInstance();
             ServiceMetadata edm = odata.createServiceMetadata(edmProvider, new ArrayList());
-
             ODataHttpHandler handler = odata.createHandler(edm);
             handler.register(entityCollectionProcessor);
             handler.register(entityProcessor);
 
             response = handler.process(createODataRequest(req, split));
             
-            String responseStr;
+            
             if(response.getStatusCode() != HttpStatus.OK.value())
-                responseStr = sendFailMessage(req, token, response);
+                responseStr = sendFailMessage(req, securityReq, response);
             else 
                 responseStr = StreamUtils.copyToString(
                     response.getContent(), Charset.defaultCharset());
-            MultiValueMap<String, String> headers = new HttpHeaders();
+
             headers.add("Access-Control-Allow-Origin", "*");
             headers.add("Access-Control-Allow-Credentials", "true");
             headers.add("Access-Control-Allow-Methods", "OPTIONS, GET, POST, PUT");
-            headers.add("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token");
-
-            return new ResponseEntity(responseStr, headers, HttpStatus.valueOf(response.getStatusCode()));
-        } catch (TokenValidationException ex) { 
-            e = ex;
+            headers.add("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token");            
+        } catch (IOException | ODataException e) {
+            sendFailMessage(req, securityReq, response);
             log.error(e.toString());
-        } catch (Exception exc) {
-            e = exc;
-            log.error(e.toString());
+            throw e;
         }
-        
-        sendFailMessage(req, token, response);
-        throw e;
+        return new ResponseEntity(responseStr, headers, HttpStatus.valueOf(response.getStatusCode()));
     }
 
-    private String sendFailMessage(HttpServletRequest request, String token, ODataResponse response) {
+    private String sendFailMessage(HttpServletRequest request, SecurityRequest securityReq, ODataResponse response) {
         String jsonNotificationMessage = null;
         String symbioTeId = "";
-        String appId = "";String issuer = ""; String validationStatus = "";
+        String appId = "";
+        String issuer = ""; 
+        String validationStatus = "";
         CustomODataApplicationException customOdataExc = null;
         ObjectMapper mapper = new ObjectMapper();
         
@@ -178,7 +169,7 @@ public class RAPEdmController {
                 symbioTeId = customOdataExc.getSymbioteId();
             message = customOdataExc.getMessage();
         }
-        
+        /*
         if(token != null && !token.isEmpty()){
             try{
                 Token tok = new Token(token);
@@ -194,11 +185,11 @@ public class RAPEdmController {
             catch(Exception e){
                 log.error(e.getMessage());
             }
-        }
+        }*/
             
         mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        List<Date> dateList = new ArrayList<Date>();
+        List<Date> dateList = new ArrayList<>();
         dateList.add(new Date());
         NotificationMessage notificationMessage = new NotificationMessage();
         try {
@@ -220,7 +211,7 @@ public class RAPEdmController {
         map.configure(SerializationFeature.INDENT_OUTPUT, true);
         map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
         
-        List<Date> dateList = new ArrayList<Date>();
+        List<Date> dateList = new ArrayList<>();
         dateList.add(new Date());
         NotificationMessage notificationMessage = new NotificationMessage();
         
@@ -363,7 +354,7 @@ public class RAPEdmController {
      *
      * @param odRequest the od request
      * @param req the req
-     */
+     */ 
     private void extractHeaders(final ODataRequest odRequest, final HttpServletRequest req) {
         for (Enumeration<?> headerNames = req.getHeaderNames(); headerNames.hasMoreElements();) {
             String headerName = (String) headerNames.nextElement();
@@ -376,37 +367,5 @@ public class RAPEdmController {
         }
     }
 
-    private void checkToken(String tokenString) throws TokenValidationException {
-        log.debug("RAP received a request for the following token: " + tokenString);
-
-        Token token = new Token(tokenString);
-
-        ValidationStatus status = securityHandler.verifyHomeToken(token);
-        switch (status) {
-            case VALID: {
-                log.info("Token is VALID");
-                break;
-            }
-            case VALID_OFFLINE: {
-                log.info("Token is VALID_OFFLINE");
-                break;
-            }
-            case EXPIRED: {
-                log.info("Token is EXPIRED");
-                throw new TokenValidationException("Token is EXPIRED");
-            }
-            case REVOKED: {
-                log.info("Token is REVOKED");
-                throw new TokenValidationException("Token is REVOKED");
-            }
-            case INVALID: {
-                log.info("Token is INVALID");
-                throw new TokenValidationException("Token is INVALID");
-            }
-            case NULL: {
-                log.info("Token is NULL");
-                throw new TokenValidationException("Token is NULL");
-            }
-        }
-    }
+    
 }

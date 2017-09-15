@@ -5,26 +5,12 @@
  */
 package eu.h2020.symbiote.bim;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import eu.h2020.symbiote.cloud.model.data.observation.Observation;
-import eu.h2020.symbiote.exceptions.EntityNotFoundException;
 import eu.h2020.symbiote.exceptions.GenericException;
-import eu.h2020.symbiote.interfaces.ResourceAccessRestController;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceRESTCondition;
-import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
-import eu.h2020.symbiote.messages.access.ResourceAccessMessage;
-import eu.h2020.symbiote.resources.db.ResourceInfo;
-import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Conditional;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -40,9 +26,6 @@ public class BimRestController {
     private static final Logger log = LoggerFactory.getLogger(BimRestController.class);
     
     private static final String BIM_FILE = "/bim-0.3.owl";
-    
-
-
     
     /*
     @RequestMapping(value="/bim3", method=RequestMethod.GET)
