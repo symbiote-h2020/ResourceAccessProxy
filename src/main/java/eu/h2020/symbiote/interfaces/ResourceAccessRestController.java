@@ -32,7 +32,6 @@ import eu.h2020.symbiote.resources.query.Query;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
-import io.jsonwebtoken.Claims;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -41,7 +40,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
-import org.apache.olingo.server.api.ODataRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
@@ -53,7 +51,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -245,7 +242,7 @@ public class ResourceAccessRestController {
             checkAccessPolicies(request, resourceId);
 
             ResourceInfo info = getResourceInfo(resourceId);
-            List<ResourceInfo> infoList = new ArrayList<ResourceInfo>();
+            List<ResourceInfo> infoList = new ArrayList();
             infoList.add(info);
             ResourceAccessSetMessage msg = new ResourceAccessSetMessage(infoList, body);            
             ObjectMapper mapper = new ObjectMapper();
@@ -339,28 +336,10 @@ public class ResourceAccessRestController {
             code = Integer.toString(HttpStatus.NOT_FOUND.value());
         else
             code = Integer.toString(HttpStatus.FORBIDDEN.value());
-
-        /*
-        if(token != null && !token.isEmpty()){
-            try{
-                Token tok = new Token(token);
-                Claims claims = tok.getClaims();
-                appId = claims.getSubject();
-                issuer = claims.getIssuer();
-                ValidationStatus status = securityHandler.verifyHomeToken(tok);
-                validationStatus = status.name();
-            }
-            catch(TokenValidationException tokenExc){
-                validationStatus = tokenExc.getErrorMessage();
-            }
-            catch(Exception ex){
-                log.error(ex.getMessage());
-            }
-        }*/
             
         mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        List<Date> dateList = new ArrayList<Date>();
+        List<Date> dateList = new ArrayList();
         dateList.add(new Date());
         NotificationMessage notificationMessage = new NotificationMessage();
         try {
@@ -381,7 +360,7 @@ public class ResourceAccessRestController {
         map.configure(SerializationFeature.INDENT_OUTPUT, true);
         map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
         
-        List<Date> dateList = new ArrayList<Date>();
+        List<Date> dateList = new ArrayList();
         dateList.add(new Date());
         NotificationMessage notificationMessage = new NotificationMessage();
         

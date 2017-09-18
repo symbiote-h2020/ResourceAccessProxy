@@ -108,7 +108,6 @@ public class RAPEdmController {
     private ResponseEntity<String> processRequestPrivate(HttpServletRequest req) throws Exception {
         ODataResponse response = null;
         String responseStr = null;
-        SecurityRequest securityReq = null;
         MultiValueMap<String, String> headers = new HttpHeaders();
         try {            
             OData odata = OData.newInstance();
@@ -121,7 +120,7 @@ public class RAPEdmController {
             
             
             if(response.getStatusCode() != HttpStatus.OK.value())
-                responseStr = sendFailMessage(req, securityReq, response);
+                responseStr = sendFailMessage(req, Integer.toString(response.getStatusCode()));
             else 
                 responseStr = StreamUtils.copyToString(
                     response.getContent(), Charset.defaultCharset());
@@ -131,14 +130,14 @@ public class RAPEdmController {
             headers.add("Access-Control-Allow-Methods", "OPTIONS, GET, POST, PUT");
             headers.add("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token");            
         } catch (IOException | ODataException e) {
-            sendFailMessage(req, securityReq, response);
+            sendFailMessage(req, e.getMessage());
             log.error(e.toString());
             throw e;
         }
         return new ResponseEntity(responseStr, headers, HttpStatus.valueOf(response.getStatusCode()));
     }
 
-    private String sendFailMessage(HttpServletRequest request, SecurityRequest securityReq, ODataResponse response) {
+    private String sendFailMessage(HttpServletRequest request, String error) {
         String jsonNotificationMessage = null;
         String symbioTeId = "";
         String appId = "";
@@ -148,17 +147,7 @@ public class RAPEdmController {
         ObjectMapper mapper = new ObjectMapper();
         
         String code = Integer.toString(HttpStatus.INTERNAL_SERVER_ERROR.value());
-        String message = HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase();
-        
-        if(response != null){
-            code = Integer.toString(response.getStatusCode());
-            try {
-                message = StreamUtils.copyToString(response.getContent(), Charset.defaultCharset());
-            } catch (IOException ex) {
-                log.error(ex.getMessage());
-            }
-        }
-        
+        String message = "Error: " + error;               
         try {
             customOdataExc = mapper.readValue(message, CustomODataApplicationException.class);
         } catch (IOException ex) {
@@ -168,25 +157,7 @@ public class RAPEdmController {
             if(customOdataExc.getSymbioteId() != null)
                 symbioTeId = customOdataExc.getSymbioteId();
             message = customOdataExc.getMessage();
-        }
-        /*
-        if(token != null && !token.isEmpty()){
-            try{
-                Token tok = new Token(token);
-                Claims claims = tok.getClaims();
-                appId = claims.getSubject();
-                issuer = claims.getIssuer();
-                ValidationStatus status = securityHandler.verifyHomeToken(tok);
-                validationStatus = status.name();
-            }
-            catch(TokenValidationException tokenExc){
-                validationStatus = tokenExc.getErrorMessage();
-            }
-            catch(Exception e){
-                log.error(e.getMessage());
-            }
-        }*/
-            
+        }            
         mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         List<Date> dateList = new ArrayList<>();
