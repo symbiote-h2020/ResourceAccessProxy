@@ -66,7 +66,7 @@ public class ResourceRegistration {
                 if(symbioteId == null){
                     symbioteId = Integer.toString((int)(Math.random() * Integer.MAX_VALUE));
                 }
-                addPolicy(symbioteId, internalId, msg.getSingleTokenAccessPolicySpecifier());
+                addPolicy(symbioteId, internalId, msg.getSingleTokenAccessPolicy());
                 
                 log.info("Registering "+ resourceClass +" with symbioteId: " + symbioteId + ", internalId: " + internalId);
                 addResource(symbioteId, internalId, props, pluginId);
