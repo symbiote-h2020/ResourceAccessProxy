@@ -146,14 +146,11 @@ public class ResourceRegistration {
         }
     }  
     
-    private void addPolicy(String resourceId, String internalId, IAccessPolicy accPolicy) throws InvalidArgumentsException {
-        try {
-            if(accPolicy instanceof SingleTokenAccessPolicySpecifier) {            
-                IAccessPolicy policy = SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(
-                                                (SingleTokenAccessPolicySpecifier)accPolicy);
-                AccessPolicy ap = new AccessPolicy(resourceId, internalId, policy);
-                accessPolicyRepository.save(ap);
-            }
+    private void addPolicy(String resourceId, String internalId, SingleTokenAccessPolicySpecifier accPolicy) throws InvalidArgumentsException {
+        try {            
+            IAccessPolicy policy = SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(accPolicy);
+            AccessPolicy ap = new AccessPolicy(resourceId, internalId, policy);
+            accessPolicyRepository.save(ap);            
         } catch (InvalidArgumentsException e) {
             log.error("Invalid Policy definition for resource with id " + resourceId);
             throw e;
