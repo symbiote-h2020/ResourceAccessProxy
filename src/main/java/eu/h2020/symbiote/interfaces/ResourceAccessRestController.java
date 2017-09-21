@@ -34,6 +34,7 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -98,9 +99,10 @@ public class ResourceAccessRestController {
      * @param resourceId    the id of the resource to query 
      * @param request 
      * @return  the current value read from the resource
+     * @throws java.lang.Exception
      */
     @RequestMapping(value="/rap/Sensor/{resourceId}", method=RequestMethod.GET)
-    public Observation readResource(@PathVariable String resourceId, HttpServletRequest request) {
+    public Observation readResource(@PathVariable String resourceId, HttpServletRequest request) throws Exception {
         Exception e = null;
         String path = "/rap/Sensor/"+resourceId;
         try {
@@ -153,8 +155,12 @@ public class ResourceAccessRestController {
             String err = "Unable to read resource with id: " + resourceId;
             log.error(err + "\n" + e.getMessage());
         }     
-        sendFailMessage(path, resourceId, e);
-        throw new GenericException(e.getMessage());
+        String excMsg="Generic error";
+        if(e!=null)
+            excMsg = e.getMessage();
+        GenericException exc = new GenericException(excMsg);
+    //    sendFailMessage(path, resourceId, exc);
+        throw exc;
     }
     
     /**
@@ -175,7 +181,7 @@ public class ResourceAccessRestController {
             checkAccessPolicies(request, resourceId);
         
             ResourceInfo info = getResourceInfo(resourceId);
-            List<ResourceInfo> infoList = new ArrayList<ResourceInfo>();
+            List<ResourceInfo> infoList = new ArrayList();
             infoList.add(info);
             Query q = null;
             ResourceAccessHistoryMessage msg = new ResourceAccessHistoryMessage(infoList, TOP_LIMIT, q);
@@ -219,8 +225,12 @@ public class ResourceAccessRestController {
             String err = "Unable to read history of resource with id: " + resourceId;
             log.error(err + "\n" + e.getMessage());
         }  
-        sendFailMessage(path, resourceId, e);
-        throw new GenericException(e.getMessage());
+        String excMsg="Generic error";
+        if(e!=null)
+            excMsg = e.getMessage();
+        GenericException exc = new GenericException(excMsg);
+    //    sendFailMessage(path, resourceId, exc);
+        throw exc;
     }
     
     /**
@@ -278,7 +288,7 @@ public class ResourceAccessRestController {
             String err = "Unable to write resource with id: " + resourceId;
             log.error(err + "\n" + e.getMessage());
         }
-        sendFailMessage(path, resourceId, e);
+    //    sendFailMessage(path, resourceId, e);
         throw new GenericException(e.getMessage());
     }
     
@@ -291,16 +301,16 @@ public class ResourceAccessRestController {
     }
     
     public boolean checkAccessPolicies(HttpServletRequest request, String resourceId) throws Exception {
-        // timestamp header
-        String timestamp = request.getHeader(SecurityConstants.SECURITY_CREDENTIALS_TIMESTAMP_HEADER);
-        // SecurityCredentials set size header
-        String size = request.getHeader(SecurityConstants.SECURITY_CREDENTIALS_SIZE_HEADER);
-        // each SecurityCredentials entry header prefix
-        String prefix = request.getHeader(SecurityConstants.SECURITY_CREDENTIALS_HEADER_PREFIX);
         Map<String, String> secHdrs = new HashMap();
-        secHdrs.put(SecurityConstants.SECURITY_CREDENTIALS_TIMESTAMP_HEADER, timestamp);
-        secHdrs.put(SecurityConstants.SECURITY_CREDENTIALS_SIZE_HEADER, size);
-        secHdrs.put(SecurityConstants.SECURITY_CREDENTIALS_HEADER_PREFIX, prefix);
+        Enumeration<String> headerNames = request.getHeaderNames();
+
+        if (headerNames != null) {
+            while (headerNames.hasMoreElements()) {
+                String header = headerNames.nextElement();
+                secHdrs.put(header, request.getHeader(header));
+            }
+        }
+        log.info("secHeaders: " + secHdrs);
         SecurityRequest securityReq = new SecurityRequest(secHdrs);
 
         checkAuthorization(securityReq, resourceId);

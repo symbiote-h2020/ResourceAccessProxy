@@ -575,16 +575,12 @@ public class StorageHelper {
     }
     
     public boolean checkAccessPolicies(ODataRequest request, String resourceId) throws Exception {
-        // timestamp header
-        String timestamp = request.getHeader(SecurityConstants.SECURITY_CREDENTIALS_TIMESTAMP_HEADER);
-        // SecurityCredentials set size header
-        String size = request.getHeader(SecurityConstants.SECURITY_CREDENTIALS_SIZE_HEADER);
-        // each SecurityCredentials entry header prefix
-        String prefix = request.getHeader(SecurityConstants.SECURITY_CREDENTIALS_HEADER_PREFIX);
+        Map<String,List<String>> headers = request.getAllHeaders();
         Map<String, String> secHdrs = new HashMap();
-        secHdrs.put(SecurityConstants.SECURITY_CREDENTIALS_TIMESTAMP_HEADER, timestamp);
-        secHdrs.put(SecurityConstants.SECURITY_CREDENTIALS_SIZE_HEADER, size);
-        secHdrs.put(SecurityConstants.SECURITY_CREDENTIALS_HEADER_PREFIX, prefix);
+        for(String key : headers.keySet()) {
+            secHdrs.put(key, request.getHeader(key));
+        }
+        log.info("secHeaders: " + secHdrs);
         SecurityRequest securityReq = new SecurityRequest(secHdrs);
 
         checkAuthorization(securityReq, resourceId);

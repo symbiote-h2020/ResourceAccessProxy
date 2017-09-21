@@ -10,8 +10,6 @@ package eu.h2020.symbiote.service;
  * @author Luca Tomaselli <l.tomaselli@nextworks.it>
  */
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
-import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
-import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceODataCondition;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -43,7 +41,6 @@ import org.springframework.util.StreamUtils;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -52,7 +49,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
 import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
-import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import java.util.Date;
 
 /*
@@ -67,12 +63,6 @@ public class RAPEdmController {
 
     private static final Logger log = LoggerFactory.getLogger(RAPEdmController.class);
 
-    @Value("${platform.id}") 
-    private String platformId;
-    
-    @Value("${platform.owner}") 
-    private String platformOwner;            
-    
     private static final String URI = "rap/";
     private int split = 0;
 
@@ -119,9 +109,9 @@ public class RAPEdmController {
             response = handler.process(createODataRequest(req, split));
             
             
-            if(response.getStatusCode() != HttpStatus.OK.value())
-                responseStr = sendFailMessage(req, Integer.toString(response.getStatusCode()));
-            else 
+          //  if(response.getStatusCode() != HttpStatus.OK.value())
+          //      responseStr = sendFailMessage(req, Integer.toString(response.getStatusCode()));
+          //  else 
                 responseStr = StreamUtils.copyToString(
                     response.getContent(), Charset.defaultCharset());
 
@@ -130,7 +120,7 @@ public class RAPEdmController {
             headers.add("Access-Control-Allow-Methods", "OPTIONS, GET, POST, PUT");
             headers.add("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token");            
         } catch (IOException | ODataException e) {
-            sendFailMessage(req, e.getMessage());
+        //    sendFailMessage(req, e.getMessage());
             log.error(e.toString());
             throw e;
         }
