@@ -30,16 +30,8 @@ import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
-import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -301,6 +293,17 @@ public class ResourceAccessRestController {
     }
     
     public boolean checkAccessPolicies(HttpServletRequest request, String resourceId) throws Exception {
+//        // timestamp header
+//        String timestamp = request.getHeader(SecurityConstants.SECURITY_CREDENTIALS_TIMESTAMP_HEADER);
+//        // SecurityCredentials set size header
+//        String size = request.getHeader(SecurityConstants.SECURITY_CREDENTIALS_SIZE_HEADER);
+//        // each SecurityCredentials entry header prefix
+//        String prefix = request.getHeader(SecurityConstants.SECURITY_CREDENTIALS_HEADER_PREFIX);
+//        Map<String, String> secHdrs = new HashMap();
+//        secHdrs.put(SecurityConstants.SECURITY_CREDENTIALS_TIMESTAMP_HEADER, timestamp);
+//        secHdrs.put(SecurityConstants.SECURITY_CREDENTIALS_SIZE_HEADER, size);
+//        secHdrs.put(SecurityConstants.SECURITY_CREDENTIALS_HEADER_PREFIX, prefix);
+
         Map<String, String> secHdrs = new HashMap();
         Enumeration<String> headerNames = request.getHeaderNames();
 

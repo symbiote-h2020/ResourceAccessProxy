@@ -121,7 +121,7 @@ public class RAPEdmController {
             headers.add("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token");            
         } catch (IOException | ODataException e) {
         //    sendFailMessage(req, e.getMessage());
-            log.error(e.toString());
+            log.error(e.getMessage(), e);
             throw e;
         }
         return new ResponseEntity(responseStr, headers, HttpStatus.valueOf(response.getStatusCode()));
@@ -141,7 +141,7 @@ public class RAPEdmController {
         try {
             customOdataExc = mapper.readValue(message, CustomODataApplicationException.class);
         } catch (IOException ex) {
-            log.error(ex.getMessage());
+            log.error(ex.toString(), ex);
         }
         if(customOdataExc != null){
             if(customOdataExc.getSymbioteId() != null)
@@ -158,7 +158,7 @@ public class RAPEdmController {
             code, message, appId, issuer, validationStatus, request.getRequestURI()); 
             jsonNotificationMessage = mapper.writeValueAsString(notificationMessage);
         } catch (JsonProcessingException jsonEx) {
-            log.error(jsonEx.getMessage());
+            log.error(jsonEx.toString(), jsonEx);
         }
         NotificationMessage.SendFailAccessMessage(jsonNotificationMessage);
         return message;
@@ -180,7 +180,7 @@ public class RAPEdmController {
             notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
             jsonNotificationMessage = map.writeValueAsString(notificationMessage);
         } catch (JsonProcessingException e) {
-            log.error(e.getMessage());
+            log.error(e.toString(), e);
         }
         NotificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
     }
