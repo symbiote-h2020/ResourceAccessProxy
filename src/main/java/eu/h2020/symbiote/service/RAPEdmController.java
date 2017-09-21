@@ -151,7 +151,7 @@ public class RAPEdmController {
         try {
             customOdataExc = mapper.readValue(message, CustomODataApplicationException.class);
         } catch (IOException ex) {
-            log.error(ex.getMessage());
+            log.error(ex.toString());
         }
         if(customOdataExc != null){
             if(customOdataExc.getSymbioteId() != null)
@@ -168,7 +168,7 @@ public class RAPEdmController {
             code, message, appId, issuer, validationStatus, request.getRequestURI()); 
             jsonNotificationMessage = mapper.writeValueAsString(notificationMessage);
         } catch (JsonProcessingException jsonEx) {
-            log.error(jsonEx.getMessage());
+            log.error(jsonEx.toString());
         }
         NotificationMessage.SendFailAccessMessage(jsonNotificationMessage);
         return message;
@@ -190,7 +190,7 @@ public class RAPEdmController {
             notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
             jsonNotificationMessage = map.writeValueAsString(notificationMessage);
         } catch (JsonProcessingException e) {
-            log.error(e.getMessage());
+            log.error(e.toString());
         }
         NotificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
     }
