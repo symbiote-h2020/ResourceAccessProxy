@@ -593,11 +593,11 @@ public class StorageHelper {
          // building dummy access policy
         Map<String, IAccessPolicy> accessPolicyMap = new HashMap<>();
         // to get policies here
-        AccessPolicy accPolicy = accessPolicyRepo.findById(resourceId).get();
+        Optional<AccessPolicy> accPolicy = accessPolicyRepo.findById(resourceId);
         if(accPolicy == null)
             throw new Exception("No access policies for resource");
         
-        accessPolicyMap.put(resourceId, accPolicy.getPolicy());
+        accessPolicyMap.put(resourceId, accPolicy.get().getPolicy());
         Set<String> ids = securityHandler.getSatisfiedPoliciesIdentifiers(accessPolicyMap, request);
         if(!ids.contains(resourceId));
             throw new Exception("Security Policy is not valid");

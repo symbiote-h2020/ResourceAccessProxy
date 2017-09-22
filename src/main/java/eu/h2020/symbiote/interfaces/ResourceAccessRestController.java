@@ -137,7 +137,7 @@ public class ResourceAccessRestController {
             
             Observation o = observations.get(0);
             Observation ob = new Observation(resourceId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
-            sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
+        //    sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
             return ob;
         } catch(EntityNotFoundException enf) {
             e = enf;
@@ -207,7 +207,7 @@ public class ResourceAccessRestController {
                 Observation ob = new Observation(resourceId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
                 observationsList.add(ob);
             }
-            sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
+         //   sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
             return observationsList;
         } catch(EntityNotFoundException enf) {
             e = enf;
@@ -270,7 +270,7 @@ public class ResourceAccessRestController {
                     response = (String) obj;
                 }
             }
-            sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
+        //    sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
             return new ResponseEntity<>(response,HttpStatus.OK);
         } catch(EntityNotFoundException enf) {
             e = enf;
@@ -326,11 +326,11 @@ public class ResourceAccessRestController {
          // building dummy access policy
         Map<String, IAccessPolicy> accessPolicyMap = new HashMap<>();
         // to get policies here
-        AccessPolicy accPolicy = accessPolicyRepo.findById(resourceId).get();
+        Optional<AccessPolicy> accPolicy = accessPolicyRepo.findById(resourceId);
         if(accPolicy == null)
             throw new Exception("No access policies for resource");
         
-        accessPolicyMap.put(resourceId, accPolicy.getPolicy());
+        accessPolicyMap.put(resourceId, accPolicy.get().getPolicy());
         Set<String> ids = securityHandler.getSatisfiedPoliciesIdentifiers(accessPolicyMap, request);
         if(!ids.contains(resourceId));
             throw new Exception("Security Policy is not valid");
@@ -365,7 +365,7 @@ public class ResourceAccessRestController {
         NotificationMessage.SendFailAccessMessage(jsonNotificationMessage);
     }
     
-    public static void sendSuccessfulAccessMessage(String symbioteId, String accessType){
+    private static void sendSuccessfulAccessMessage(String symbioteId, String accessType){
         String jsonNotificationMessage = null;
         if(accessType == null || accessType.isEmpty())
             accessType = SuccessfulAccessMessageInfo.AccessType.NORMAL.name();
