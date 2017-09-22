@@ -40,6 +40,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Conditional;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -64,6 +65,7 @@ public class ResourceAccessRestController {
     private static final Logger log = LoggerFactory.getLogger(ResourceAccessRestController.class);
 
     private final int TOP_LIMIT = 100;
+    public final String SECURITY_RESPONSE_HEADER = "x-auth-response";
     
     @Autowired
     private RabbitTemplate rabbitTemplate;
@@ -83,6 +85,8 @@ public class ResourceAccessRestController {
     
     @Autowired
     private AccessPolicyRepository accessPolicyRepo;
+    
+    
 
     /**
      * Used to retrieve the current value of a registered resource
@@ -94,7 +98,7 @@ public class ResourceAccessRestController {
      * @throws java.lang.Exception
      */
     @RequestMapping(value="/rap/Sensor/{resourceId}", method=RequestMethod.GET)
-    public Observation readResource(@PathVariable String resourceId, HttpServletRequest request) throws Exception {
+    public ResponseEntity<Observation> readResource(@PathVariable String resourceId, HttpServletRequest request) throws Exception {
         Exception e = null;
         String path = "/rap/Sensor/"+resourceId;
         try {
@@ -134,11 +138,15 @@ public class ResourceAccessRestController {
             if(observations == null || observations.isEmpty())
                 throw new Exception("Plugin error");
             
-            
             Observation o = observations.get(0);
             Observation ob = new Observation(resourceId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
         //    sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
-            return ob;
+        
+            String serResponse = securityHandler.generateServiceResponse();
+            HttpHeaders responseHeaders = new HttpHeaders();
+            responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse);
+            return new ResponseEntity<>(ob , responseHeaders, HttpStatus.OK);
+            
         } catch(EntityNotFoundException enf) {
             e = enf;
             log.error(e.toString());
@@ -164,7 +172,7 @@ public class ResourceAccessRestController {
      * @return  the current value read from the resource
      */
     @RequestMapping(value="/rap/Sensor/{resourceId}/history", method=RequestMethod.GET)
-    public List<Observation> readResourceHistory(@PathVariable String resourceId, HttpServletRequest request) {
+    public ResponseEntity<List<Observation> > readResourceHistory(@PathVariable String resourceId, HttpServletRequest request) {
         Exception e = null;
         String path = "/rap/Sensor/"+resourceId+"/history";
         try {
@@ -208,7 +216,10 @@ public class ResourceAccessRestController {
                 observationsList.add(ob);
             }
          //   sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
-            return observationsList;
+            String serResponse = securityHandler.generateServiceResponse();
+            HttpHeaders responseHeaders = new HttpHeaders();
+            responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse);
+            return new ResponseEntity<>(observationsList , responseHeaders, HttpStatus.OK);
         } catch(EntityNotFoundException enf) {
             e = enf;
             log.error(e.toString());
@@ -271,7 +282,11 @@ public class ResourceAccessRestController {
                 }
             }
         //    sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
-            return new ResponseEntity<>(response,HttpStatus.OK);
+            String serResponse = securityHandler.generateServiceResponse();
+            HttpHeaders responseHeaders = new HttpHeaders();
+            responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse);
+            
+            return new ResponseEntity<>(response, responseHeaders, HttpStatus.OK);
         } catch(EntityNotFoundException enf) {
             e = enf;
             log.error(e.toString());
@@ -293,17 +308,6 @@ public class ResourceAccessRestController {
     }
     
     public boolean checkAccessPolicies(HttpServletRequest request, String resourceId) throws Exception {
-//        // timestamp header
-//        String timestamp = request.getHeader(SecurityConstants.SECURITY_CREDENTIALS_TIMESTAMP_HEADER);
-//        // SecurityCredentials set size header
-//        String size = request.getHeader(SecurityConstants.SECURITY_CREDENTIALS_SIZE_HEADER);
-//        // each SecurityCredentials entry header prefix
-//        String prefix = request.getHeader(SecurityConstants.SECURITY_CREDENTIALS_HEADER_PREFIX);
-//        Map<String, String> secHdrs = new HashMap();
-//        secHdrs.put(SecurityConstants.SECURITY_CREDENTIALS_TIMESTAMP_HEADER, timestamp);
-//        secHdrs.put(SecurityConstants.SECURITY_CREDENTIALS_SIZE_HEADER, size);
-//        secHdrs.put(SecurityConstants.SECURITY_CREDENTIALS_HEADER_PREFIX, prefix);
-
         Map<String, String> secHdrs = new HashMap();
         Enumeration<String> headerNames = request.getHeaderNames();
 

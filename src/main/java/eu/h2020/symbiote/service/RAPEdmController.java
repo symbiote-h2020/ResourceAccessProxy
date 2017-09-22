@@ -49,6 +49,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
 import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
+import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import java.util.Date;
 
 /*
@@ -65,6 +66,7 @@ public class RAPEdmController {
 
     private static final String URI = "rap/";
     private int split = 0;
+    public final String SECURITY_RESPONSE_HEADER = "x-auth-response";
 
     @Autowired
     private RAPEdmProvider edmProvider;
@@ -74,6 +76,10 @@ public class RAPEdmController {
 
     @Autowired
     private RAPEntityProcessor entityProcessor;
+    
+    @Autowired
+    private IComponentSecurityHandler securityHandler;
+            
 
     /**
      * Process.
@@ -118,7 +124,11 @@ public class RAPEdmController {
             headers.add("Access-Control-Allow-Origin", "*");
             headers.add("Access-Control-Allow-Credentials", "true");
             headers.add("Access-Control-Allow-Methods", "OPTIONS, GET, POST, PUT");
-            headers.add("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token");            
+            headers.add("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token");
+            
+            String securityResponseHrd = securityHandler.generateServiceResponse();
+            headers.add(SECURITY_RESPONSE_HEADER, securityResponseHrd);
+            
         } catch (IOException | ODataException e) {
         //    sendFailMessage(req, e.getMessage());
             log.error(e.getMessage(), e);
