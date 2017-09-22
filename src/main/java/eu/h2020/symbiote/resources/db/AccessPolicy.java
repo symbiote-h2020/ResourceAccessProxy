@@ -20,6 +20,12 @@ public class AccessPolicy {
     private final String internalId;
     private final IAccessPolicy policy;
     
+    public AccessPolicy() {
+        id = "";
+        internalId = "";
+        policy = null;
+    }
+    
     public AccessPolicy(String resourceId, String internalId, IAccessPolicy policy) {
         this.id = resourceId;
         this.internalId = internalId;
