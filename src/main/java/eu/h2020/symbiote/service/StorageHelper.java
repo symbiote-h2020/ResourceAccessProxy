@@ -599,7 +599,7 @@ public class StorageHelper {
         
         accessPolicyMap.put(resourceId, accPolicy.get().getPolicy());
         Set<String> ids = securityHandler.getSatisfiedPoliciesIdentifiers(accessPolicyMap, request);
-        if(!ids.contains(resourceId));
+        if(!ids.contains(resourceId))
             throw new Exception("Security Policy is not valid");
     }
 }
