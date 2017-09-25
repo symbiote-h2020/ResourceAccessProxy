@@ -213,7 +213,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
         // checking access policies
         try {
             for(ResourceInfo resource : resourceInfoList) {
-                storageHelper.checkAccessPolicies(request, resource.getInternalId());
+                storageHelper.checkAccessPolicies(request, resource.getSymbioteId());
             }
         } catch (Exception ex) {   
             log.error(ex.getMessage());
