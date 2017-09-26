@@ -24,4 +24,13 @@ public interface AccessPolicyRepository extends MongoRepository<AccessPolicy, St
      * @return              the AccessPolicy instances
      */
     public Optional<AccessPolicy> findById(String resourceId);
+    
+    /**
+     * This method will find an AccessPolicy in the database 
+     * by its internal id.
+     * 
+     * @param internalId    the internal id of the resource
+     * @return              the AccessPolicy instances
+     */
+    public Optional<AccessPolicy> findByInternalId(String internalId);
 }

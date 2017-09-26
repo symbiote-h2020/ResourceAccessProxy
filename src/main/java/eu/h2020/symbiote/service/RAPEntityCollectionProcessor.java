@@ -107,10 +107,11 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
         if (topOption != null) {
             int topNumber = topOption.getValue();
             if (topNumber >= 0) {
-                log.info("Top: " + topNumber);
+                log.debug("Top: " + topNumber);
                 top = topNumber;
             } else {
-                customOdataException = new CustomODataApplicationException(null,"Invalid value for $top", HttpStatusCode.BAD_REQUEST.getStatusCode(), Locale.ROOT);
+                log.error("Invalid value for $top");
+                customOdataException = new CustomODataApplicationException(null, "Invalid value for $top", HttpStatusCode.BAD_REQUEST.getStatusCode(), Locale.ROOT);
                 //throw customOdataException;
                 setErrorResponse(response, customOdataException, responseFormat);
                 return;
@@ -125,7 +126,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
             try {
                 filterQuery = StorageHelper.calculateFilter(expression);
             } catch (ODataApplicationException odataExc) {
-                log.error(odataExc.getMessage());
+                log.error("Error while reading filters: " + odataExc.getMessage());
                 customOdataException = new CustomODataApplicationException(null,odataExc.getMessage(),
                         odataExc.getStatusCode(), odataExc.getLocale());
                 //throw customOdataException;
@@ -136,7 +137,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
             try {
                 map.setSerializationInclusion(JsonInclude.Include.NON_NULL);
                 jsonFilter = map.writeValueAsString(filterQuery);
-                log.info("JsonFilter:");
+                log.info("Filter:");
                 log.info(jsonFilter);
             } catch (Exception e) {
                 log.error(e.getMessage());
@@ -188,19 +189,18 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
                 return;
         }*/
         String symbioteId = null;
-        ArrayList<ResourceInfo> resourceInfoList = null;
-        try{
+        ArrayList<ResourceInfo> resourceInfoList;
+        try {
             resourceInfoList = storageHelper.getResourceInfoList(typeNameList,keyPredicates);
             for(ResourceInfo resourceInfo: resourceInfoList){
                 String symbioteIdTemp = resourceInfo.getSymbioteId();
                 if(symbioteIdTemp != null && !symbioteIdTemp.isEmpty())
                     symbioteId = symbioteIdTemp;
             }
-        }
-        catch(ODataApplicationException odataExc){
-            log.error(odataExc.getMessage());
+        } catch(ODataApplicationException odataExc){
+            log.error("Entity not found: " + odataExc.getMessage());
             customOdataException = new CustomODataApplicationException(null,
-                    "Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+                    "Entity not found", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
             setErrorResponse(response, customOdataException, responseFormat);
             return;
         }
@@ -212,8 +212,8 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
                 if(sid != null && sid.length() > 0)
                     storageHelper.checkAccessPolicies(request, sid);
             }
-        } catch (Exception ex) {   
-            log.error(ex.getMessage());
+        } catch (Exception ex) {
+            log.error("Access policy check error: " + ex.getMessage());
             customOdataException = new CustomODataApplicationException(symbioteId, ex.getMessage(), 
                     HttpStatusCode.UNAUTHORIZED.getStatusCode(), Locale.ROOT);
             setErrorResponse(response, customOdataException, responseFormat);

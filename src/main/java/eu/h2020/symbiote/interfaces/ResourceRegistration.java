@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenAccessPolicySpecifier;
 import eu.h2020.symbiote.security.accesspolicies.common.SingleTokenAccessPolicyFactory;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import java.util.Optional;
 
 
 /**
@@ -66,13 +67,13 @@ public class ResourceRegistration {
                 if(symbioteId == null){
                     symbioteId = Integer.toString((int)(Math.random() * Integer.MAX_VALUE));
                 }
-                addPolicy(symbioteId, internalId, msg.getSingleTokenAccessPolicy());
+                log.debug("Registering "+ resourceClass +" with symbioteId: " + symbioteId + ", internalId: " + internalId);
                 
-                log.info("Registering "+ resourceClass +" with symbioteId: " + symbioteId + ", internalId: " + internalId);
+                addPolicy(symbioteId, internalId, msg.getSingleTokenAccessPolicy());
                 addResource(symbioteId, internalId, props, pluginId);
             }
         } catch (Exception e) {
-            log.info("Error during registration process\n" + e.getMessage());
+            log.error("Error during registration process\n" + e.getMessage());
         }
     }
     
@@ -87,9 +88,9 @@ public class ResourceRegistration {
             log.info("Resource Unregistration message received: \n" + ids + "");
             for(String id: ids){            
                 // TODO: to check if ID at this level is correct
-
-                log.info("Unregistering resource with symbioteId " + id);
-                deleteResource(id);
+                log.debug("Unregistering resource with internalId " + id);
+                deletePolicy(id);
+                deleteResource(id);                
             }
         } catch (Exception e) {
             log.info("Error during unregistration process\n" + e.getMessage());
@@ -117,12 +118,13 @@ public class ResourceRegistration {
                 } else if(resource instanceof MobileSensor) {
                     props = ((MobileSensor)resource).getObservesProperty();
                 }                
+                log.debug("Updating resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
                 
-                log.info("Updating resource with symbioteId: " + symbioteId + ", internalId: " + internalId);                
+                addPolicy(symbioteId, internalId, msg.getSingleTokenAccessPolicy());
                 addResource(symbioteId, internalId, props, pluginId);
             }
         } catch (Exception e) {
-            log.info("Error during registration process\n" + e.getMessage());
+            log.error("Error during registration process\n" + e.getMessage());
         }
     }
     
@@ -134,15 +136,21 @@ public class ResourceRegistration {
             resourceInfo.setPluginId(pluginId);
         
         resourcesRepository.save(resourceInfo);
+        
+        log.debug("Resource " + resourceId + " registered");
     }
     
-    private void deleteResource(String resourceId) {
+    private void deleteResource(String internalId) {
         try {
-            List<ResourceInfo> resourceList = resourcesRepository.findByInternalId(resourceId);        
-            if(resourceList != null && !resourceList.isEmpty())
+            List<ResourceInfo> resourceList = resourcesRepository.findByInternalId(internalId);
+            if(resourceList != null && !resourceList.isEmpty()) {
                 resourcesRepository.delete(resourceList.get(0).getSymbioteId());
+                log.info("Resource " + internalId + " unregistered");
+            } else {
+                log.error("Resource " + internalId + " not found");
+            }
         } catch (Exception e) {
-            log.error("Resource with id " + resourceId + " not found");
+            log.error("Resource with id " + internalId + " not found - Exception: " + e.getMessage());
         }
     }  
     
@@ -151,9 +159,27 @@ public class ResourceRegistration {
             IAccessPolicy policy = SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(accPolicy);
             AccessPolicy ap = new AccessPolicy(resourceId, internalId, policy);
             accessPolicyRepository.save(ap);            
+            
+            log.info("Policy successfully added for resource " + resourceId);
         } catch (InvalidArgumentsException e) {
             log.error("Invalid Policy definition for resource with id " + resourceId);
             throw e;
         }
     }    
+    
+    private void deletePolicy(String internalId) {
+        try {
+            Optional<AccessPolicy> accessPolicy = accessPolicyRepository.findByInternalId(internalId);
+            if(accessPolicy == null || accessPolicy.get() == null) {
+                log.error("No policy stored for resource with internalId " + internalId);
+                return;
+            }
+            
+            accessPolicyRepository.delete(accessPolicy.get().getResourceId());
+            log.info("Policy removed for resource " + internalId);
+            
+        } catch (Exception e) {
+            log.error("Resource with internalId " + internalId + " not found - Exception: " + e.getMessage());
+        }
+    }
 }

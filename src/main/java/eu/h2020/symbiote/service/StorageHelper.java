@@ -131,11 +131,6 @@ public class StorageHelper {
             }
         }
 
-        //SOLO MOMENTANEO
-        //if (resInfo == null) {
-            //List<ResourceInfo> resInfo2 = resourcesRepo.findAll();
-            //resInfo = resInfo2.get(0);
-        //}
         return resInfo;
     }
 
@@ -176,11 +171,12 @@ public class StorageHelper {
             mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             String json = mapper.writeValueAsString(msg);
 
-            log.info("Send Message:");
-            log.info(json);
+            log.debug("Message: ");
+            log.debug(json);
             Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             if (obj == null) {
-                throw new ODataApplicationException("No response from plugin", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+                log.error("No response from plugin");
+                throw new ODataApplicationException("No response from plugin", HttpStatusCode.GATEWAY_TIMEOUT.getStatusCode(), Locale.ROOT);
             }
 
             String response;
@@ -192,9 +188,9 @@ public class StorageHelper {
             List<Observation> observations = mapper.readValue(response, new TypeReference<List<Observation>>() {
             });
             if (observations == null || observations.isEmpty()) {
+                log.error("No observations for resource " + symbioteId);
                 return null;
-            }
-            
+            }            
             
             if (top == 1) {
                 Observation o = observations.get(0);
@@ -210,9 +206,9 @@ public class StorageHelper {
             }
 
         } catch (Exception e) {
-            String err = "Unable to read resource with id: " + symbioteId;
-            err += "\n Error:" + e.getMessage();
-            //log.error(err + "\n" + e.getMessage());
+            String err = "Unable to read resource " + symbioteId;
+            err += "\n Error: " + e.getMessage();
+            log.error(err);
             throw new ODataApplicationException(err, HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
         }
     }
@@ -248,7 +244,7 @@ public class StorageHelper {
             } catch (JsonProcessingException ex) {
                 log.error("JSon processing exception: " + ex.getMessage());
             }
-            log.info("Message Set: "+json);
+            log.info("Message Set: " + json);
             obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             
         } catch (Exception e) {
@@ -257,6 +253,7 @@ public class StorageHelper {
         return obj;
     }
     
+    /*
     private List<InputParameter> fromPropertiesToInputParameter(List<Property> propertyList, List<InputParameter> inputParameter){
         List<InputParameter> inputParameterNew = new ArrayList();
         inputParameterNew.addAll(inputParameter);
@@ -278,7 +275,7 @@ public class StorageHelper {
                             }
             }
         return inputParameterNew;
-    }
+    }*/
 
     public Entity readEntityData(EdmEntitySet edmEntitySet, List<UriParameter> keyParams) throws ODataApplicationException {
 
@@ -493,7 +490,8 @@ public class StorageHelper {
 
                 return expr;
             } else {
-                throw new ODataApplicationException("Not implement", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
+                log.error("Not implemented");
+                throw new ODataApplicationException("Not implemented", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
             }
         }
         return null;
@@ -533,6 +531,7 @@ public class StorageHelper {
         }
 
         if (date == null) {
+            log.error("Incorrect data format");
             throw new ODataApplicationException("Data format not correct",
                     HttpStatusCode.BAD_REQUEST.getStatusCode(), Locale.ROOT);
         }
@@ -568,19 +567,22 @@ public class StorageHelper {
             }
             resourceInfoList.add(resInfo);
         }
-        if(noResourceFound)
+        if(noResourceFound) {
+            log.error("No entity found with id specified in request");
             throw new ODataApplicationException("Entity not found",
                     HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+        }
         return resourceInfoList;
     }
     
     public boolean checkAccessPolicies(ODataRequest request, String resourceId) throws Exception {
+        log.debug("Checking access policies for resource " + resourceId);
         Map<String,List<String>> headers = request.getAllHeaders();
         Map<String, String> secHdrs = new HashMap();
         for(String key : headers.keySet()) {
             secHdrs.put(key, request.getHeader(key));
         }
-        log.info("secHeaders: " + secHdrs);
+        log.info("Headers: " + secHdrs);
         SecurityRequest securityReq = new SecurityRequest(secHdrs);
 
         checkAuthorization(securityReq, resourceId);
@@ -589,17 +591,21 @@ public class StorageHelper {
     }
     
     private void checkAuthorization(SecurityRequest request, String resourceId) throws Exception {
-        log.debug("RAP received a security request : " + request.toString());        
+        log.debug("Received a security request : " + request.toString());
          // building dummy access policy
         Map<String, IAccessPolicy> accessPolicyMap = new HashMap<>();
         // to get policies here
         Optional<AccessPolicy> accPolicy = accessPolicyRepo.findById(resourceId);
-        if(accPolicy == null)
+        if(accPolicy == null) {
+            log.error("No access policies for resource");
             throw new Exception("No access policies for resource");
+        }
         
         accessPolicyMap.put(resourceId, accPolicy.get().getPolicy());
         Set<String> ids = securityHandler.getSatisfiedPoliciesIdentifiers(accessPolicyMap, request);
-        if(!ids.contains(resourceId))
+        if(!ids.contains(resourceId)) {
+            log.error("Security Policy is not valid");
             throw new Exception("Security Policy is not valid");
+        }
     }
 }
