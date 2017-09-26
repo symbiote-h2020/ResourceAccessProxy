@@ -8,6 +8,8 @@ package eu.h2020.symbiote.bim;
 //import org.semanticweb.owlapi.api.test.baseclasses.TestBase;
 import com.google.common.collect.Multimap;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -16,6 +18,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
@@ -46,27 +50,27 @@ public class OwlapiHelp {
 
     private static final Log log = LogFactory.getLog(OwlapiHelp.class);
 
-    private static final String CIM_FILE = "/core-v1.0.owl";
+    //private static final String CIM_FILE = "/core-v1.0.owl";
     private static final String BIM_FILE = "/bim.owl";
     private static final String PIM_FILE = "/pim.owl";
     private static final String PIM_PARTIAL_FILE = "/pim_partial.owl";
     
     private HashMap<String, HashMap<String, String>> map;
     private HashMap<String, HashMap<String, String>> classes;
-    private HashSet<String> classesStart = new HashSet<String>();
-    private HashSet <String> classesRead = new HashSet<String>();
+    private final HashSet<String> classesStart = new HashSet();
+    private final HashSet <String> classesRead = new HashSet();
     private List<OWLOntologyID> allOntology;
-    public String filePath;
+    private URL ontologyFileURL;
     
-    
-    //@Bean
+
     public OwlapiHelp() throws Exception{
-        URL url = OwlapiHelp.class.getResource(PIM_FILE);
+        URL url = OwlapiHelp.class.getResource(PIM_FILE);        
         if(url == null)
-            url = OwlapiHelp.class.getResource(BIM_FILE);
+            url = OwlapiHelp.class.getResource(BIM_FILE);            
         if(url == null)
-            throw new Exception("Not found file pim.owl or bim.owl");
-        this.filePath = url.getPath();
+            throw new Exception("Not found any pim.owl / bim.owl file");
+        
+        this.ontologyFileURL = url;
         fromOwlToClasses();
     }
     
@@ -77,7 +81,7 @@ public class OwlapiHelp {
                 url = OwlapiHelp.class.getResource(BIM_FILE);
             if(url == null)
                 throw new Exception("Not found file pim.owl or bim.owl");
-            this.filePath = url.getPath();
+            this.ontologyFileURL = url;
         if(test)
             fromOwlToClassesTest();
         else 
@@ -89,7 +93,7 @@ public class OwlapiHelp {
         return this.classes;
     }
     
-    public HashMap<String, HashMap<String, String>> fromOwlToClassesTest(){        
+    public final HashMap<String, HashMap<String, String>> fromOwlToClassesTest() throws Exception {        
         map = createMapClass2PropAndSuperclassTest();
         classes = new HashMap<String, HashMap<String, String>>();
         //this populate this.classes
@@ -99,7 +103,7 @@ public class OwlapiHelp {
         return classes;
     }
     
-    public HashMap<String, HashMap<String, String>> fromOwlToClasses(){     
+    public final HashMap<String, HashMap<String, String>> fromOwlToClasses() throws Exception {     
         map = createMapClass2PropAndSuperclass();
         classes = new HashMap<String, HashMap<String, String>>();
         //this populate this.classes
@@ -179,27 +183,27 @@ public class OwlapiHelp {
     }
 
     
-    private HashMap<String, HashMap<String, String>> createMapClass2PropAndSuperclass() {
-        HashMap<String, HashMap<String, String>> map = new HashMap<String, HashMap<String, String>>();
-        File file = new File(filePath);
+    private HashMap<String, HashMap<String, String>> createMapClass2PropAndSuperclass() throws Exception {
+        HashMap<String, HashMap<String, String>> localMap = new HashMap();
         OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
         OWLOntology ontology;
         allOntology = new ArrayList<>();
         try {
-            
-            ontology = manager.loadOntologyFromOntologyDocument(file);              
-            ontology = addOntologyImport(ontology);          
+            log.debug("Reading ontology from file: " + ontologyFileURL.getFile());
+            InputStream is = ontologyFileURL.openStream();
+            ontology = manager.loadOntologyFromOntologyDocument(is);
+            ontology = addOntologyImport(ontology);
 
             //ADD PROPERTY rdf:type owl:ObjectProperty ;
-            HashMap<IRI, HashMap<String, String>> property2domain_range = new HashMap<IRI, HashMap<String, String>>();
-            HashMap<String, HashMap<String, String>> domain2property2range = new HashMap<String, HashMap<String, String>>();
+            HashMap<IRI, HashMap<String, String>> property2domain_range = new HashMap();
+            HashMap<String, HashMap<String, String>> domain2property2range = new HashMap();
 
             Stream<OWLObjectPropertyDomainAxiom> owlObjectPropertyDomainStream = ontology.axioms(AxiomType.OBJECT_PROPERTY_DOMAIN);
             Iterator<OWLObjectPropertyDomainAxiom> owlObjectPropertyDomainIterator = owlObjectPropertyDomainStream.iterator();
             while (owlObjectPropertyDomainIterator.hasNext()) {
                 OWLObjectPropertyDomainAxiom op = owlObjectPropertyDomainIterator.next();
                 log.info(op);
-                HashMap<String, String> mapDomain = new HashMap<String, String>();
+                HashMap<String, String> mapDomain = new HashMap();
                 String domainName = op.getDomain().toString();
                 if (op.getDomain().isOWLClass()) {
                     IRI iriDomain = op.getDomain().asOWLClass().getIRI();
@@ -210,7 +214,7 @@ public class OwlapiHelp {
                 mapDomain.put("Domain", domainName);
                 property2domain_range.put(op.getProperty().getNamedProperty().getIRI(), mapDomain);
 
-                HashMap<String, String> mapProperty = new HashMap<String, String>();
+                HashMap<String, String> mapProperty = new HashMap();
                 if (domain2property2range.containsKey(domainName)) {
                     mapProperty = domain2property2range.get(domainName);
                 }
@@ -249,7 +253,7 @@ public class OwlapiHelp {
             while (classesIterator.hasNext()) {
                 OWLClass c = classesIterator.next();
                 String className = c.getIRI().toString();
-                HashMap<String, String> prop2type = new HashMap<String, String>();
+                HashMap<String, String> prop2type = new HashMap();
                 String superclass = "";
                 
                 log.info(c.getIRI().getShortForm());
@@ -408,37 +412,37 @@ public class OwlapiHelp {
                 if(superclass.isEmpty())
                     classesStart.add(className);
                 prop2type.put("Superclass", superclass);
-                map.put(className, prop2type);
+                localMap.put(className, prop2type);
             }
         } catch (OWLOntologyCreationException ex) {
-            log.error(ex);
+            log.error(ex.getMessage());
+            throw ex;
         }
         catch (UnloadableImportException ie){
             log.error(ie);
             URL url = OwlapiHelp.class.getResource(PIM_PARTIAL_FILE);
             String filePathPartial = url.getPath();
-            if(ie.getMessage().contains("<http://purl.org/dc/terms/>") && !this.filePath.equals(filePathPartial)){
-                this.filePath = filePathPartial;
-                map = createMapClass2PropAndSuperclass();
+            if(ie.getMessage().contains("<http://purl.org/dc/terms/>") && !this.ontologyFileURL.equals(filePathPartial)){
+                this.ontologyFileURL = url;
+                localMap = createMapClass2PropAndSuperclass();
                 log.info("Load pim partial ");
             }
         }
-        return map;
+        return localMap;
     }
     
     
     
-    public HashMap<String, HashMap<String, String>> createMapClass2PropAndSuperclassTest() {
+    public HashMap<String, HashMap<String, String>> createMapClass2PropAndSuperclassTest() throws Exception {
         HashMap<String, HashMap<String, String>> map = new HashMap<String, HashMap<String, String>>();
-        String result = "";
-        File file = new File(filePath);
+        String result = "";        
         OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
         OWLOntology ontology;
         allOntology = new ArrayList<>();
         OWLDataFactory dataFactory;
         try {
-            
-            ontology = manager.loadOntologyFromOntologyDocument(file);              
+            InputStream is = ontologyFileURL.openStream();
+            ontology = manager.loadOntologyFromOntologyDocument(is);
             ontology = addOntologyImport(ontology);
             
             OWL2DLProfile profile = new OWL2DLProfile();
@@ -805,9 +809,11 @@ public class OwlapiHelp {
                 prop2type.put("Superclass", superclass);
                 map.put(className, prop2type);
             }
-        } catch (OWLOntologyCreationException ex) {
+        } catch (OWLOntologyCreationException | IOException ex) {
             log.error(ex);
+            throw ex;
         }
+        
         return map;
     }
     
