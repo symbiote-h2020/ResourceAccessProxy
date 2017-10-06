@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
+import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
 import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
@@ -17,11 +18,13 @@ import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
+import eu.h2020.symbiote.security.SecurityHelper;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Date;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.List;
@@ -52,6 +55,7 @@ import org.apache.olingo.server.api.uri.queryoption.expression.Expression;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 
 /**
  *
@@ -80,6 +84,12 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
     @Autowired
     @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
     TopicExchange exchange;
+    
+    @Value("${symbiote.notification.url}") 
+    private String notificationUrl;
+    
+    @Autowired
+    private SecurityHelper securityHelper;
 
     private StorageHelper storageHelper;
     
@@ -243,7 +253,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
         }
         
         if(customOdataException == null && stream != null)
-            RAPEdmController.sendSuccessfulAccessMessage(symbioteId,
+            sendSuccessfulAccessMessage(symbioteId,
                     SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
         
         // 4th: configure the response object: set the body, headers and status code
@@ -275,5 +285,32 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
         response.addHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
         
         return response;
+    }
+    
+    
+    public void sendSuccessfulAccessMessage(String symbioteId, String accessType){
+        try{
+            String jsonNotificationMessage = null;
+            if(accessType == null || accessType.isEmpty())
+                accessType = SuccessfulAccessMessageInfo.AccessType.NORMAL.name();
+            ObjectMapper map = new ObjectMapper();
+            map.configure(SerializationFeature.INDENT_OUTPUT, true);
+            map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+
+            List<Date> dateList = new ArrayList<>();
+            dateList.add(new Date());
+            NotificationMessage notificationMessage = new NotificationMessage(securityHelper,notificationUrl);
+
+            try{
+                notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
+                jsonNotificationMessage = map.writeValueAsString(notificationMessage);
+            } catch (JsonProcessingException e) {
+                log.error(e.toString(), e);
+            }
+            notificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
+        }catch(Exception e){
+            log.error("Error to send SetSuccessfulAttempts to CRAM");
+            log.error(e.getMessage(),e);
+        }
     }
 }

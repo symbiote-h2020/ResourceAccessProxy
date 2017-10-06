@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
+import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
 import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
@@ -17,19 +18,19 @@ import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
+import eu.h2020.symbiote.security.SecurityHelper;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
-import eu.h2020.symbiote.service.RAPEntityCollectionProcessor;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.logging.Level;
 import org.apache.commons.io.IOUtils;
-import org.apache.olingo.commons.api.data.ContextURL;
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
@@ -50,9 +51,6 @@ import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 import org.apache.olingo.server.api.uri.UriResourceNavigation;
-import org.apache.olingo.server.api.serializer.ODataSerializer;
-import org.apache.olingo.server.api.serializer.EntitySerializerOptions;
-import org.apache.olingo.server.api.serializer.SerializerResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
@@ -65,6 +63,7 @@ import org.apache.olingo.server.api.deserializer.ODataDeserializer;
 import org.apache.olingo.server.api.uri.queryoption.FilterOption;
 import org.apache.olingo.server.api.uri.queryoption.TopOption;
 import org.apache.olingo.server.api.uri.queryoption.expression.Expression;
+import org.springframework.beans.factory.annotation.Value;
 
 /**
  *
@@ -94,6 +93,12 @@ public class RAPEntityProcessor implements EntityProcessor{
     @Autowired
     @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
     private TopicExchange exchange;
+    
+    @Value("${symbiote.notification.url}") 
+    private String notificationUrl;
+    
+    @Autowired
+    private SecurityHelper securityHelper;
     
     private OData odata;
     
@@ -214,7 +219,7 @@ public class RAPEntityProcessor implements EntityProcessor{
         }
         
         if(customOdataException == null && stream != null)
-            RAPEdmController.sendSuccessfulAccessMessage(resource.getSymbioteId(),
+            sendSuccessfulAccessMessage(resource.getSymbioteId(),
                     SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
         
         // 4th: configure the response object: set the body, headers and status code
@@ -332,7 +337,7 @@ public class RAPEntityProcessor implements EntityProcessor{
         }
         
         if(customOdataException == null && stream != null)
-            RAPEdmController.sendSuccessfulAccessMessage(resourceInfoList.get(0).getSymbioteId(),
+            sendSuccessfulAccessMessage(resourceInfoList.get(0).getSymbioteId(),
                     SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
         
         // 4th: configure the response object: set the body, headers and status code
@@ -349,102 +354,29 @@ public class RAPEntityProcessor implements EntityProcessor{
     }
     
     
-    /*
-    private Entity readEntityData(EdmEntitySet edmEntitySet, List<UriParameter> keyParams) throws ODataApplicationException{
+    public void sendSuccessfulAccessMessage(String symbioteId, String accessType){
+        try{
+            String jsonNotificationMessage = null;
+            if(accessType == null || accessType.isEmpty())
+                accessType = SuccessfulAccessMessageInfo.AccessType.NORMAL.name();
+            ObjectMapper map = new ObjectMapper();
+            map.configure(SerializationFeature.INDENT_OUTPUT, true);
+            map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
 
-        EdmEntityType edmEntityType = edmEntitySet.getEntityType();
+            List<Date> dateList = new ArrayList<>();
+            dateList.add(new Date());
+            NotificationMessage notificationMessage = new NotificationMessage(securityHelper,notificationUrl);
 
-        // actually, this is only required if we have more than one Entity Type
-        if(edmEntityType.getName().equals(ResourceAccessProxyEdmProvider.ET_RESOURCE_NAME)){
-            // the list of entities at runtime
-            EntityCollection entitySet = RAPEntityCollectionProcessor.getData(edmEntitySet);
-
-            // generic approach  to find the requested entity 
-            Entity requestedEntity = findEntity(edmEntityType, entitySet, keyParams);
-
-            if(requestedEntity == null){
-                // this variable is null if our data doesn't contain an entity for the requested key
-                // Throw suitable exception
-                throw new ODataApplicationException("Entity for requested key doesn't exist",
-                                           HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ENGLISH);
+            try{
+                notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
+                jsonNotificationMessage = map.writeValueAsString(notificationMessage);
+            } catch (JsonProcessingException e) {
+                log.error(e.toString(), e);
             }
-
-            return requestedEntity;
+            notificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
+        }catch(Exception e){
+            log.error("Error to send SetSuccessfulAttempts to CRAM");
+            log.error(e.getMessage(),e);
         }
-
-        return null;
     }
-    
-    
-    private static Entity findEntity(EdmEntityType edmEntityType,
-                                    EntityCollection rt_entitySet, List<UriParameter> keyParams)
-                                    throws ODataApplicationException {
-
-        List<Entity> entityList = rt_entitySet.getEntities();
-
-        // loop over all entities in order to find that one that matches all keys in request
-        // an example could be e.g. contacts(ContactID=1, CompanyID=1)
-        for(Entity rt_entity : entityList){
-            boolean foundEntity = entityMatchesAllKeys(edmEntityType, rt_entity, keyParams);
-            if(foundEntity){
-                return rt_entity;
-            }
-        }
-
-        return null;
-    }
-    
-     public static boolean entityMatchesAllKeys(EdmEntityType edmEntityType, Entity rt_entity,  List<UriParameter> keyParams)
-                                                throws ODataApplicationException {
-
-        // loop over all keys
-        for (final UriParameter key : keyParams) {
-            // key
-            String keyName = key.getName();
-            String keyText = key.getText();
-            
-            //remove cuotes
-            keyText = keyText.replaceAll("'", "");
-
-            // Edm: we need this info for the comparison below
-            EdmProperty edmKeyProperty = (EdmProperty )edmEntityType.getProperty(keyName);
-            Boolean isNullable = edmKeyProperty.isNullable();
-            Integer maxLength = edmKeyProperty.getMaxLength();
-            Integer precision = edmKeyProperty.getPrecision();
-            Boolean isUnicode = edmKeyProperty.isUnicode();
-            Integer scale = edmKeyProperty.getScale();
-            // get the EdmType in order to compare
-            EdmType edmType = edmKeyProperty.getType();
-            // Key properties must be instance of primitive type
-            EdmPrimitiveType edmPrimitiveType = (EdmPrimitiveType)edmType;
-
-            // Runtime data: the value of the current entity
-            Object valueObject = rt_entity.getProperty(keyName).getValue(); // null-check is done in FWK
-
-            // now need to compare the valueObject with the keyText String
-            // this is done using the type.valueToString //
-            String valueAsString = null;
-            try {
-                valueAsString = edmPrimitiveType.valueToString(valueObject, isNullable, maxLength,
-                                                                precision, scale, isUnicode);
-            } catch (EdmPrimitiveTypeException e) {
-                throw new ODataApplicationException("Failed to retrieve String value",
-                                             HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),Locale.ENGLISH, e);
-            }
-
-            if (valueAsString == null){
-                return false;
-            }
-
-            boolean matches = valueAsString.equals(keyText);
-            if(!matches){
-                // if any of the key properties is not found in the entity, we don't need to search further
-                return false;
-            }
-        }
-
-        return true;
-    }
-     
-     */
 }

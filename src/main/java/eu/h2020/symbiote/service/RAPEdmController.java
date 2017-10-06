@@ -49,8 +49,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
 import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
+import eu.h2020.symbiote.security.SecurityHelper;
+import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import java.util.Date;
+import org.springframework.beans.factory.annotation.Value;
 
 /*
 *
@@ -80,7 +83,11 @@ public class RAPEdmController {
     @Autowired
     private IComponentSecurityHandler securityHandler;
             
-
+    @Value("${symbiote.notification.url}") 
+    private String notificationUrl;
+    
+    @Autowired
+    private SecurityHelper securityHelper;
     /**
      * Process.
      *
@@ -105,6 +112,7 @@ public class RAPEdmController {
         ODataResponse response = null;
         String responseStr = null;
         MultiValueMap<String, String> headers = new HttpHeaders();
+        HttpStatus httpStatus = null;
         try {            
             OData odata = OData.newInstance();
             ServiceMetadata edm = odata.createServiceMetadata(edmProvider, new ArrayList());
@@ -115,12 +123,19 @@ public class RAPEdmController {
             response = handler.process(createODataRequest(req, split));
             
             
-          //  if(response.getStatusCode() != HttpStatus.OK.value())
-          //      responseStr = sendFailMessage(req, Integer.toString(response.getStatusCode()));
-          //  else 
+            if(response.getStatusCode() != HttpStatus.OK.value())
+                responseStr = sendFailMessage(req, Integer.toString(response.getStatusCode()));
+            else 
                 responseStr = StreamUtils.copyToString(
                     response.getContent(), Charset.defaultCharset());
 
+            httpStatus = HttpStatus.valueOf(response.getStatusCode());            
+        } catch (IOException | ODataException e) {
+            responseStr = sendFailMessage(req, e.getMessage());
+            log.error(e.getMessage(), e);
+            httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+        try{
             headers.add("Access-Control-Allow-Origin", "*");
             headers.add("Access-Control-Allow-Credentials", "true");
             headers.add("Access-Control-Allow-Methods", "OPTIONS, GET, POST, PUT");
@@ -128,71 +143,81 @@ public class RAPEdmController {
             
             String securityResponseHrd = securityHandler.generateServiceResponse();
             headers.add(SECURITY_RESPONSE_HEADER, securityResponseHrd);
-            
-        } catch (IOException | ODataException e) {
-        //    sendFailMessage(req, e.getMessage());
-            log.error(e.getMessage(), e);
-            throw e;
         }
-        return new ResponseEntity(responseStr, headers, HttpStatus.valueOf(response.getStatusCode()));
+        catch(SecurityHandlerException sce){
+            log.error(sce.getMessage(), sce);
+            throw sce;
+        }
+        
+        return new ResponseEntity(responseStr, headers, httpStatus);
     }
 
     private String sendFailMessage(HttpServletRequest request, String error) {
-        String jsonNotificationMessage = null;
-        String symbioTeId = "";
-        String appId = "";
-        String issuer = ""; 
-        String validationStatus = "";
-        CustomODataApplicationException customOdataExc = null;
-        ObjectMapper mapper = new ObjectMapper();
-        
-        String code = Integer.toString(HttpStatus.INTERNAL_SERVER_ERROR.value());
-        String message = "Error: " + error;               
-        try {
-            customOdataExc = mapper.readValue(message, CustomODataApplicationException.class);
-        } catch (IOException ex) {
-            log.error(ex.toString(), ex);
+        String message = "";
+        try{
+            String jsonNotificationMessage = null;
+            String symbioTeId = "";
+            String appId = "";
+            String issuer = ""; 
+            String validationStatus = "";
+            CustomODataApplicationException customOdataExc = null;
+            ObjectMapper mapper = new ObjectMapper();
+
+            String code = Integer.toString(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            message = "Error: " + error;               
+            try {
+                customOdataExc = mapper.readValue(message, CustomODataApplicationException.class);
+            } catch (IOException ex) {
+            }
+            if(customOdataExc != null){
+                if(customOdataExc.getSymbioteId() != null)
+                    symbioTeId = customOdataExc.getSymbioteId();
+                message = customOdataExc.getMessage();
+            }            
+            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+            List<Date> dateList = new ArrayList<>();
+            dateList.add(new Date());
+            NotificationMessage notificationMessage = new NotificationMessage(securityHelper,notificationUrl);
+            try {
+                notificationMessage.SetFailedAttempts(symbioTeId, dateList, 
+                code, message, appId, issuer, validationStatus, request.getRequestURI()); 
+                jsonNotificationMessage = mapper.writeValueAsString(notificationMessage);
+            } catch (JsonProcessingException jsonEx) {
+                log.error(jsonEx.toString(), jsonEx);
+            }
+            notificationMessage.SendFailAccessMessage(jsonNotificationMessage);
+        }catch(Exception e){
+            log.error("Error to send FailAccessMessage to CRAM");
+            log.error(e.getMessage(),e);
         }
-        if(customOdataExc != null){
-            if(customOdataExc.getSymbioteId() != null)
-                symbioTeId = customOdataExc.getSymbioteId();
-            message = customOdataExc.getMessage();
-        }            
-        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        List<Date> dateList = new ArrayList<>();
-        dateList.add(new Date());
-        NotificationMessage notificationMessage = new NotificationMessage();
-        try {
-            notificationMessage.SetFailedAttempts(symbioTeId, dateList, 
-            code, message, appId, issuer, validationStatus, request.getRequestURI()); 
-            jsonNotificationMessage = mapper.writeValueAsString(notificationMessage);
-        } catch (JsonProcessingException jsonEx) {
-            log.error(jsonEx.toString(), jsonEx);
-        }
-        NotificationMessage.SendFailAccessMessage(jsonNotificationMessage);
         return message;
     }
     
-    public static void sendSuccessfulAccessMessage(String symbioteId, String accessType){
-        String jsonNotificationMessage = null;
-        if(accessType == null || accessType.isEmpty())
-            accessType = SuccessfulAccessMessageInfo.AccessType.NORMAL.name();
-        ObjectMapper map = new ObjectMapper();
-        map.configure(SerializationFeature.INDENT_OUTPUT, true);
-        map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-        
-        List<Date> dateList = new ArrayList<>();
-        dateList.add(new Date());
-        NotificationMessage notificationMessage = new NotificationMessage();
-        
+    public void sendSuccessfulAccessMessage(String symbioteId, String accessType){
         try{
-            notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
-            jsonNotificationMessage = map.writeValueAsString(notificationMessage);
-        } catch (JsonProcessingException e) {
-            log.error(e.toString(), e);
+            String jsonNotificationMessage = null;
+            if(accessType == null || accessType.isEmpty())
+                accessType = SuccessfulAccessMessageInfo.AccessType.NORMAL.name();
+            ObjectMapper map = new ObjectMapper();
+            map.configure(SerializationFeature.INDENT_OUTPUT, true);
+            map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+
+            List<Date> dateList = new ArrayList<>();
+            dateList.add(new Date());
+            NotificationMessage notificationMessage = new NotificationMessage(securityHelper,notificationUrl);
+
+            try{
+                notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
+                jsonNotificationMessage = map.writeValueAsString(notificationMessage);
+            } catch (JsonProcessingException e) {
+                log.error(e.toString(), e);
+            }
+            notificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
+        }catch(Exception e){
+            log.error("Error to send SetSuccessfulAttempts to CRAM");
+            log.error(e.getMessage(),e);
         }
-        NotificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
     }
 
     /**

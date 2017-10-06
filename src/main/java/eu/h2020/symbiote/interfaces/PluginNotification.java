@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.cloud.model.data.observation.Observation;
 import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
+import eu.h2020.symbiote.security.SecurityHelper;
 import eu.h2020.symbiote.service.notificationResource.WebSocketController;
 import java.util.ArrayList;
 import java.util.Date;
@@ -18,6 +19,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 
 /**
  *
@@ -28,6 +30,12 @@ public class PluginNotification {
 
     @Autowired
     WebSocketController webSocketController;
+    
+    @Value("${symbiote.notification.url}") 
+    private String notificationUrl;
+    
+    @Autowired
+    private SecurityHelper securityHelper;
     
     
     public void receiveNotification(byte[] messageByte) {
@@ -45,7 +53,7 @@ public class PluginNotification {
         }
     }
     
-    public static void sendSuccessfulPushMessage(String symbioteId){
+    public void sendSuccessfulPushMessage(String symbioteId){
         String jsonNotificationMessage = null;
         ObjectMapper map = new ObjectMapper();
         map.configure(SerializationFeature.INDENT_OUTPUT, true);
@@ -53,7 +61,7 @@ public class PluginNotification {
         
         List<Date> dateList = new ArrayList<Date>();
         dateList.add(new Date());
-        NotificationMessage notificationMessage = new NotificationMessage();
+        NotificationMessage notificationMessage = new NotificationMessage(securityHelper,notificationUrl);
         
         try{
             notificationMessage.SetSuccessfulPushes(symbioteId, dateList);
@@ -61,6 +69,6 @@ public class PluginNotification {
         } catch (JsonProcessingException e) {
             log.error(e.getMessage());
         }
-        NotificationMessage.SendSuccessfulPushMessage(jsonNotificationMessage);
+        notificationMessage.SendSuccessfulPushMessage(jsonNotificationMessage);
     }
 }

@@ -12,7 +12,6 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import eu.h2020.symbiote.exceptions.GenericException;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.messages.access.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessSubscribeMessage;
@@ -26,9 +25,9 @@ import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
+import eu.h2020.symbiote.security.SecurityHelper;
 import eu.h2020.symbiote.service.notificationResource.WebSocketMessage.Action;
 import java.io.IOException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -36,12 +35,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
 import org.apache.olingo.commons.api.http.HttpStatusCode;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -74,6 +73,12 @@ public class WebSocketController extends TextWebSocketHandler {
     @Autowired
     @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
     TopicExchange exchange;
+    
+    @Value("${symbiote.notification.url}") 
+    private String notificationUrl;
+    
+    @Autowired
+    private SecurityHelper securityHelper;
 
     private final HashMap<String, WebSocketSession> idSession = new HashMap();
 
@@ -315,7 +320,7 @@ public class WebSocketController extends TextWebSocketHandler {
     }
     
     
-    public static void sendSuccessfulAccessMessage(List<String> symbioteIdList, String accessType){
+    public void sendSuccessfulAccessMessage(List<String> symbioteIdList, String accessType){
         String jsonNotificationMessage = null;
         ObjectMapper map = new ObjectMapper();
         map.configure(SerializationFeature.INDENT_OUTPUT, true);
@@ -323,7 +328,7 @@ public class WebSocketController extends TextWebSocketHandler {
         
         List<Date> dateList = new ArrayList<Date>();
         dateList.add(new Date());
-        NotificationMessage notificationMessage = new NotificationMessage();
+        NotificationMessage notificationMessage = new NotificationMessage(securityHelper,notificationUrl);
         
         try{
             notificationMessage.SetSuccessfulAttemptsList(symbioteIdList, dateList, accessType);
@@ -331,7 +336,7 @@ public class WebSocketController extends TextWebSocketHandler {
         } catch (JsonProcessingException e) {
             log.error(e.getMessage());
         }
-        NotificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
+        notificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
     }
     
     private void sendFailMessage(String path, Exception e) {
@@ -354,7 +359,7 @@ public class WebSocketController extends TextWebSocketHandler {
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         List<Date> dateList = new ArrayList<Date>();
         dateList.add(new Date());
-        NotificationMessage notificationMessage = new NotificationMessage();
+        NotificationMessage notificationMessage = new NotificationMessage(securityHelper,notificationUrl);
         try {
             notificationMessage.SetFailedAttempts(symbioteId, dateList, 
             code, message, appId, issuer, validationStatus, path); 
@@ -362,6 +367,6 @@ public class WebSocketController extends TextWebSocketHandler {
         } catch (JsonProcessingException jsonEx) {
             log.error(jsonEx.getMessage());
         }
-        NotificationMessage.SendFailAccessMessage(jsonNotificationMessage);
+        notificationMessage.SendFailAccessMessage(jsonNotificationMessage);
     }
 }

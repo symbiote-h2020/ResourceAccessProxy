@@ -85,8 +85,8 @@ dependencies {
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
     //compile project(':SymbIoTeLibraries')
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:develop-SNAPSHOT') { changing = true }
-    compile('com.github.symbiote-h2020:SymbIoTeSecurity:21.3+'){ changing = true }    
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:develop-SNAPSHOT') { }
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:21.3+'){ }    
 
     // Spring
     compile('org.springframework.cloud:spring-cloud-starter')
@@ -111,15 +111,9 @@ dependencies {
     // test only
     testCompile ("org.springframework.boot:spring-boot-starter-test")
     
-    //Jena
-    compile('org.apache.jena:jena-core:3.1.0')
-    compile('org.apache.jena:jena-querybuilder:3.1.0')
-    //compile('org.apache.jena:jena-spatial:3.1.0') {
-        //exclude group: 'org.slf4j' , module: 'slf4j-log4j12'
-    //}
     
     //Owlapi
-    compile('net.sourceforge.owlapi:owlapi-distribution:5.1.1')
+    //compile('net.sourceforge.owlapi:owlapi-distribution:5.1.1')
     compile('net.sourceforge.owlapi:owlapi-contract:5.1.1')
     compile('net.sourceforge.owlapi:owlapi-util:3.3')
 }
