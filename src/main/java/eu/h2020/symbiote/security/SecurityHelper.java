@@ -31,7 +31,7 @@ import org.springframework.http.MediaType;
  */
 public class SecurityHelper {
     
-    //@Value("${symbiote.coreaam.url}") 
+    //@Value("${symbIoTe.coreaam.url}")
     private String coreAAMUrl;
     
     //@Value("${platform.id}") 
@@ -53,7 +53,7 @@ public class SecurityHelper {
     }
     
     
-    @Value("${symbiote.coreaam.url}") 
+    @Value("${symbIoTe.coreaam.url}")
     public void setCoreAAMUrl(String coreaamUrl) {
         this.coreAAMUrl = coreaamUrl;
     }
@@ -61,11 +61,11 @@ public class SecurityHelper {
     public void setPlatformId(String platformId) {
         this.platformId = platformId;
     }
-    @Value("${keystore.path}") 
+    @Value("${symbIoTe.component.keystore.path}")
     public void setKeystorePath(String keystorePath) {
         this.keystorePath = keystorePath;
     }
-    @Value("${keystore.password}") 
+    @Value("${symbIoTe.component.keystore.password}")
     public void setKeystorePassword(String keystorePassword) {
         this.keystorePassword = keystorePassword;
     }

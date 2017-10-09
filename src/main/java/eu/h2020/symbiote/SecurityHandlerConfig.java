@@ -20,25 +20,25 @@ import org.springframework.context.annotation.Configuration;
 public class SecurityHandlerConfig {
     private final String RAP_KEY = "rap";
     
-    @Value("${keystore.path}") 
+    @Value("${symbIoTe.component.keystore.path}")
     private String keystorePath;
     
-    @Value("${keystore.password}") 
+    @Value("${symbIoTe.component.keystore.password}")
     private String keystorePasswd;
     
     @Value("${platform.id}") 
     private String platformId;
     
-    @Value("${symbiote.coreaam.url}") 
+    @Value("${symbIoTe.coreaam.url}")
     private String coreAAMUrl;
     
-    @Value("${symbiote.localaam.url}") 
+    @Value("${symbIoTe.localaam.url}")
     private String localAAMUrl;
     
-    @Value("${platform.owner}") 
+    @Value("${symbIoTe.component.username}")
     private String platformOwner;
     
-    @Value("${platform.password}") 
+    @Value("${symbIoTe.component.password}")
     private String platformPasswd;
         
 /*  
