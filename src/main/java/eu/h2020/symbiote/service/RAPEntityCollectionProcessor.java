@@ -6,19 +6,29 @@
 package eu.h2020.symbiote.service;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
+import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
+import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
+import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
+import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
+import eu.h2020.symbiote.security.SecurityHelper;
+import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Date;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Locale;
-import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
 import org.apache.olingo.commons.api.edm.EdmNavigationProperty;
@@ -38,7 +48,6 @@ import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 import org.apache.olingo.server.api.uri.UriResourceNavigation;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.apache.olingo.server.api.uri.queryoption.FilterOption;
 import org.apache.olingo.server.api.uri.queryoption.TopOption;
@@ -46,6 +55,7 @@ import org.apache.olingo.server.api.uri.queryoption.expression.Expression;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 
 /**
  *
@@ -54,146 +64,197 @@ import org.springframework.beans.factory.annotation.Qualifier;
 @Component
 public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
 
-    @Autowired
-    private ApplicationContext ctx;
-    
     private static final Logger log = LoggerFactory.getLogger(RAPEntityCollectionProcessor.class);
-
-    private OData odata;
-    private ServiceMetadata serviceMetadata;
-
+    
     @Autowired
-    ResourcesRepository resourcesRepo;
+    private ResourcesRepository resourcesRepo;
+    
+    @Autowired        
+    private AccessPolicyRepository accessPolicyRepo;
+    
+    @Autowired
+    private PluginRepository pluginRepo;
+    
+    @Autowired
+    private IComponentSecurityHandler securityHandler;
+    
     @Autowired
     private RabbitTemplate rabbitTemplate;
-    
+
     @Autowired
     @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
     TopicExchange exchange;
     
-    private StorageHelper storageHelper;
+    @Value("${symbiote.notification.url}") 
+    private String notificationUrl;
+    
+    @Autowired
+    private SecurityHelper securityHelper;
 
+    private StorageHelper storageHelper;
+    
     @Override
     public void init(OData odata, ServiceMetadata sm) {
-        this.odata = odata;
-        this.serviceMetadata = sm;
-
-        storageHelper = new StorageHelper(resourcesRepo,rabbitTemplate,exchange);
+    //    this.odata = odata;
+    //    this.serviceMetadata = sm;
+        storageHelper = new StorageHelper(resourcesRepo, pluginRepo, accessPolicyRepo,
+                                        securityHandler, rabbitTemplate, exchange);
     }
-    
-      
+
     @Override
     public void readEntityCollection(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat)
             throws ODataApplicationException, ODataLibraryException {
-        EdmEntitySet responseEdmEntitySet = null; // for building ContextURL
-        EntityCollection responseEntityCollection = null; // for the response body
-        Object obj = null;
+        Object obj;
         InputStream stream = null;
+        ObjectMapper map = new ObjectMapper();
+        map.configure(SerializationFeature.INDENT_OUTPUT, true);        
+        CustomODataApplicationException customOdataException = null;
+        String jsonFilter;
+        Integer top = null;        
         
-        String jsonFilter = null;
-        Integer top = null;
         //TOP
         TopOption topOption = uriInfo.getTopOption();
         if (topOption != null) {
             int topNumber = topOption.getValue();
             if (topNumber >= 0) {
-                log.info("Top: "+topNumber);
+                log.debug("Top: " + topNumber);
                 top = topNumber;
             } else {
-                throw new ODataApplicationException("Invalid value for $top", HttpStatusCode.BAD_REQUEST.getStatusCode(), Locale.ROOT);
+                log.error("Invalid value for $top");
+                customOdataException = new CustomODataApplicationException(null, "Invalid value for $top", HttpStatusCode.BAD_REQUEST.getStatusCode(), Locale.ROOT);
+                //throw customOdataException;
+                setErrorResponse(response, customOdataException, responseFormat);
+                return;
             }
         }
-        
+
         //FILTER
         FilterOption filter = uriInfo.getFilterOption();
         Query filterQuery = null;
-        if(filter != null){
+        if (filter != null) {
             Expression expression = filter.getExpression();
-            filterQuery = storageHelper.calculateFilter(expression);
-            
-            try{
-                ObjectMapper map = new ObjectMapper();
-                map.configure(SerializationFeature.INDENT_OUTPUT, true);
+            try {
+                filterQuery = StorageHelper.calculateFilter(expression);
+            } catch (ODataApplicationException odataExc) {
+                log.error("Error while reading filters: " + odataExc.getMessage());
+                customOdataException = new CustomODataApplicationException(null,odataExc.getMessage(),
+                        odataExc.getStatusCode(), odataExc.getLocale());
+                //throw customOdataException;
+                setErrorResponse(response, customOdataException, responseFormat);
+                return;
+            }
+
+            try {
                 map.setSerializationInclusion(JsonInclude.Include.NON_NULL);
                 jsonFilter = map.writeValueAsString(filterQuery);
-                log.info("JsonFilter:");
+                log.info("Filter:");
                 log.info(jsonFilter);
-            }
-            catch(Exception e){
+            } catch (Exception e) {
                 log.error(e.getMessage());
             }
         }
-        
-        
-        
-        
+
+        ArrayList<String> typeNameList = new ArrayList();
+
         // 1st retrieve the requested EntitySet from the uriInfo
         List<UriResource> resourceParts = uriInfo.getUriResourceParts();
         int segmentCount = resourceParts.size();
 
         UriResource uriResource = resourceParts.get(0); // the first segment is the EntitySet
         if (!(uriResource instanceof UriResourceEntitySet)) {
-            throw new ODataApplicationException("Only EntitySet is supported", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
+            customOdataException = new CustomODataApplicationException(null,"Only EntitySet is supported", 
+                    HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
+            //throw customOdataException;
+                setErrorResponse(response, customOdataException, responseFormat);
+                return;
         }
 
         UriResourceEntitySet uriResourceEntitySet = (UriResourceEntitySet) uriResource;
+
         EdmEntitySet startEdmEntitySet = uriResourceEntitySet.getEntitySet();
+        String typeName = startEdmEntitySet.getEntityType().getName();
 
-        if (segmentCount == 1) { // this is the case for: DemoService/DemoService.svc/Categories
-            responseEdmEntitySet = startEdmEntitySet; // first (and only) entitySet
+        typeNameList.add(typeName);
 
-            // 2nd: fetch the data from backend for this requested EntitySetName
-            responseEntityCollection = storageHelper.readEntitySetData(startEdmEntitySet);
-        } else if (segmentCount == 2) { //navigation: e.g. DemoService.svc/Categories(3)/Products
-            UriResource lastSegment = resourceParts.get(1); // don't support more complex URIs
-            if (lastSegment instanceof UriResourceNavigation) {
-                UriResourceNavigation uriResourceNavigation = (UriResourceNavigation) lastSegment;
-                EdmNavigationProperty edmNavigationProperty = uriResourceNavigation.getProperty();
-                EdmEntityType targetEntityType = edmNavigationProperty.getType();
-                responseEdmEntitySet = storageHelper.getNavigationTargetEntitySet(startEdmEntitySet, edmNavigationProperty);
-
-                // 2nd: fetch the data from backend
-                // first fetch the entity where the first segment of the URI points to
-                // e.g. Categories(3)/Products first find the single entity: Category(3)
-                List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
-                ResourceInfo resource = storageHelper.getResourceInfo(startEdmEntitySet,keyPredicates);
-                if (resource == null) {
-                //    throw new ODataApplicationException("Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+        if (segmentCount > 1) {
+            for (int i = 1; i < segmentCount; i++) {
+                UriResource segment = resourceParts.get(i);
+                if (segment instanceof UriResourceNavigation) {
+                    UriResourceNavigation uriResourceNavigation = (UriResourceNavigation) segment;
+                    EdmNavigationProperty edmNavigationProperty = uriResourceNavigation.getProperty();
+                    EdmEntityType targetEntityType = edmNavigationProperty.getType();
+                    String typeNameEntity = targetEntityType.getName();
+                    typeNameList.add(typeNameEntity);
                 }
-                EdmEntityType startEntityType = startEdmEntitySet.getEntityType();
-                obj = storageHelper.getRelatedObject(resource, startEntityType, targetEntityType, top, filterQuery);
-                ////Entity sourceEntity = storageHelper.readEntityData(startEdmEntitySet, keyPredicates);
-                // error handling for e.g.  DemoService.svc/Categories(99)/Products
-                ////if (sourceEntity == null) {
-                    ////throw new ODataApplicationException("Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
-                ////}
-                // then fetch the entity collection where the entity navigates to
-                ////EdmEntityType startEntityType = startEdmEntitySet.getEntityType();
-                ////esponseEntityCollection = storageHelper.getRelatedEntityCollection(sourceEntity, startEntityType, targetEntityType);
             }
-        } else { // this would be the case for e.g. Products(1)/Category/Products
-            throw new ODataApplicationException("Not supported", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
         }
-        // 3rd: create and configure a serializer
-        ////ContextURL contextUrl = ContextURL.with().entitySet(responseEdmEntitySet).build();
-        ////final String id = request.getRawBaseUri() + "/" + responseEdmEntitySet.getName();
-        ////EntityCollectionSerializerOptions opts = EntityCollectionSerializerOptions.with().contextURL(contextUrl).id(id).build();
-        ////EdmEntityType edmEntityType = responseEdmEntitySet.getEntityType();
 
-        ////ODataSerializer serializer = odata.createSerializer(responseFormat);
-        ////SerializerResult serializerResult = serializer.entityCollection(serviceMetadata, edmEntityType, responseEntityCollection, opts);
-
+        List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
+        /*ResourceInfo resource = storageHelper.getResourceInfo(keyPredicates);
+        if (resource == null) {
+            customOdataException = new CustomODataApplicationException(null,"Entity not found.", 
+                    HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+            //throw customOdataException;
+                setErrorResponse(response, customOdataException, responseFormat);
+                return;
+        }*/
+        String symbioteId = null;
+        ArrayList<ResourceInfo> resourceInfoList;
+        try {
+            resourceInfoList = storageHelper.getResourceInfoList(typeNameList,keyPredicates);
+            for(ResourceInfo resourceInfo: resourceInfoList){
+                String symbioteIdTemp = resourceInfo.getSymbioteId();
+                if(symbioteIdTemp != null && !symbioteIdTemp.isEmpty())
+                    symbioteId = symbioteIdTemp;
+            }
+        } catch(ODataApplicationException odataExc){
+            log.error("Entity not found: " + odataExc.getMessage());
+            customOdataException = new CustomODataApplicationException(null,
+                    "Entity not found", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+            setErrorResponse(response, customOdataException, responseFormat);
+            return;
+        }
+        
+        // checking access policies
+        try {
+            for(ResourceInfo resource : resourceInfoList) {
+                String sid = resource.getSymbioteId();
+                if(sid != null && sid.length() > 0)
+                    storageHelper.checkAccessPolicies(request, sid);
+            }
+        } catch (Exception ex) {
+            log.error("Access policy check error: " + ex.getMessage());
+            customOdataException = new CustomODataApplicationException(symbioteId, ex.getMessage(), 
+                    HttpStatusCode.UNAUTHORIZED.getStatusCode(), Locale.ROOT);
+            setErrorResponse(response, customOdataException, responseFormat);
+            return;
+        }
         
         try{
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-            String json = mapper.writeValueAsString(obj);
+            obj = storageHelper.getRelatedObject(resourceInfoList, top, filterQuery);
+        }
+        catch(ODataApplicationException odataExc){
+            log.error(odataExc.getMessage());
+            customOdataException = new CustomODataApplicationException(symbioteId,odataExc.getMessage(), 
+                    odataExc.getStatusCode(), odataExc.getLocale());
+            //throw customOdataException;
+                setErrorResponse(response, customOdataException, responseFormat);
+                return;
+        }
+
+        try {
+            map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+            String json = map.writeValueAsString(obj);
             stream = new ByteArrayInputStream(json.getBytes("UTF-8"));
-        }
-        catch(Exception e){
+        } catch (JsonProcessingException e) {
             log.error(e.getMessage());
+        } catch (UnsupportedEncodingException ex) {
+            log.error(ex.getMessage());
         }
+        
+        if(customOdataException == null && stream != null)
+            sendSuccessfulAccessMessage(symbioteId,
+                    SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
         
         // 4th: configure the response object: set the body, headers and status code
         //response.setContent(serializerResult.getContent());
@@ -201,5 +262,55 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
         response.setStatusCode(HttpStatusCode.OK.getStatusCode());
         response.addHeader("Access-Control-Allow-Origin", "*");
         response.addHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
+    }
+    
+    
+    public static ODataResponse setErrorResponse(ODataResponse response, 
+            CustomODataApplicationException customOdataException, ContentType responseFormat){
+        InputStream stream = null;
+        ObjectMapper map = new ObjectMapper();
+        map.configure(SerializationFeature.INDENT_OUTPUT, true);
+        try {
+            map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+            String json = map.writeValueAsString(customOdataException);
+            stream = new ByteArrayInputStream(json.getBytes("UTF-8"));
+        } catch (JsonProcessingException e) {
+            log.error(e.getMessage());
+        } catch (UnsupportedEncodingException ex) {
+            log.error(ex.getMessage());
+        }
+        response.setContent(stream);
+        response.setStatusCode(customOdataException.getStatusCode());
+        response.addHeader("Access-Control-Allow-Origin", "*");
+        response.addHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
+        
+        return response;
+    }
+    
+    
+    public void sendSuccessfulAccessMessage(String symbioteId, String accessType){
+        try{
+            String jsonNotificationMessage = null;
+            if(accessType == null || accessType.isEmpty())
+                accessType = SuccessfulAccessMessageInfo.AccessType.NORMAL.name();
+            ObjectMapper map = new ObjectMapper();
+            map.configure(SerializationFeature.INDENT_OUTPUT, true);
+            map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+
+            List<Date> dateList = new ArrayList<>();
+            dateList.add(new Date());
+            NotificationMessage notificationMessage = new NotificationMessage(securityHelper,notificationUrl);
+
+            try{
+                notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
+                jsonNotificationMessage = map.writeValueAsString(notificationMessage);
+            } catch (JsonProcessingException e) {
+                log.error(e.toString(), e);
+            }
+            notificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
+        }catch(Exception e){
+            log.error("Error to send SetSuccessfulAttempts to CRAM");
+            log.error(e.getMessage(),e);
+        }
     }
 }

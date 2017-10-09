@@ -6,16 +6,31 @@
 package eu.h2020.symbiote.service;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
+import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
+import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
+import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
+import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
+import eu.h2020.symbiote.resources.query.Query;
+import eu.h2020.symbiote.security.SecurityHelper;
+import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
-import org.apache.olingo.commons.api.data.ContextURL;
+import java.util.logging.Level;
+import org.apache.commons.io.IOUtils;
 import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
@@ -36,19 +51,19 @@ import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 import org.apache.olingo.server.api.uri.UriResourceNavigation;
-import org.apache.olingo.server.api.serializer.ODataSerializer;
-import org.apache.olingo.server.api.serializer.EntitySerializerOptions;
-import org.apache.olingo.server.api.serializer.SerializerResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.apache.olingo.server.api.deserializer.DeserializerResult;
 import org.apache.olingo.server.api.deserializer.ODataDeserializer;
+import org.apache.olingo.server.api.uri.queryoption.FilterOption;
+import org.apache.olingo.server.api.uri.queryoption.TopOption;
+import org.apache.olingo.server.api.uri.queryoption.expression.Expression;
+import org.springframework.beans.factory.annotation.Value;
 
 /**
  *
@@ -57,113 +72,100 @@ import org.apache.olingo.server.api.deserializer.ODataDeserializer;
 
 @Component
 public class RAPEntityProcessor implements EntityProcessor{
-
-    @Autowired
-    private ApplicationContext ctx;
     
     private static final Logger log = LoggerFactory.getLogger(RAPEntityProcessor.class);
     
     @Autowired
-    ResourcesRepository resourcesRepo;
+    private ResourcesRepository resourcesRepo;
+    
+    @Autowired
+    private PluginRepository pluginRepo;
+    
+    @Autowired        
+    private AccessPolicyRepository accessPolicyRepo;
+    
+    @Autowired
+    private IComponentSecurityHandler securityHandler;
+    
     @Autowired
     private RabbitTemplate rabbitTemplate;
     
     @Autowired
     @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
-    TopicExchange exchange;
+    private TopicExchange exchange;
+    
+    @Value("${symbiote.notification.url}") 
+    private String notificationUrl;
+    
+    @Autowired
+    private SecurityHelper securityHelper;
     
     private OData odata;
-    private ServiceMetadata serviceMetadata;
     
     private StorageHelper storageHelper;
     
     @Override
     public void init(OData odata, ServiceMetadata sm) {
-        this.odata = odata;
-        this.serviceMetadata = sm;
-        
-        storageHelper = new StorageHelper(resourcesRepo,rabbitTemplate,exchange);
+        this.odata = odata;   
+    //    this.serviceMetadata = sm;
+        storageHelper = new StorageHelper(resourcesRepo, pluginRepo, accessPolicyRepo,
+                                        securityHandler, rabbitTemplate, exchange);
     }
     
     @Override
     public void readEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) 
-            throws ODataApplicationException, ODataLibraryException {
-        // 1. retrieve the Entity Type
-        List<UriResource> resourcePaths = uriInfo.getUriResourceParts();
-        int segmentCount = resourcePaths.size();
-        
-        
-        // Note: only in our example we can assume that the first segment is the EntitySet
-        UriResourceEntitySet uriResourceEntitySet = (UriResourceEntitySet) resourcePaths.get(0);
-        EdmEntitySet edmEntitySet = uriResourceEntitySet.getEntitySet();
-
-        
-        
-        // 2. retrieve the data from backend
-        List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
-        Entity entity = storageHelper.readEntityData(edmEntitySet, keyPredicates);
-        
-        
-        if(segmentCount == 1){ // this is the case for: DemoService/DemoService.svc/Categories
-            ////responseEdmEntitySet = edmEntitySet; // first (and only) entitySet
-            // 2nd: fetch the data from backend for this requested EntitySetName
-            ////responseEntityCollection = storage.readEntitySetData(edmEntitySet);
-        }else if (segmentCount == 2){ //navigation: e.g. DemoService.svc/Categories(3)/Products
-            UriResource lastSegment = resourcePaths.get(1); // don't support more complex URIs
-            if(lastSegment instanceof UriResourceNavigation){
-                UriResourceNavigation uriResourceNavigation = (UriResourceNavigation)lastSegment;
-                EdmNavigationProperty edmNavigationProperty = uriResourceNavigation.getProperty();
-                EdmEntityType targetEntityType = edmNavigationProperty.getType();
-                ////responseEdmEntitySet = Util.getNavigationTargetEntitySet(edmEntitySet, edmNavigationProperty);
-
-                // 2nd: fetch the data from backend
-                // first fetch the entity where the first segment of the URI points to
-                // e.g. Categories(3)/Products first find the single entity: Category(3)
-                
-                Entity sourceEntity = storageHelper.readEntityData(edmEntitySet, keyPredicates);
-                // error handling for e.g.  DemoService.svc/Categories(99)/Products
-                if(sourceEntity == null) {
-                    throw new ODataApplicationException("Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
-                }
-                // then fetch the entity collection where the entity navigates to
-                //responseEntityCollection = getRelatedEntityCollection(sourceEntity, targetEntityType);
-            }
-        }else{ // this would be the case for e.g. Products(1)/Category/Products
-            throw new ODataApplicationException("Not supported", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(),Locale.ROOT);
-        }
-        
-        
-        
-
-        // 3. serialize
-        EdmEntityType entityType = edmEntitySet.getEntityType();
-
-        ContextURL contextUrl = ContextURL.with().entitySet(edmEntitySet).build();
-        // expand and select currently not supported
-        EntitySerializerOptions options = EntitySerializerOptions.with().contextURL(contextUrl).build();
-
-        ODataSerializer serializer = odata.createSerializer(responseFormat);
-        SerializerResult serializerResult = serializer.entity(serviceMetadata, entityType, entity, options);
-        InputStream entityStream = serializerResult.getContent();
-
-        //4. configure the response object
-        response.setContent(entityStream);
-        response.setStatusCode(HttpStatusCode.OK.getStatusCode());
-        response.setHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
-    }
-
-    @Override
-    public void createEntity(ODataRequest odr, ODataResponse odr1, UriInfo uriInfo, ContentType requestFormat, ContentType responseFormat) throws ODataApplicationException, ODataLibraryException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public void updateEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType requestFormat, ContentType responseFormat) throws ODataApplicationException, ODataLibraryException {
-        EdmEntitySet responseEdmEntitySet = null; // for building ContextURL
-        EntityCollection responseEntityCollection = null; // for the response body
-        String responseString = null;
+            throws ODataApplicationException, ODataLibraryException{
         InputStream stream = null;
+        
+        ObjectMapper map = new ObjectMapper();
+        map.configure(SerializationFeature.INDENT_OUTPUT, true);
+        
+        CustomODataApplicationException customOdataException = null;
 
+        String jsonFilter;
+        Integer top = null;
+        //TOP
+        TopOption topOption = uriInfo.getTopOption();
+        if (topOption != null) {
+            int topNumber = topOption.getValue();
+            if (topNumber >= 0) {
+                log.info("Top: " + topNumber);
+                top = topNumber;
+            } else {
+                customOdataException = new CustomODataApplicationException(null,"Invalid value for $top", HttpStatusCode.BAD_REQUEST.getStatusCode(), Locale.ROOT);
+                //throw customOdataException;
+                RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
+                return;
+            }
+        }
+
+        //FILTER
+        FilterOption filter = uriInfo.getFilterOption();
+        Query filterQuery;
+        if (filter != null) {
+            Expression expression = filter.getExpression();
+            try {
+                filterQuery = StorageHelper.calculateFilter(expression);
+            } catch (ODataApplicationException odataExc) {
+                log.error(odataExc.getMessage());
+                customOdataException = new CustomODataApplicationException(null,odataExc.getMessage(),
+                        odataExc.getStatusCode(), odataExc.getLocale());
+                //throw customOdataException;
+                RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
+                return;
+            }
+
+            try {
+                map.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+                jsonFilter = map.writeValueAsString(filterQuery);
+                log.info("JsonFilter:");
+                log.info(jsonFilter);
+            } catch (Exception e) {
+                log.error(e.getMessage());
+            }
+        }
+
+        ArrayList<String> typeNameList = new ArrayList();
 
         // 1st retrieve the requested EntitySet from the uriInfo
         List<UriResource> resourceParts = uriInfo.getUriResourceParts();
@@ -171,86 +173,172 @@ public class RAPEntityProcessor implements EntityProcessor{
 
         UriResource uriResource = resourceParts.get(0); // the first segment is the EntitySet
         if (!(uriResource instanceof UriResourceEntitySet)) {
-            throw new ODataApplicationException("Only EntitySet is supported", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
+            customOdataException = new CustomODataApplicationException(null,"Only EntitySet is supported", 
+                    HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
+            //throw customOdataException;
+                RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
+                return;
         }
+
+        UriResourceEntitySet uriResourceEntitySet = (UriResourceEntitySet) uriResource;
+        EdmEntitySet startEdmEntitySet = uriResourceEntitySet.getEntitySet();
+        String typeName = startEdmEntitySet.getEntityType().getName();
+        typeNameList.add(typeName);
+
+        if (segmentCount > 1) {
+            for (int i = 1; i < segmentCount; i++) {
+                UriResource segment = resourceParts.get(i);
+                if (segment instanceof UriResourceNavigation) {
+                    UriResourceNavigation uriResourceNavigation = (UriResourceNavigation) segment;
+                    EdmNavigationProperty edmNavigationProperty = uriResourceNavigation.getProperty();
+                    EdmEntityType targetEntityType = edmNavigationProperty.getType();
+                    String typeNameEntity = targetEntityType.getName();
+                    typeNameList.add(typeNameEntity);
+                }
+            }
+        }
+
+        List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
+        ResourceInfo resource = storageHelper.getResourceInfo(keyPredicates);
+        if (resource == null) {
+            customOdataException = new CustomODataApplicationException(null,"Entity not found.", 
+                    HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+            //throw customOdataException;
+                RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
+                return;
+        }        
+        //ArrayList<RequestInfo> requestInfos = storageHelper.getRequestInfoList(typeNameList,keyPredicates);
+        try {
+            map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+            String json = map.writeValueAsString(resource);
+            stream = new ByteArrayInputStream(json.getBytes("UTF-8"));
+        } catch (JsonProcessingException e) {
+            log.error(e.getMessage());
+        } catch (UnsupportedEncodingException ex) {
+            log.error(ex.getMessage());
+        }
+        
+        if(customOdataException == null && stream != null)
+            sendSuccessfulAccessMessage(resource.getSymbioteId(),
+                    SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
+        
+        // 4th: configure the response object: set the body, headers and status code
+        //response.setContent(serializerResult.getContent());
+        response.setContent(stream);
+        response.setStatusCode(HttpStatusCode.OK.getStatusCode());
+        response.addHeader("Access-Control-Allow-Origin", "*");
+        response.addHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
+    }
+    
+    @Override
+    public void createEntity(ODataRequest odr, ODataResponse odr1, UriInfo uriInfo, ContentType requestFormat, ContentType responseFormat) throws ODataApplicationException, ODataLibraryException {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void updateEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType requestFormat, ContentType responseFormat) throws ODataApplicationException, ODataLibraryException {
+        CustomODataApplicationException customOdataException = null;
+        EdmEntitySet responseEdmEntitySet = null; // for building ContextURL
+        EntityCollection responseEntityCollection = null; // for the response body
+        String responseString = null;
+        InputStream stream = null;
+        String body = null;
+        
+        ArrayList<String> typeNameList = new ArrayList<String>();
+
+        // 1st retrieve the requested EntitySet from the uriInfo
+        List<UriResource> resourceParts = uriInfo.getUriResourceParts();
+        int segmentCount = resourceParts.size();
+
+        UriResource uriResource = resourceParts.get(0); // the first segment is the EntitySet
+        if (!(uriResource instanceof UriResourceEntitySet)) {
+            customOdataException = new CustomODataApplicationException(null,"Only EntitySet is supported", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
+            RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
+            return;
+        }
+        
+        InputStream requestInputStream = request.getBody();
+        ODataDeserializer deserializer = this.odata.createDeserializer(requestFormat);
 
         UriResourceEntitySet uriResourceEntitySet = (UriResourceEntitySet) uriResource;
         EdmEntitySet startEdmEntitySet = uriResourceEntitySet.getEntitySet();
         EdmEntityType startEntityType = startEdmEntitySet.getEntityType();
         
-        InputStream requestInputStream = request.getBody();
-        ODataDeserializer deserializer = this.odata.createDeserializer(requestFormat);
+        
+        EdmEntityType targetEntityType = startEntityType;
+        String typeName = startEntityType.getName();
+        typeNameList.add(typeName);
 
-        if (segmentCount == 1) { // this is the case for: DemoService/DemoService.svc/Categories
-            //throw new ODataApplicationException("Not supported", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
-        
-            
-            // 2.2 do the modification in backend
-            List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
-            
-            
-            ResourceInfo resource = storageHelper.getResourceInfo(startEdmEntitySet,keyPredicates);
-            if (resource == null) {
-                throw new ODataApplicationException("Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
-            }
-            
-            
-            DeserializerResult result = deserializer.entity(requestInputStream, startEntityType);
-            Entity requestEntity = result.getEntity();
-                
-            storageHelper.setService(resource, requestEntity, startEntityType);
-        
-        
-        } else if (segmentCount == 2) { //navigation: e.g. DemoService.svc/Categories(3)/Products
-            UriResource lastSegment = resourceParts.get(1); // don't support more complex URIs
-            if (lastSegment instanceof UriResourceNavigation) {
-                UriResourceNavigation uriResourceNavigation = (UriResourceNavigation) lastSegment;
-                EdmNavigationProperty edmNavigationProperty = uriResourceNavigation.getProperty();
-                EdmEntityType targetEntityType = edmNavigationProperty.getType();
-                responseEdmEntitySet = storageHelper.getNavigationTargetEntitySet(startEdmEntitySet, edmNavigationProperty);
-
-                // 2nd: fetch the data from backend
-                // first fetch the entity where the first segment of the URI points to
-                // e.g. Categories(3)/Products first find the single entity: Category(3)
-                List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
-                ResourceInfo resource = storageHelper.getResourceInfo(startEdmEntitySet,keyPredicates);
-                if (resource == null) {
-                    throw new ODataApplicationException("Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+        if (segmentCount > 1) {
+            for (int i = 1; i < segmentCount; i++) {
+                UriResource segment = resourceParts.get(i);
+                if (segment instanceof UriResourceNavigation) {
+                    UriResourceNavigation uriResourceNavigation = (UriResourceNavigation) segment;
+                    EdmNavigationProperty edmNavigationProperty = uriResourceNavigation.getProperty();
+                    targetEntityType = edmNavigationProperty.getType();
+                    String typeNameEntity = targetEntityType.getName();
+                    typeNameList.add(typeNameEntity);
                 }
-                
-                
-                List<UriParameter> navKeyPredicates = uriResourceNavigation.getKeyPredicates();
-                String serviceId = null;
-                if(navKeyPredicates != null && !navKeyPredicates.isEmpty()){
-                    UriParameter key = navKeyPredicates.get(0);
-                    String keyName = key.getName();
-                    String keyText = key.getText();
-                    if(keyName.equals("id"))
-                        serviceId = keyText;
-                }
-                
-                
-                
-                
-                DeserializerResult result = deserializer.entity(requestInputStream, targetEntityType);
-                Entity requestEntity = result.getEntity();
-                
-                
-                //obj = storageHelper.getRelatedObject(resource, startEntityType, targetEntityType, top, jsonFilter);
-                //obj = "RESPONSE";
-                storageHelper.setService(resource, requestEntity, targetEntityType);
             }
-        } else { // this would be the case for e.g. Products(1)/Category/Products
-            throw new ODataApplicationException("Not supported", HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT);
+        }
+        
+        List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
+        /*ResourceInfo resource = storageHelper.getResourceInfo(keyPredicates);
+        if (resource == null) {
+            customOdataException = new CustomODataApplicationException(null,"Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+            RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
+            return;
+        }*/
+        
+        
+        try { 
+            body = IOUtils.toString(requestInputStream, "UTF-8");
+        } catch (IOException ex) {
+            java.util.logging.Logger.getLogger(RAPEntityProcessor.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        requestInputStream = new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8));
+        DeserializerResult result = deserializer.entity(requestInputStream, targetEntityType);
+        Entity requestEntity = result.getEntity();
+        
+        
+        ArrayList<ResourceInfo> resourceInfoList = null;
+        try{
+            resourceInfoList = storageHelper.getResourceInfoList(typeNameList,keyPredicates);
+        }
+        catch(ODataApplicationException odataExc){
+            log.error(odataExc.getMessage());
+            customOdataException = new CustomODataApplicationException(null,"Entity not found.", HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
+            RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
+            return;
+        }
+        
+        
+        
+        Object obj = storageHelper.setService(resourceInfoList, body);
+        
+        responseString = "";
+        if(obj != null){
+            if (obj instanceof byte[]) {
+                try {
+                    responseString = new String((byte[]) obj, "UTF-8");
+                } catch (UnsupportedEncodingException ex) {
+                    java.util.logging.Logger.getLogger(RAPEntityProcessor.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            } else {
+                responseString = (String) obj;
+            }
         }
 
         try{
-            responseString = "";
             stream = new ByteArrayInputStream(responseString.getBytes("UTF-8"));
         }
         catch(Exception e){
             log.error(e.getMessage());
         }
+        
+        if(customOdataException == null && stream != null)
+            sendSuccessfulAccessMessage(resourceInfoList.get(0).getSymbioteId(),
+                    SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
         
         // 4th: configure the response object: set the body, headers and status code
         //response.setContent(serializerResult.getContent());
@@ -266,102 +354,29 @@ public class RAPEntityProcessor implements EntityProcessor{
     }
     
     
-    /*
-    private Entity readEntityData(EdmEntitySet edmEntitySet, List<UriParameter> keyParams) throws ODataApplicationException{
+    public void sendSuccessfulAccessMessage(String symbioteId, String accessType){
+        try{
+            String jsonNotificationMessage = null;
+            if(accessType == null || accessType.isEmpty())
+                accessType = SuccessfulAccessMessageInfo.AccessType.NORMAL.name();
+            ObjectMapper map = new ObjectMapper();
+            map.configure(SerializationFeature.INDENT_OUTPUT, true);
+            map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
 
-        EdmEntityType edmEntityType = edmEntitySet.getEntityType();
+            List<Date> dateList = new ArrayList<>();
+            dateList.add(new Date());
+            NotificationMessage notificationMessage = new NotificationMessage(securityHelper,notificationUrl);
 
-        // actually, this is only required if we have more than one Entity Type
-        if(edmEntityType.getName().equals(ResourceAccessProxyEdmProvider.ET_RESOURCE_NAME)){
-            // the list of entities at runtime
-            EntityCollection entitySet = RAPEntityCollectionProcessor.getData(edmEntitySet);
-
-            // generic approach  to find the requested entity 
-            Entity requestedEntity = findEntity(edmEntityType, entitySet, keyParams);
-
-            if(requestedEntity == null){
-                // this variable is null if our data doesn't contain an entity for the requested key
-                // Throw suitable exception
-                throw new ODataApplicationException("Entity for requested key doesn't exist",
-                                           HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ENGLISH);
+            try{
+                notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
+                jsonNotificationMessage = map.writeValueAsString(notificationMessage);
+            } catch (JsonProcessingException e) {
+                log.error(e.toString(), e);
             }
-
-            return requestedEntity;
+            notificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
+        }catch(Exception e){
+            log.error("Error to send SetSuccessfulAttempts to CRAM");
+            log.error(e.getMessage(),e);
         }
-
-        return null;
     }
-    
-    
-    private static Entity findEntity(EdmEntityType edmEntityType,
-                                    EntityCollection rt_entitySet, List<UriParameter> keyParams)
-                                    throws ODataApplicationException {
-
-        List<Entity> entityList = rt_entitySet.getEntities();
-
-        // loop over all entities in order to find that one that matches all keys in request
-        // an example could be e.g. contacts(ContactID=1, CompanyID=1)
-        for(Entity rt_entity : entityList){
-            boolean foundEntity = entityMatchesAllKeys(edmEntityType, rt_entity, keyParams);
-            if(foundEntity){
-                return rt_entity;
-            }
-        }
-
-        return null;
-    }
-    
-     public static boolean entityMatchesAllKeys(EdmEntityType edmEntityType, Entity rt_entity,  List<UriParameter> keyParams)
-                                                throws ODataApplicationException {
-
-        // loop over all keys
-        for (final UriParameter key : keyParams) {
-            // key
-            String keyName = key.getName();
-            String keyText = key.getText();
-            
-            //remove cuotes
-            keyText = keyText.replaceAll("'", "");
-
-            // Edm: we need this info for the comparison below
-            EdmProperty edmKeyProperty = (EdmProperty )edmEntityType.getProperty(keyName);
-            Boolean isNullable = edmKeyProperty.isNullable();
-            Integer maxLength = edmKeyProperty.getMaxLength();
-            Integer precision = edmKeyProperty.getPrecision();
-            Boolean isUnicode = edmKeyProperty.isUnicode();
-            Integer scale = edmKeyProperty.getScale();
-            // get the EdmType in order to compare
-            EdmType edmType = edmKeyProperty.getType();
-            // Key properties must be instance of primitive type
-            EdmPrimitiveType edmPrimitiveType = (EdmPrimitiveType)edmType;
-
-            // Runtime data: the value of the current entity
-            Object valueObject = rt_entity.getProperty(keyName).getValue(); // null-check is done in FWK
-
-            // now need to compare the valueObject with the keyText String
-            // this is done using the type.valueToString //
-            String valueAsString = null;
-            try {
-                valueAsString = edmPrimitiveType.valueToString(valueObject, isNullable, maxLength,
-                                                                precision, scale, isUnicode);
-            } catch (EdmPrimitiveTypeException e) {
-                throw new ODataApplicationException("Failed to retrieve String value",
-                                             HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(),Locale.ENGLISH, e);
-            }
-
-            if (valueAsString == null){
-                return false;
-            }
-
-            boolean matches = valueAsString.equals(keyText);
-            if(!matches){
-                // if any of the key properties is not found in the entity, we don't need to search further
-                return false;
-            }
-        }
-
-        return true;
-    }
-     
-     */
 }

@@ -15,7 +15,13 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 public class EntityNotFoundException extends RuntimeException {
     
+    private String symbioteId;
     public EntityNotFoundException(String entityId) {
         super ("Could not find object with id " + entityId);
+        this.symbioteId = entityId;
+    }
+    
+    public String getSymbioteId(){
+        return symbioteId;
     }
 }

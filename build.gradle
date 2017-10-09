@@ -12,7 +12,7 @@ if (!hasProperty('mainClass')) {
 // initial extensions to gradle
 buildscript {
     ext {
-        springBootVersion = '1.5.3.RELEASE'
+        springBootVersion = '1.5.7.RELEASE'
     }
     repositories {
         mavenCentral()
@@ -42,7 +42,7 @@ apply plugin: 'idea'
 apply plugin: 'com.cinnober.gradle.semver-git'
 
 // XXX please change with your commits according to http://semver.org/
-project.version = '0.2.0'
+project.version = '1.0.0'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -56,7 +56,7 @@ repositories {
 // Spring related configs
 dependencyManagement {
     imports {
-        mavenBom "org.springframework.cloud:spring-cloud-dependencies:Dalston.RELEASE"
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:Dalston.SR4"
     }
 }
 
@@ -85,8 +85,8 @@ dependencies {
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
     //compile project(':SymbIoTeLibraries')
-    // compile('com.github.symbiote-h2020:SymbIoTeLibraries:develop-SNAPSHOT') { changing = true }
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:0.2.1')
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:1.+') { }
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:21.3+'){ }    
 
     // Spring
     compile('org.springframework.cloud:spring-cloud-starter')
@@ -110,6 +110,12 @@ dependencies {
     
     // test only
     testCompile ("org.springframework.boot:spring-boot-starter-test")
+    
+    
+    //Owlapi
+    //compile('net.sourceforge.owlapi:owlapi-distribution:5.1.1')
+    compile('net.sourceforge.owlapi:owlapi-contract:5.1.1')
+    compile('net.sourceforge.owlapi:owlapi-util:3.3')
 }
 
 

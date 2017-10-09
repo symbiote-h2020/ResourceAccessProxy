@@ -7,7 +7,6 @@ package eu.h2020.symbiote.messages.access;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import eu.h2020.symbiote.cloud.model.data.parameter.InputParameter;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import java.util.List;
 
@@ -17,30 +16,31 @@ import java.util.List;
 */
 public class ResourceAccessSetMessage extends ResourceAccessMessage{
     @JsonProperty("resourceInfo")
-    private final ResourceInfo resInfo;
+    private final List<ResourceInfo> resInfo;
     
-    @JsonProperty("inputParameters")
-    private final List<InputParameter> inputParameters;
+    @JsonProperty("body")
+    private final String body;
+    
     /**
      * JSON Constructor
      * @param resInfo               the resource data information
-     * @param inputParameters       the list of parameters to set
+     * @param body                  the body of request
      */
     @JsonCreator
-    public ResourceAccessSetMessage(@JsonProperty("resourceInfo") ResourceInfo resInfo, 
-                                    @JsonProperty("inputParameters") List<InputParameter> inputParameters) {
+    public ResourceAccessSetMessage(@JsonProperty("resourceInfo") List<ResourceInfo> resInfo, 
+                                    @JsonProperty("body") String body) {
         this.accessType = ResourceAccessMessage.AccessType.SET;
         this.resInfo = resInfo;
-        this.inputParameters = inputParameters;
+        this.body = body;
+    }
+    
+    @JsonProperty("body")
+    public String getBody() {
+        return body;
     }
     
     @JsonProperty("resourceInfo")
-    public ResourceInfo getResourceInfo() {
-        return resInfo;
-    }
-    
-    @JsonProperty("inputParameters")
-    public List<InputParameter> getInputParameters() {
-        return inputParameters;
+    public List<ResourceInfo> getResourceInfo(){
+        return this.resInfo;
     }
 }

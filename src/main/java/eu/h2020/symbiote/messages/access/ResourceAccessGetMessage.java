@@ -8,6 +8,7 @@ package eu.h2020.symbiote.messages.access;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
+import java.util.List;
 
 /**
  *
@@ -16,20 +17,21 @@ import eu.h2020.symbiote.resources.db.ResourceInfo;
 public class ResourceAccessGetMessage extends ResourceAccessMessage {
     
     @JsonProperty("resourceInfo")
-    ResourceInfo resInfo;
+    List<ResourceInfo> resInfo;
+   
     
     /**
      * JSON Constructor
-     * @param resInfo               the resource data information     
+     * @param resInfo               the resource data information  
      */
     @JsonCreator
-    public ResourceAccessGetMessage(@JsonProperty("resourceInfo") ResourceInfo resInfo){
+    public ResourceAccessGetMessage(@JsonProperty("resourceInfo") List<ResourceInfo> resInfo){
         this.accessType = AccessType.GET;
         this.resInfo = resInfo;
     }
     
     @JsonProperty("resourceInfo")
-    public ResourceInfo getResourceInfo() {
-        return resInfo;
+    public List<ResourceInfo> getResourceInfo(){
+        return this.resInfo;
     }
 }

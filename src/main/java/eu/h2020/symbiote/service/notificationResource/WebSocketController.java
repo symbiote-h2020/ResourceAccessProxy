@@ -8,20 +8,28 @@ package eu.h2020.symbiote.service.notificationResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import eu.h2020.symbiote.exceptions.GenericException;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.messages.access.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessSubscribeMessage;
 import eu.h2020.symbiote.cloud.model.data.observation.Observation;
+import eu.h2020.symbiote.exceptions.EntityNotFoundException;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceWebSocketCondition;
 import eu.h2020.symbiote.messages.access.ResourceAccessUnSubscribeMessage;
+import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
+import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
+import eu.h2020.symbiote.resources.db.PlatformInfo;
+import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
+import eu.h2020.symbiote.security.SecurityHelper;
 import eu.h2020.symbiote.service.notificationResource.WebSocketMessage.Action;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -32,7 +40,9 @@ import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Conditional;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.socket.CloseStatus;
@@ -53,12 +63,22 @@ public class WebSocketController extends TextWebSocketHandler {
 
     @Autowired
     ResourcesRepository resourcesRepo;
+    
+    @Autowired
+    PluginRepository pluginRepo;
+    
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
     @Autowired
     @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
     TopicExchange exchange;
+    
+    @Value("${symbiote.notification.url}") 
+    private String notificationUrl;
+    
+    @Autowired
+    private SecurityHelper securityHelper;
 
     private final HashMap<String, WebSocketSession> idSession = new HashMap();
 
@@ -69,7 +89,7 @@ public class WebSocketController extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        log.info(String.format("Session %s closed because of %s", session.getId(), status.getReason()));
+        log.info("Session " + session.getId() + " closed with status " + status.getCode());
         idSession.remove(session.getId());
 
         //update DB
@@ -93,10 +113,13 @@ public class WebSocketController extends TextWebSocketHandler {
     }
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage jsonTextMessage) throws Exception {
+    protected void handleTextMessage(WebSocketSession session, TextMessage jsonTextMessage) throws Exception  {
+        Exception e = null;
+        HttpStatusCode code = HttpStatusCode.INTERNAL_SERVER_ERROR;
+        String message = "";
         try 
         {
-            String message = jsonTextMessage.getPayload();
+            message = jsonTextMessage.getPayload();
             log.info("message received: " + message);
 
             ObjectMapper mapper = new ObjectMapper();
@@ -117,18 +140,51 @@ public class WebSocketController extends TextWebSocketHandler {
                     Unsubscribe(session, resourcesId);
                     break;
             }
+        }catch (JsonParseException jsonEx){
+            code = HttpStatusCode.BAD_REQUEST;
+            e = jsonEx;
+            log.error(e.getMessage());
+        } catch (IOException ioEx) {
+            code = HttpStatusCode.BAD_REQUEST;
+            e = ioEx;
+            log.error(e.getMessage());
+        } catch (EntityNotFoundException entityEx){
+            code = HttpStatusCode.NOT_FOUND;
+            e = entityEx;
+            log.error(e.getMessage());
         } catch (Exception ex) {
-            log.debug("Generic IO Exception: " + ex.getMessage());
-            throw new GenericException(HttpStatusCode.BAD_REQUEST.getInfo());
+            e = ex;
+            log.error("Generic IO Exception: " + e.getMessage());
+        }
+        
+        if(e != null){
+            session.sendMessage(new TextMessage(code.name()+ " "+
+                    e.getMessage()));
+            sendFailMessage(message,e);
         }
     }
     
     private void Subscribe(WebSocketSession session, List<String> resourcesId) throws Exception {
-        List<ResourceInfo> resInfoList = new ArrayList();
+        HashMap<String, List> subscribeList = new HashMap();
         for (String resId : resourcesId) {
-            ResourceInfo resInfo = getResourceInfo(resId);
-            resInfoList.add(resInfo);
-
+            // adding new resource info to subscribe map, with pluginId as key
+            ResourceInfo resInfo = getResourceInfo(resId);            
+            String pluginId = resInfo.getPluginId();
+            // if no plugin id specified, we assume there's only one plugin attached
+            if(pluginId == null) {
+                List<PlatformInfo> lst = pluginRepo.findAll();
+                if(lst == null || lst.isEmpty())
+                    throw new Exception("No plugin found");                
+                pluginId = lst.get(0).getPlatformId();
+            } 
+            List<ResourceInfo> rl;
+            if(subscribeList.containsKey(pluginId)) {
+                rl = subscribeList.get(pluginId);
+            } else {
+                rl = new ArrayList();
+            }            
+            rl.add(resInfo);
+            subscribeList.put(pluginId, rl);
             //update DB
             List<String> sessionsIdOfRes = resInfo.getSessionId();
             if (sessionsIdOfRes == null) {
@@ -138,23 +194,45 @@ public class WebSocketController extends TextWebSocketHandler {
             resInfo.setSessionId(sessionsIdOfRes);
             resourcesRepo.save(resInfo);
         }
-        ResourceAccessMessage msg = new ResourceAccessSubscribeMessage(resInfoList);
-        String routingKey = ResourceAccessMessage.AccessType.SUBSCRIBE.toString().toLowerCase();
-
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);        
-        String json = mapper.writeValueAsString(msg);
         
-        rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+        for(String plugin : subscribeList.keySet() ) {
+            List<ResourceInfo> resList = subscribeList.get(plugin);
+            ResourceAccessMessage msg = new ResourceAccessSubscribeMessage(resList);
+            String routingKey = plugin + "." + ResourceAccessMessage.AccessType.SUBSCRIBE.toString().toLowerCase();
+            
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);        
+            String json = mapper.writeValueAsString(msg);
+
+            rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);            
+            sendSuccessfulAccessMessage(resourcesId, SuccessfulAccessMessageInfo.AccessType.SUBSCRIPTION_START.name());
+        }
         
     }
     
     private void Unsubscribe(WebSocketSession session, List<String> resourcesId) throws Exception {
-        List<ResourceInfo> resInfoList = new ArrayList();
+        HashMap<String, List> unsubscribeList = new HashMap();
         for (String resId : resourcesId) {
+            // adding new resource info to subscribe map, with pluginId as key
             ResourceInfo resInfo = getResourceInfo(resId);
-            resInfoList.add(resInfo);
+            String pluginId = resInfo.getPluginId();
+            // if no plugin id specified, we assume there's only one plugin attached
+            if(pluginId == null) {
+                List<PlatformInfo> lst = pluginRepo.findAll();
+                if(lst == null || lst.isEmpty())
+                    throw new Exception("No plugin found");                
+                pluginId = lst.get(0).getPlatformId();
+            } 
+            List<ResourceInfo> rl;
+            if(unsubscribeList.containsKey(pluginId)) {
+                rl = unsubscribeList.get(pluginId);
+            } else {
+                rl = new ArrayList();
+            }            
+            rl.add(resInfo);
+            unsubscribeList.put(pluginId, rl);
+            //update DB
             List<String> sessionsIdOfRes = resInfo.getSessionId();
             if (sessionsIdOfRes != null) {
                 sessionsIdOfRes.remove(session.getId());
@@ -162,15 +240,19 @@ public class WebSocketController extends TextWebSocketHandler {
                 resourcesRepo.save(resInfo);            
             }
         }
-        ResourceAccessMessage msg = new ResourceAccessUnSubscribeMessage(resInfoList);
-        String routingKey = ResourceAccessMessage.AccessType.UNSUBSCRIBE.toString().toLowerCase();
+        for(String plugin : unsubscribeList.keySet() ) {
+            List<ResourceInfo> resList = unsubscribeList.get(plugin);
+            ResourceAccessMessage msg = new ResourceAccessUnSubscribeMessage(resList);
+            String routingKey = plugin + "." + ResourceAccessMessage.AccessType.UNSUBSCRIBE.toString().toLowerCase();
 
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);        
-        String json = mapper.writeValueAsString(msg);
-        
-        rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);        
+            String json = mapper.writeValueAsString(msg);
+
+            rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+            sendSuccessfulAccessMessage(resourcesId, SuccessfulAccessMessageInfo.AccessType.SUBSCRIPTION_END.name());
+        }
     }
 
     public void SendMessage(Observation obs) {
@@ -181,7 +263,8 @@ public class WebSocketController extends TextWebSocketHandler {
         if (sessionIdList != null && !sessionIdList.isEmpty()) {
             for (String sessionId : sessionIdList) {
                 WebSocketSession session = idSession.get(sessionId);
-                sessionList.add(session);
+                if(session != null)
+                    sessionList.add(session);
             }
 
             String mess = "";
@@ -209,15 +292,11 @@ public class WebSocketController extends TextWebSocketHandler {
 
     private ResourceInfo getResourceInfo(String resId) {
         ResourceInfo resInfo = null;
-        try {
-            Optional<ResourceInfo> resInfoOptional = resourcesRepo.findById(resId);
-            if (resInfoOptional.isPresent()) {
-                resInfo = resInfoOptional.get();
-            }
-        } catch (Exception e) {
-            log.error(e.getMessage());
-        }
-
+        Optional<ResourceInfo> resInfoOptional = resourcesRepo.findById(resId);
+        if(!resInfoOptional.isPresent())
+            throw new EntityNotFoundException(resId);
+        
+        resInfo = resInfoOptional.get();
         return resInfo;
     }
     
@@ -238,5 +317,56 @@ public class WebSocketController extends TextWebSocketHandler {
         }
 
         return resInfo;
+    }
+    
+    
+    public void sendSuccessfulAccessMessage(List<String> symbioteIdList, String accessType){
+        String jsonNotificationMessage = null;
+        ObjectMapper map = new ObjectMapper();
+        map.configure(SerializationFeature.INDENT_OUTPUT, true);
+        map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        
+        List<Date> dateList = new ArrayList<Date>();
+        dateList.add(new Date());
+        NotificationMessage notificationMessage = new NotificationMessage(securityHelper,notificationUrl);
+        
+        try{
+            notificationMessage.SetSuccessfulAttemptsList(symbioteIdList, dateList, accessType);
+            jsonNotificationMessage = map.writeValueAsString(notificationMessage);
+        } catch (JsonProcessingException e) {
+            log.error(e.getMessage());
+        }
+        notificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
+    }
+    
+    private void sendFailMessage(String path, Exception e) {
+        String jsonNotificationMessage = null;
+        String appId = "";String issuer = ""; String validationStatus = "";
+        String symbioteId = "";
+        ObjectMapper mapper = new ObjectMapper();
+        
+        String code = Integer.toString(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        String message = e.getMessage();
+        if(message == null)
+            message = e.toString();
+        
+        if(e.getClass().equals(EntityNotFoundException.class)){
+            code = Integer.toString(HttpStatus.NOT_FOUND.value());
+            symbioteId = ((EntityNotFoundException) e).getSymbioteId();
+        }
+            
+        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        List<Date> dateList = new ArrayList<Date>();
+        dateList.add(new Date());
+        NotificationMessage notificationMessage = new NotificationMessage(securityHelper,notificationUrl);
+        try {
+            notificationMessage.SetFailedAttempts(symbioteId, dateList, 
+            code, message, appId, issuer, validationStatus, path); 
+            jsonNotificationMessage = mapper.writeValueAsString(notificationMessage);
+        } catch (JsonProcessingException jsonEx) {
+            log.error(jsonEx.getMessage());
+        }
+        notificationMessage.SendFailAccessMessage(jsonNotificationMessage);
     }
 }
