@@ -98,7 +98,8 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
     //    this.odata = odata;
     //    this.serviceMetadata = sm;
         storageHelper = new StorageHelper(resourcesRepo, pluginRepo, accessPolicyRepo,
-                                        securityHandler, rabbitTemplate, exchange);
+                                        securityHandler, rabbitTemplate, exchange,
+                                        securityHelper,notificationUrl);
     }
 
     @Override
@@ -253,7 +254,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
         }
         
         if(customOdataException == null && stream != null)
-            sendSuccessfulAccessMessage(symbioteId,
+            storageHelper.sendSuccessfulAccessMessage(symbioteId,
                     SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
         
         // 4th: configure the response object: set the body, headers and status code
@@ -285,32 +286,5 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
         response.addHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
         
         return response;
-    }
-    
-    
-    public void sendSuccessfulAccessMessage(String symbioteId, String accessType){
-        try{
-            String jsonNotificationMessage = null;
-            if(accessType == null || accessType.isEmpty())
-                accessType = SuccessfulAccessMessageInfo.AccessType.NORMAL.name();
-            ObjectMapper map = new ObjectMapper();
-            map.configure(SerializationFeature.INDENT_OUTPUT, true);
-            map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-
-            List<Date> dateList = new ArrayList<>();
-            dateList.add(new Date());
-            NotificationMessage notificationMessage = new NotificationMessage(securityHelper,notificationUrl);
-
-            try{
-                notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
-                jsonNotificationMessage = map.writeValueAsString(notificationMessage);
-            } catch (JsonProcessingException e) {
-                log.error(e.toString(), e);
-            }
-            notificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
-        }catch(Exception e){
-            log.error("Error to send SetSuccessfulAttempts to CRAM");
-            log.error(e.getMessage(),e);
-        }
     }
 }
