@@ -9,7 +9,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import eu.h2020.symbiote.cloud.model.data.observation.Observation;
+import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
 import eu.h2020.symbiote.security.SecurityHelper;
 import eu.h2020.symbiote.service.notificationResource.WebSocketController;
