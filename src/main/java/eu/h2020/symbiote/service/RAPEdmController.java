@@ -48,7 +48,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
-import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.security.SecurityHelper;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
@@ -88,6 +87,8 @@ public class RAPEdmController {
     
     @Autowired
     private SecurityHelper securityHelper;
+    
+    
     /**
      * Process.
      *
@@ -194,31 +195,7 @@ public class RAPEdmController {
         return message;
     }
     
-    public void sendSuccessfulAccessMessage(String symbioteId, String accessType){
-        try{
-            String jsonNotificationMessage = null;
-            if(accessType == null || accessType.isEmpty())
-                accessType = SuccessfulAccessMessageInfo.AccessType.NORMAL.name();
-            ObjectMapper map = new ObjectMapper();
-            map.configure(SerializationFeature.INDENT_OUTPUT, true);
-            map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-
-            List<Date> dateList = new ArrayList<>();
-            dateList.add(new Date());
-            NotificationMessage notificationMessage = new NotificationMessage(securityHelper,notificationUrl);
-
-            try{
-                notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
-                jsonNotificationMessage = map.writeValueAsString(notificationMessage);
-            } catch (JsonProcessingException e) {
-                log.error(e.toString(), e);
-            }
-            notificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
-        }catch(Exception e){
-            log.error("Error to send SetSuccessfulAttempts to CRAM");
-            log.error(e.getMessage(),e);
-        }
-    }
+    
 
     /**
      * Creates the o data request.

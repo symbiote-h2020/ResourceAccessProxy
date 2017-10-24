@@ -15,7 +15,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.messages.access.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessSubscribeMessage;
-import eu.h2020.symbiote.cloud.model.data.observation.Observation;
+import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.exceptions.EntityNotFoundException;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceWebSocketCondition;
 import eu.h2020.symbiote.messages.access.ResourceAccessUnSubscribeMessage;

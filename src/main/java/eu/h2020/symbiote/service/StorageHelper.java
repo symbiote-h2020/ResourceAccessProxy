@@ -15,7 +15,9 @@ import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
-import eu.h2020.symbiote.cloud.model.data.observation.Observation;
+import eu.h2020.symbiote.model.cim.Observation;
+import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
+import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Comparison;
 import eu.h2020.symbiote.resources.query.Filter;
@@ -25,6 +27,7 @@ import eu.h2020.symbiote.resources.db.AccessPolicy;
 import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
+import eu.h2020.symbiote.security.SecurityHelper;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
@@ -89,6 +92,8 @@ public class StorageHelper {
     private final PluginRepository pluginRepo;
     private final RabbitTemplate rabbitTemplate;
     private final TopicExchange exchange;
+    private String notificationUrl;
+    private SecurityHelper securityHelper;
 
     private static final Pattern PATTERN = Pattern.compile(
             "\\p{Digit}{1,4}-\\p{Digit}{1,2}-\\p{Digit}{1,2}"
@@ -97,7 +102,7 @@ public class StorageHelper {
 
     public StorageHelper(ResourcesRepository resourcesRepository, PluginRepository pluginRepository,
                         AccessPolicyRepository accessPolicyRepository, IComponentSecurityHandler securityHandlerComponent,
-                         RabbitTemplate rabbit, TopicExchange topicExchange) {
+                         RabbitTemplate rabbit, TopicExchange topicExchange,SecurityHelper securityHelper, String notificationUrl) {
         //initSampleData();
         resourcesRepo = resourcesRepository;
         pluginRepo = pluginRepository;
@@ -105,6 +110,8 @@ public class StorageHelper {
         securityHandler = securityHandlerComponent;
         rabbitTemplate = rabbit;
         exchange = topicExchange;
+        this.securityHelper = securityHelper;
+        this.notificationUrl = notificationUrl;
     }
 
     public ResourceInfo getResourceInfo(List<UriParameter> keyParams) {
@@ -602,6 +609,32 @@ public class StorageHelper {
         if(!ids.contains(resourceId)) {
             log.error("Security Policy is not valid");
             throw new Exception("Security Policy is not valid");
+        }
+    }
+    
+    public void sendSuccessfulAccessMessage(String symbioteId, String accessType){
+        try{
+            String jsonNotificationMessage = null;
+            if(accessType == null || accessType.isEmpty())
+                accessType = SuccessfulAccessMessageInfo.AccessType.NORMAL.name();
+            ObjectMapper map = new ObjectMapper();
+            map.configure(SerializationFeature.INDENT_OUTPUT, true);
+            map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+
+            List<Date> dateList = new ArrayList<>();
+            dateList.add(new Date());
+            NotificationMessage notificationMessage = new NotificationMessage(securityHelper,notificationUrl);
+
+            try{
+                notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
+                jsonNotificationMessage = map.writeValueAsString(notificationMessage);
+            } catch (JsonProcessingException e) {
+                log.error(e.toString(), e);
+            }
+            notificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
+        }catch(Exception e){
+            log.error("Error to send SetSuccessfulAttempts to CRAM");
+            log.error(e.getMessage(),e);
         }
     }
 }

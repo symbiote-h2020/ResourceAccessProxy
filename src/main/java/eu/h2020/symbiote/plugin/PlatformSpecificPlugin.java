@@ -5,10 +5,11 @@
  */
 package eu.h2020.symbiote.plugin;
 
-import eu.h2020.symbiote.cloud.model.data.observation.Location;
-import eu.h2020.symbiote.cloud.model.data.observation.Observation;
-import eu.h2020.symbiote.cloud.model.data.observation.Property;
-import eu.h2020.symbiote.cloud.model.data.observation.UnitOfMeasurement;
+import eu.h2020.symbiote.model.cim.WGS84Location;
+import eu.h2020.symbiote.model.cim.Observation;
+import eu.h2020.symbiote.model.cim.ObservationValue;
+import eu.h2020.symbiote.model.cim.Property;
+import eu.h2020.symbiote.model.cim.UnitOfMeasurement;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -89,7 +90,9 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
     */   
     public Observation observationExampleValue () {        
         String sensorId = "symbIoTeID1";
-        Location loc = new Location(15.9, 45.8, 145, "Spansko", "City of Zagreb");
+        ArrayList<String> ldescr = new ArrayList();
+        ldescr.add("City of Zagreb");
+        WGS84Location loc = new WGS84Location(15.9, 45.8, 145, "Spansko", ldescr);
         TimeZone zoneUTC = TimeZone.getTimeZone("UTC");
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
         dateFormat.setTimeZone(zoneUTC);
@@ -98,8 +101,12 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
         long ms = date.getTime() - 1000;
         date.setTime(ms);
         String samplet = dateFormat.format(date);
-        eu.h2020.symbiote.cloud.model.data.observation.ObservationValue obsval = new eu.h2020.symbiote.cloud.model.data.observation.ObservationValue("7", new Property("Temperature", "Air temperature"), new UnitOfMeasurement("C", "degree Celsius", ""));
-        ArrayList<eu.h2020.symbiote.cloud.model.data.observation.ObservationValue> obsList = new ArrayList();
+        ArrayList<String> pdescr = new ArrayList();
+        pdescr.add("Air temperature");
+        ArrayList<String> umdescr = new ArrayList();
+        umdescr.add("Temperature in degree Celsius");
+        ObservationValue obsval = new ObservationValue("7", new Property("Temperature", pdescr), new UnitOfMeasurement("C", "degree Celsius", umdescr));
+        ArrayList<ObservationValue> obsList = new ArrayList();
         Observation obs = new Observation(sensorId, loc, timestamp, samplet , obsList);
         
         log.debug("Observation: \n" + obs.toString());
