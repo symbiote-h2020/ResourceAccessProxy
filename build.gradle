@@ -86,7 +86,8 @@ dependencies {
     */
     //compile project(':SymbIoTeLibraries')
 
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:3.+') { }
+    //compile('com.github.symbiote-h2020:SymbIoTeLibraries:3.+') {changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:3.1.1') { }
     compile('com.github.symbiote-h2020:SymbIoTeSecurity:22.+'){ }
 
     // Spring

@@ -99,13 +99,11 @@ public class RAPEdmController {
     @CrossOrigin(origins = "*")
     @RequestMapping(value = "**")
     public ResponseEntity<String> process(HttpServletRequest req) throws Exception {
-        split = 0;
         return processRequestPrivate(req);
     }
 
     @RequestMapping(value = "*('{resourceId}')/*")
     public ResponseEntity<String> processResources(HttpServletRequest req) throws Exception {
-        split = 0;
         return processRequestPrivate(req);
     }
 

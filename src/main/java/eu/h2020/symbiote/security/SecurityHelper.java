@@ -87,7 +87,7 @@ public class SecurityHelper {
     }
     
     
-    public HttpHeaders getHeader(){
+    public HttpHeaders getHeader() throws Exception{
         Map<String, String> securityRequestHeaders = null;
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.set("Accept", MediaType.APPLICATION_JSON_VALUE);
@@ -101,11 +101,14 @@ public class SecurityHelper {
             Set<AuthorizationCredentials> authorizationCredentialsSet = new HashSet<>();
             Map<String, AAM> availableAAMs = securityHandler.getAvailableAAMs();
 
-            log.info("Getting certificate for " + availableAAMs.get(platformId).getAamInstanceId());
-            securityHandler.getCertificate(availableAAMs.get(platformId), username, password, clientId);
+            AAM platformAAM = availableAAMs.get(platformId);
+            if(platformAAM == null)
+                throw new Exception("Not found availableAAMs for platform "+platformId);
+            log.info("Getting certificate for " + platformAAM.getAamInstanceId());
+            securityHandler.getCertificate(platformAAM, username, password, clientId);
 
-            log.info("Getting token from " + availableAAMs.get(platformId).getAamInstanceId());
-            Token homeToken = securityHandler.login(availableAAMs.get(platformId));
+            log.info("Getting token from " + platformAAM.getAamInstanceId());
+            Token homeToken = securityHandler.login(platformAAM);
 
             HomeCredentials homeCredentials = securityHandler.getAcquiredCredentials().get(platformId).homeCredentials;
             authorizationCredentialsSet.add(new AuthorizationCredentials(homeToken, homeCredentials.homeAAM, homeCredentials));

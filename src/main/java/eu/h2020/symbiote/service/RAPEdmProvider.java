@@ -343,7 +343,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
                             .setPartner(entityTypeName.getName());
                     navPropList.add(navProp);
                     isList = true;
-                    log.info("List type -> Name: " + f.getName() + ", Type: " + cl);
+                    //log.info("List type -> Name: " + f.getName() + ", Type: " + cl);
                 } else {
                     cl = f.getType();
                 }
@@ -354,7 +354,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
                             .setName(f.getName())
                             .setType(fqn);
                     lst.add(propId);
-                    log.info("Primitive type: " + f.getName() + " - " + fqn.getFullQualifiedNameAsString());
+                    //log.info("Primitive type: " + f.getName() + " - " + fqn.getFullQualifiedNameAsString());
                 } else {
                     CsdlProperty propId = new CsdlProperty()
                             .setName(f.getName())
@@ -364,7 +364,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
                         propId.setCollection(true);
                     }
                     lst.add(propId);
-                    log.info("Complex type: " + f.getName() + " - " + shortName);
+                    //log.info("Complex type: " + f.getName() + " - " + shortName);
                 }
 
                 if (f.isID()) {
@@ -395,7 +395,6 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
                         .setPartner(entityTypeName.getName() + "s");
                 navPropList.add(navProp1);
             }
-            //////////////////////////////////////////////////////////////////////
             entityType.setNavigationProperties(navPropList);
         } catch (Exception e) {
             log.error(e.toString());

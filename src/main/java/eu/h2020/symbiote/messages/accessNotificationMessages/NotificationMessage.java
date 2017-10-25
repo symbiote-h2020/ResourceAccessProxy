@@ -10,6 +10,7 @@ import eu.h2020.symbiote.security.SecurityHelper;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
@@ -89,11 +90,17 @@ public class NotificationMessage {
         RestTemplate restTemplate = new RestTemplate();
         restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
         restTemplate.getMessageConverters().add(new StringHttpMessageConverter());
-        
-        HttpHeaders httpHeaders = securityHelper.getHeader();
-        HttpEntity<String> httpEntity = new HttpEntity<String>(message,httpHeaders);
-        
-        Object response = restTemplate.postForObject(notificationUrl, httpEntity, Object.class);
-        log.info("Response notification message: "+ (String)response);
+
+        String response = null;
+        try {
+            HttpHeaders httpHeaders = securityHelper.getHeader();
+            HttpEntity<String> httpEntity = new HttpEntity<String>(message,httpHeaders);
+            Object responseObj = restTemplate.postForObject(notificationUrl, httpEntity, Object.class);
+            if(responseObj != null)
+                response = (String)responseObj;
+        } catch (Exception ex) {
+            log.info("Error, doesn't send message to CRAM ", ex);
+        }
+        log.info("Response notification message: "+ response);
     }
 }

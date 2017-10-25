@@ -107,6 +107,7 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
         umdescr.add("Temperature in degree Celsius");
         ObservationValue obsval = new ObservationValue("7", new Property("Temperature", pdescr), new UnitOfMeasurement("C", "degree Celsius", umdescr));
         ArrayList<ObservationValue> obsList = new ArrayList();
+        obsList.add(obsval);
         Observation obs = new Observation(sensorId, loc, timestamp, samplet , obsList);
         
         log.debug("Observation: \n" + obs.toString());
