@@ -31,7 +31,7 @@ import org.springframework.http.MediaType;
  */
 public class SecurityHelper {
     
-    //@Value("${symbIoTe.coreaam.url}")
+    //@Value("${symbIoTe.core.interface.url}")
     private String coreAAMUrl;
     
     //@Value("${platform.id}") 
@@ -53,7 +53,7 @@ public class SecurityHelper {
     }
     
     
-    @Value("${symbIoTe.coreaam.url}")
+    @Value("${symbIoTe.core.interface.url}")
     public void setCoreAAMUrl(String coreaamUrl) {
         this.coreAAMUrl = coreaamUrl;
     }
