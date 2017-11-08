@@ -70,7 +70,6 @@ public class SecurityHandlerConfig {
         );
         // workaround to speed up following calls
         rapCSH.generateServiceResponse();
-        
         return rapCSH;
     }    
 }

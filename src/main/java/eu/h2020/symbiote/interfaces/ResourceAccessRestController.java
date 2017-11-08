@@ -383,7 +383,14 @@ public class ResourceAccessRestController {
             throw new Exception("No access policies for resource");
         
         accessPolicyMap.put(resourceId, accPolicy.get().getPolicy());
-        Set<String> ids = securityHandler.getSatisfiedPoliciesIdentifiers(accessPolicyMap, request);
+
+        Set<String> ids = null;
+        try {
+            ids = securityHandler.getSatisfiedPoliciesIdentifiers(accessPolicyMap, request);
+        } catch (Exception e) {
+            log.error("Exception thrown during checking policies:", e);
+            throw new Exception(e.getMessage());
+        }
         if(!ids.contains(resourceId))
             throw new Exception("Security Policy is not valid");
     }
