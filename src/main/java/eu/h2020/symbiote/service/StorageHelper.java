@@ -27,7 +27,6 @@ import eu.h2020.symbiote.resources.db.AccessPolicy;
 import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
-import eu.h2020.symbiote.security.SecurityHelper;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
@@ -36,7 +35,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.stream.Collectors;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -46,6 +44,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.apache.olingo.commons.api.http.HttpStatusCode;
 import org.apache.olingo.server.api.ODataApplicationException;
 import org.apache.olingo.server.api.uri.UriParameter;
@@ -77,7 +76,6 @@ public class StorageHelper {
     private final RabbitTemplate rabbitTemplate;
     private final TopicExchange exchange;
     private String notificationUrl;
-    private SecurityHelper securityHelper;
 
     private static final Pattern PATTERN = Pattern.compile(
             "\\p{Digit}{1,4}-\\p{Digit}{1,2}-\\p{Digit}{1,2}"
@@ -86,7 +84,7 @@ public class StorageHelper {
 
     public StorageHelper(ResourcesRepository resourcesRepository, PluginRepository pluginRepository,
                         AccessPolicyRepository accessPolicyRepository, IComponentSecurityHandler securityHandlerComponent,
-                         RabbitTemplate rabbit, TopicExchange topicExchange,SecurityHelper securityHelper, String notificationUrl) {
+                         RabbitTemplate rabbit, TopicExchange topicExchange, String notificationUrl) {
         //initSampleData();
         resourcesRepo = resourcesRepository;
         pluginRepo = pluginRepository;
@@ -94,7 +92,6 @@ public class StorageHelper {
         securityHandler = securityHandlerComponent;
         rabbitTemplate = rabbit;
         exchange = topicExchange;
-        this.securityHelper = securityHelper;
         this.notificationUrl = notificationUrl;
     }
 
@@ -239,7 +236,7 @@ public class StorageHelper {
         }
         return obj;
     }
-
+    
     public static Query calculateFilter(Expression expression) throws ODataApplicationException {
 
         if (expression instanceof Binary) {
@@ -408,7 +405,7 @@ public class StorageHelper {
         
         accessPolicyMap.put(resourceId, accPolicy.get().getPolicy());
         String mapString = accessPolicyMap.entrySet().stream().map(entry -> entry.getKey() + " - " + entry.getValue())
-            .collect(Collectors.joining(", "));
+                .collect(Collectors.joining(", "));
         log.info("accessPolicyMap: " + mapString);
         log.info("request: " + request.toString());
         Set<String> ids = securityHandler.getSatisfiedPoliciesIdentifiers(accessPolicyMap, request);
@@ -429,7 +426,7 @@ public class StorageHelper {
 
             List<Date> dateList = new ArrayList<>();
             dateList.add(new Date());
-            NotificationMessage notificationMessage = new NotificationMessage(securityHelper,notificationUrl);
+            NotificationMessage notificationMessage = new NotificationMessage(securityHandler,notificationUrl);
 
             try{
                 notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);

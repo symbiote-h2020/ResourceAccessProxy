@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
-import eu.h2020.symbiote.security.SecurityHelper;
+import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import eu.h2020.symbiote.service.notificationResource.WebSocketController;
 import java.util.ArrayList;
 import java.util.Date;
@@ -35,7 +35,7 @@ public class PluginNotification {
     private String notificationUrl;
     
     @Autowired
-    private SecurityHelper securityHelper;
+    private IComponentSecurityHandler securityHandler;
     
     
     public void receiveNotification(byte[] messageByte) {
@@ -61,7 +61,7 @@ public class PluginNotification {
         
         List<Date> dateList = new ArrayList<Date>();
         dateList.add(new Date());
-        NotificationMessage notificationMessage = new NotificationMessage(securityHelper,notificationUrl);
+        NotificationMessage notificationMessage = new NotificationMessage(securityHandler,notificationUrl);
         
         try{
             notificationMessage.SetSuccessfulPushes(symbioteId, dateList);

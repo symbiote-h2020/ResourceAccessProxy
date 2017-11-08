@@ -25,7 +25,7 @@ import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
-import eu.h2020.symbiote.security.SecurityHelper;
+import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import eu.h2020.symbiote.service.notificationResource.WebSocketMessage.Action;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -78,7 +78,7 @@ public class WebSocketController extends TextWebSocketHandler {
     private String notificationUrl;
     
     @Autowired
-    private SecurityHelper securityHelper;
+    private IComponentSecurityHandler securityHandler;
 
     private final HashMap<String, WebSocketSession> idSession = new HashMap();
 
@@ -328,7 +328,7 @@ public class WebSocketController extends TextWebSocketHandler {
         
         List<Date> dateList = new ArrayList<Date>();
         dateList.add(new Date());
-        NotificationMessage notificationMessage = new NotificationMessage(securityHelper,notificationUrl);
+        NotificationMessage notificationMessage = new NotificationMessage(securityHandler,notificationUrl);
         
         try{
             notificationMessage.SetSuccessfulAttemptsList(symbioteIdList, dateList, accessType);
@@ -359,7 +359,7 @@ public class WebSocketController extends TextWebSocketHandler {
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         List<Date> dateList = new ArrayList<Date>();
         dateList.add(new Date());
-        NotificationMessage notificationMessage = new NotificationMessage(securityHelper,notificationUrl);
+        NotificationMessage notificationMessage = new NotificationMessage(securityHandler,notificationUrl);
         try {
             notificationMessage.SetFailedAttempts(symbioteId, dateList, 
             code, message, appId, issuer, validationStatus, path); 

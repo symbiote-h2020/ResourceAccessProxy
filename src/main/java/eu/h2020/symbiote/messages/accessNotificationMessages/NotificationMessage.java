@@ -6,15 +6,19 @@
 package eu.h2020.symbiote.messages.accessNotificationMessages;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import eu.h2020.symbiote.security.SecurityHelper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
+import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
+import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.logging.Level;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
@@ -26,7 +30,7 @@ import org.springframework.web.client.RestTemplate;
 public class NotificationMessage {
     private String notificationUrl;
     
-    private SecurityHelper securityHelper;
+    private IComponentSecurityHandler securityHandler;
     
     private static final Logger log = LoggerFactory.getLogger(NotificationMessage.class);
     
@@ -39,8 +43,8 @@ public class NotificationMessage {
     @JsonProperty("failedAttempts")
     private List<FailedAccessMessageInfo> failedAttempts;
     
-    public NotificationMessage(SecurityHelper securityHelper, String notificationUrl) {
-        this.securityHelper = securityHelper;
+    public NotificationMessage(IComponentSecurityHandler securityHandler, String notificationUrl) {
+        this.securityHandler = securityHandler;
         this.notificationUrl = notificationUrl;
     }
             
@@ -90,17 +94,32 @@ public class NotificationMessage {
         RestTemplate restTemplate = new RestTemplate();
         restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
         restTemplate.getMessageConverters().add(new StringHttpMessageConverter());
+        
+        HttpHeaders httpHeaders = getHeader();
+        HttpEntity<String> httpEntity = new HttpEntity<String>(message,httpHeaders);
+        
+        Object response = restTemplate.postForObject(notificationUrl, httpEntity, Object.class);
+        log.info("Response notification message: "+ (String)response);
+    }
+    
+    public HttpHeaders getHeader(){
+        Map<String, String> securityRequestHeaders = null;
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.set("Accept", MediaType.APPLICATION_JSON_VALUE);
+        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
 
-        String response = null;
         try {
-            HttpHeaders httpHeaders = securityHelper.getHeader();
-            HttpEntity<String> httpEntity = new HttpEntity<String>(message,httpHeaders);
-            Object responseObj = restTemplate.postForObject(notificationUrl, httpEntity, Object.class);
-            if(responseObj != null)
-                response = (String)responseObj;
-        } catch (Exception ex) {
-            log.info("Error, doesn't send message to CRAM ", ex);
+            SecurityRequest securityRequest = securityHandler.generateSecurityRequestUsingLocalCredentials();
+            securityRequestHeaders = securityRequest.getSecurityRequestHeaderParams();
+            
+            for (Map.Entry<String, String> entry : securityRequestHeaders.entrySet()) {
+                httpHeaders.add(entry.getKey(), entry.getValue());
+            }
+            log.info("request headers: " + httpHeaders);
+            
+        } catch (SecurityHandlerException | JsonProcessingException e) {
+            log.error("Fail to take header",e);
         }
-        log.info("Response notification message: "+ response);
+        return httpHeaders;
     }
 }

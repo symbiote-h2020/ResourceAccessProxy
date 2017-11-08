@@ -29,7 +29,6 @@ import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
-import eu.h2020.symbiote.security.SecurityHelper;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
@@ -91,9 +90,6 @@ public class ResourceAccessRestController {
    
     @Value("${symbiote.notification.url}") 
     private String notificationUrl;
-    
-    @Autowired
-    private SecurityHelper securityHelper;
     
 
     /**
@@ -412,7 +408,7 @@ public class ResourceAccessRestController {
             mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
             List<Date> dateList = new ArrayList();
             dateList.add(new Date());
-            NotificationMessage notificationMessage = new NotificationMessage(securityHelper,notificationUrl);
+            NotificationMessage notificationMessage = new NotificationMessage(securityHandler,notificationUrl);
             try {
                 notificationMessage.SetFailedAttempts(symbioteId, dateList,code, message, appId, issuer, validationStatus, path); 
                 jsonNotificationMessage = mapper.writeValueAsString(notificationMessage);
@@ -439,7 +435,7 @@ public class ResourceAccessRestController {
 
             List<Date> dateList = new ArrayList();
             dateList.add(new Date());
-            NotificationMessage notificationMessage = new NotificationMessage(securityHelper,notificationUrl);
+            NotificationMessage notificationMessage = new NotificationMessage(securityHandler,notificationUrl);
             try{
                 notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
                 jsonNotificationMessage = map.writeValueAsString(notificationMessage);

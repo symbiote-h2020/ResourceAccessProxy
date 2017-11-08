@@ -10,7 +10,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
-import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
 import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
@@ -18,13 +17,11 @@ import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
-import eu.h2020.symbiote.security.SecurityHelper;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.Date;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.List;
@@ -88,8 +85,6 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
     @Value("${symbiote.notification.url}") 
     private String notificationUrl;
     
-    @Autowired
-    private SecurityHelper securityHelper;
 
     private StorageHelper storageHelper;
     
@@ -98,8 +93,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
     //    this.odata = odata;
     //    this.serviceMetadata = sm;
         storageHelper = new StorageHelper(resourcesRepo, pluginRepo, accessPolicyRepo,
-                                        securityHandler, rabbitTemplate, exchange,
-                                        securityHelper,notificationUrl);
+                                        securityHandler, rabbitTemplate, exchange,notificationUrl);
     }
 
     @Override

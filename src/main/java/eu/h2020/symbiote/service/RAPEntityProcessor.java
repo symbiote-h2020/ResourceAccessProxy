@@ -10,7 +10,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
-import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
 import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
@@ -18,7 +17,6 @@ import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
-import eu.h2020.symbiote.security.SecurityHelper;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -26,7 +24,6 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.logging.Level;
@@ -97,9 +94,6 @@ public class RAPEntityProcessor implements EntityProcessor{
     @Value("${symbiote.notification.url}") 
     private String notificationUrl;
     
-    @Autowired
-    private SecurityHelper securityHelper;
-    
     private OData odata;
     
     private StorageHelper storageHelper;
@@ -109,7 +103,7 @@ public class RAPEntityProcessor implements EntityProcessor{
         this.odata = odata;   
     //    this.serviceMetadata = sm;
         storageHelper = new StorageHelper(resourcesRepo, pluginRepo, accessPolicyRepo,
-                securityHandler, rabbitTemplate, exchange,securityHelper,notificationUrl);
+                securityHandler, rabbitTemplate, exchange,notificationUrl);
     }
     
     @Override

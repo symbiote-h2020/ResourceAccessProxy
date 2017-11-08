@@ -397,6 +397,5 @@ public class OwlapiHelp {
         }
         return localMap;
     }    
-
-    
+  
 }
