@@ -29,7 +29,7 @@ public class SecurityHandlerConfig {
     @Value("${platform.id}") 
     private String platformId;
     
-    @Value("${symbIoTe.core.interface.url}")
+    @Value("${symbIoTe.coreaam.url}")
     private String coreAAMUrl;
     
     @Value("${symbIoTe.localaam.url}")
