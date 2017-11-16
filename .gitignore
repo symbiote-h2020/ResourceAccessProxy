@@ -141,3 +141,6 @@ logs
 *.log
 db
 /nbproject
+
+# Keystores
+*.jks
