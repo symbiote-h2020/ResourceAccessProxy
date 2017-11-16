@@ -37,7 +37,7 @@ public class CustomField {
     }
     
     public boolean isID(){
-        return this.type.equalsIgnoreCase("ID");
+        return this.type.equalsIgnoreCase("ID") || this.name.equalsIgnoreCase("ID");
     }
         
     public boolean typeIsPrimitive(){

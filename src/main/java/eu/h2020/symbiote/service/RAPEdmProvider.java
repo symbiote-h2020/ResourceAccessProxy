@@ -453,6 +453,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
                 entitySet.setName(simpleNames);
                 entitySet.setType(new FullQualifiedName(NAMESPACE, simpleName));
 
+                List<CsdlNavigationPropertyBinding> navPropBindingList = new ArrayList();
                 List<CustomField> fields = getAllFields(s);
                 for (CustomField f : fields) {
                     String type = f.getType();
@@ -462,11 +463,10 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
                         CsdlNavigationPropertyBinding navPropBinding = new CsdlNavigationPropertyBinding();
                         navPropBinding.setTarget(typeSimpleName);//target entitySet, where the nav prop points to
                         navPropBinding.setPath(typeSimpleName); // the path from entity type to navigation property
-                        List<CsdlNavigationPropertyBinding> navPropBindingList = new ArrayList();
                         navPropBindingList.add(navPropBinding);
-                        entitySet.setNavigationPropertyBindings(navPropBindingList);
                     }
                 }
+                entitySet.setNavigationPropertyBindings(navPropBindingList);
                 return entitySet;
             }
         }
