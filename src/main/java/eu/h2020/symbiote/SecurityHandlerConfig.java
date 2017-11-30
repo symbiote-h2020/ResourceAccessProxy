@@ -40,6 +40,9 @@ public class SecurityHandlerConfig {
     
     @Value("${symbIoTe.component.password}")
     private String platformPasswd;
+
+    @Value("${symbIoTe.validation.localaam}")
+    private Boolean alwaysUseLocalAAMForValidation;
         
 /*  
     @Value("${rabbit.host}")
@@ -64,7 +67,7 @@ public class SecurityHandlerConfig {
                 keystorePasswd,
                 componentId,
                 localAAMUrl,
-                false,              // so far it's false
+                alwaysUseLocalAAMForValidation,
                 platformOwner,
                 platformPasswd
         );
