@@ -18,6 +18,7 @@ import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
+import static eu.h2020.symbiote.service.RAPEntityCollectionProcessor.setErrorResponse;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -294,10 +295,15 @@ public class RAPEntityProcessor implements EntityProcessor{
         DeserializerResult result = deserializer.entity(requestInputStream, targetEntityType);
         Entity requestEntity = result.getEntity();
         
-        
+        String symbioteId = null;
         ArrayList<ResourceInfo> resourceInfoList = null;
         try{
             resourceInfoList = storageHelper.getResourceInfoList(typeNameList,keyPredicates);
+            for(ResourceInfo resourceInfo: resourceInfoList){
+                String symbioteIdTemp = resourceInfo.getSymbioteId();
+                if(symbioteIdTemp != null && !symbioteIdTemp.isEmpty())
+                    symbioteId = symbioteIdTemp;
+            }
         }
         catch(ODataApplicationException odataExc){
             log.error(odataExc.getMessage());
@@ -306,6 +312,21 @@ public class RAPEntityProcessor implements EntityProcessor{
             return;
         }
         
+        
+        // checking access policies
+        try {
+            for(ResourceInfo resource : resourceInfoList) {
+                String sid = resource.getSymbioteId();
+                if(sid != null && sid.length() > 0)
+                    storageHelper.checkAccessPolicies(request, sid);
+            }
+        } catch (Exception ex) {
+            log.error("Access policy check error: " + ex.getMessage());
+            customOdataException = new CustomODataApplicationException(symbioteId, ex.getMessage(), 
+                    HttpStatusCode.UNAUTHORIZED.getStatusCode(), Locale.ROOT);
+            setErrorResponse(response, customOdataException, responseFormat);
+            return;
+        }
         
         
         Object obj = storageHelper.setService(resourceInfoList, body);

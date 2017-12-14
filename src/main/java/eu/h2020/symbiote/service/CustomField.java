@@ -67,4 +67,11 @@ public class CustomField {
     public String ToString(){
         return "{Type: "+type+" ,Name: "+name+" }";
     }
+
+    @Override
+    public String toString() {
+        return ToString();
+    }
+    
+    
 }

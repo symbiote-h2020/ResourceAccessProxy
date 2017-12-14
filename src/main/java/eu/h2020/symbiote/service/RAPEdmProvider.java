@@ -76,9 +76,9 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
     }
 
     public HashMap<String, HashMap<String, String>> getClasses() {
-        if (classes == null) {
+        //if (classes == null) {
             initialize();
-        }
+        //}
         return classes;
     }
 
@@ -181,14 +181,6 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
             classLongName = classLongNameOp.get();
         }
         return classLongName;
-
-        /*String className = null;
-        for(String c : fatherList) {
-            className = getClassLongName(simpleName, c);
-            if(className != null)
-                break;
-        }
-        return className;*/
     }
 
     private String getClassLongName(String simpleName, String father) {
@@ -337,7 +329,8 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
                     cl = getInternalTypeClass(f);
                     // adding navigation for this collection
                     CsdlNavigationProperty navProp = new CsdlNavigationProperty()
-                            .setName(cl + "s")
+                            //.setName(cl + "s")
+                            .setName(cl)
                             .setType(new FullQualifiedName(NAMESPACE, cl))
                             .setCollection(true)
                             .setPartner(entityTypeName.getName());
@@ -392,7 +385,8 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
                         .setName(getShortClassName(fath))
                         .setType(new FullQualifiedName(NAMESPACE, getShortClassName(fath)))
                         .setNullable(true)
-                        .setPartner(entityTypeName.getName() + "s");
+                        //.setPartner(entityTypeName.getName() + "s");
+                        .setPartner(entityTypeName.getName());
                 navPropList.add(navProp1);
             }
             entityType.setNavigationProperties(navPropList);
@@ -444,13 +438,14 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
 
         if (entityContainer.equals(CONTAINER)) {
             HashSet<String> classess = getClassesName();
-            Optional<String> classLongName = classess.stream().filter(str -> (getShortClassName(str) + "s").equalsIgnoreCase(entitySetName)).findFirst();
+            //Optional<String> classLongName = classess.stream().filter(str -> (getShortClassName(str) + "s").equalsIgnoreCase(entitySetName)).findFirst();
+            Optional<String> classLongName = classess.stream().filter(str -> (getShortClassName(str)).equalsIgnoreCase(entitySetName)).findFirst();
             if (classLongName.isPresent()) {
                 String s = classLongName.get();
                 String simpleName = getShortClassName(s);
-                String simpleNames = simpleName + "s";
+                //String simpleNames = simpleName + "s";
                 CsdlEntitySet entitySet = new CsdlEntitySet();
-                entitySet.setName(simpleNames);
+                entitySet.setName(simpleName);
                 entitySet.setType(new FullQualifiedName(NAMESPACE, simpleName));
 
                 List<CsdlNavigationPropertyBinding> navPropBindingList = new ArrayList();
@@ -458,8 +453,8 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
                 for (CustomField f : fields) {
                     String type = f.getType();
                     if (type.contains("[]") && getClassesName().contains(type.replace("[]", ""))) {
-                        String typeSimpleName = getShortClassName(type) + "s";
-                        //String typeSimpleName = f.getName() + "s";
+                        //String typeSimpleName = getShortClassName(type) + "s";
+                        String typeSimpleName = getShortClassName(type);
                         CsdlNavigationPropertyBinding navPropBinding = new CsdlNavigationPropertyBinding();
                         navPropBinding.setTarget(typeSimpleName);//target entitySet, where the nav prop points to
                         navPropBinding.setPath(typeSimpleName); // the path from entity type to navigation property
@@ -480,7 +475,8 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
         // create EntitySets
         List<CsdlEntitySet> entitySets = new ArrayList();
         for (String s : getClassesName()) {
-            entitySets.add(getEntitySet(CONTAINER, getShortClassName(s) + "s"));
+            //entitySets.add(getEntitySet(CONTAINER, getShortClassName(s) + "s"));
+            entitySets.add(getEntitySet(CONTAINER, getShortClassName(s)));
         }
         // create EntityContainer
         CsdlEntityContainer entityContainer = new CsdlEntityContainer();

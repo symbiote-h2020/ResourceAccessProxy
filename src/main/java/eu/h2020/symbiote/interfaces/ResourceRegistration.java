@@ -8,6 +8,7 @@ package eu.h2020.symbiote.interfaces;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import eu.h2020.symbiote.bim.OwlapiHelp;
 import eu.h2020.symbiote.cloud.model.internal.CloudResource;
 import eu.h2020.symbiote.model.cim.MobileSensor;
 import eu.h2020.symbiote.model.cim.Resource;
@@ -39,6 +40,9 @@ public class ResourceRegistration {
     
     @Autowired
     AccessPolicyRepository accessPolicyRepository;
+    
+    @Autowired
+    OwlapiHelp owlApiHelp;
     
     /**
      * Receive registration messages from RabbitMQ queue 
@@ -72,6 +76,7 @@ public class ResourceRegistration {
                 addPolicy(symbioteId, internalId, msg.getSingleTokenAccessPolicy());
                 addResource(symbioteId, internalId, props, pluginId);
             }
+            addCloudResourceInfoForOData(msgs);
         } catch (Exception e) {
             log.error("Error during registration process\n" + e.getMessage());
         }
@@ -123,6 +128,7 @@ public class ResourceRegistration {
                 addPolicy(symbioteId, internalId, msg.getSingleTokenAccessPolicy());
                 addResource(symbioteId, internalId, props, pluginId);
             }
+            addCloudResourceInfoForOData(msgs);
         } catch (Exception e) {
             log.error("Error during registration process\n" + e.getMessage());
         }
@@ -180,6 +186,15 @@ public class ResourceRegistration {
             
         } catch (Exception e) {
             log.error("Resource with internalId " + internalId + " not found - Exception: " + e.getMessage());
+        }
+    }
+
+    private void addCloudResourceInfoForOData(List<CloudResource> cloudResourceList) {
+        try{
+            owlApiHelp.addCloudResourceList(cloudResourceList);
+        }
+        catch(Exception e){
+            log.error("Error add info registration for OData\n"+e.getMessage());
         }
     }
 }

@@ -50,6 +50,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
+import java.io.InputStream;
 import java.util.Date;
 import org.springframework.beans.factory.annotation.Value;
 
@@ -77,6 +78,9 @@ public class RAPEdmController {
 
     @Autowired
     private RAPEntityProcessor entityProcessor;
+    
+    //@Autowired
+    //private RAPPrimitiveProcessor primitiveProcessor;
     
     @Autowired
     private IComponentSecurityHandler securityHandler;
@@ -114,15 +118,22 @@ public class RAPEdmController {
             ODataHttpHandler handler = odata.createHandler(edm);
             handler.register(entityCollectionProcessor);
             handler.register(entityProcessor);
+            //handler.register(primitiveProcessor);
 
             response = handler.process(createODataRequest(req, split));
             
             
-            if(response.getStatusCode() != HttpStatus.OK.value())
-                responseStr = sendFailMessage(req, Integer.toString(response.getStatusCode()));
+            if(response.getStatusCode() != HttpStatus.OK.value()){
+                String errorMessage = Integer.toString(response.getStatusCode());
+                InputStream inputStream = response.getContent();
+                if(inputStream != null)
+                    errorMessage = StreamUtils.copyToString(inputStream, Charset.defaultCharset());
+                responseStr = sendFailMessage(req, errorMessage);
+            }
             else 
                 responseStr = StreamUtils.copyToString(
                     response.getContent(), Charset.defaultCharset());
+
 
             httpStatus = HttpStatus.valueOf(response.getStatusCode());            
         } catch (IOException | ODataException e) {
@@ -142,6 +153,9 @@ public class RAPEdmController {
         catch(SecurityHandlerException sce){
             log.error(sce.getMessage(), sce);
             throw sce;
+        }
+        catch(Exception e){
+            log.error(e.getMessage(), e);
         }
         
         return new ResponseEntity(responseStr, headers, httpStatus);

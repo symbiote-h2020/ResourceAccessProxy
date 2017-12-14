@@ -7,6 +7,20 @@ package eu.h2020.symbiote.bim;
 
 //import org.semanticweb.owlapi.api.test.baseclasses.TestBase;
 import com.google.common.collect.Multimap;
+import eu.h2020.symbiote.cloud.model.internal.CloudResource;
+import eu.h2020.symbiote.model.cim.Actuator;
+import eu.h2020.symbiote.model.cim.Capability;
+import eu.h2020.symbiote.model.cim.ComplexDatatype;
+import eu.h2020.symbiote.model.cim.Datatype;
+import eu.h2020.symbiote.model.cim.Device;
+import eu.h2020.symbiote.model.cim.Parameter;
+import eu.h2020.symbiote.model.cim.PrimitiveDatatype;
+import eu.h2020.symbiote.model.cim.Resource;
+import eu.h2020.symbiote.model.cim.Service;
+import eu.h2020.symbiote.resources.db.ParameterInfo;
+import eu.h2020.symbiote.resources.db.RegistrationInfoOData;
+import eu.h2020.symbiote.resources.db.RegistrationInfoODataRepository;
+import eu.h2020.symbiote.service.CustomField;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
@@ -16,6 +30,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
@@ -23,7 +38,9 @@ import org.apache.commons.logging.LogFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.search.EntitySearcher;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 import uk.ac.manchester.cs.owl.owlapi.OWLDataExactCardinalityImpl;
 import uk.ac.manchester.cs.owl.owlapi.OWLDataMaxCardinalityImpl;
 import uk.ac.manchester.cs.owl.owlapi.OWLDataPropertyImpl;
@@ -38,14 +55,18 @@ import uk.ac.manchester.cs.owl.owlapi.OWLSubClassOfAxiomImpl;
  *
  * @author Luca Tomaselli <l.tomaselli@nextworks.it>
  */
-@Configuration
+@Component
 public class OwlapiHelp {
 
     private static final Log log = LogFactory.getLog(OwlapiHelp.class);
 
     private static final String BIM_FILE = "/bim.owl";
-    private static final String PIM_FILE = "/pim.owl";
+    //private static final String PIM_FILE = "/pim.owl";
+    private static final String PIM_FILE = "/bim2.owl";
     private static final String PIM_PARTIAL_FILE = "/pim_partial.owl";
+    
+    @Autowired
+    private RegistrationInfoODataRepository infoODataRepo;
     
     private HashMap<String, HashMap<String, String>> map;
     private HashMap<String, HashMap<String, String>> classes;
@@ -53,7 +74,10 @@ public class OwlapiHelp {
     private final HashSet <String> classesRead = new HashSet();
     private List<OWLOntologyID> allOntology;
     private URL ontologyFileURL;
+    private boolean addInfoFromDB;
     
+    
+    private static final String privateUri = "http://www.symbiote-h2020.eu/ontology/pim";
 
     public OwlapiHelp() throws Exception{
         URL url = OwlapiHelp.class.getResource(PIM_FILE);        
@@ -64,22 +88,191 @@ public class OwlapiHelp {
         
         this.ontologyFileURL = url;
         fromOwlToClasses();
+        addInfoFromDB = false;
     }
        
     
     public HashMap<String, HashMap<String, String>> getClasses(){
+        if(!addInfoFromDB){
+            addRegistrationInfoOdataFromDB();
+            try{
+                fromMapToClasses();
+                addInfoFromDB = true;
+            }catch(Exception e){
+                log.error(e);
+            }
+        }
         return this.classes;
+    }
+    
+    public HashMap<String, HashMap<String, String>> getMap(){
+        return this.map;
     }
     
     public final HashMap<String, HashMap<String, String>> fromOwlToClasses() throws Exception {     
         map = createMapClass2PropAndSuperclass();
+        //infoODataRepo.deleteAll();
+        //addRegistrationInfoOdataFromDB();
+        fromMapToClasses();
+        return classes;
+    }
+    
+    private HashMap<String, HashMap<String, String>> fromMapToClasses() throws Exception { 
         classes = new HashMap<String, HashMap<String, String>>();
         //this populate this.classes
         for(String key: map.keySet()){
             HashMap<String,String> attribute2type = fromOwlToClassesPrivate(key,map.get(key),map);
         }
         return classes;
+    } 
+    
+    
+    public Boolean addCloudResourceList(List<CloudResource> cloudResourceList){
+        Boolean result = false;
+        try{
+            List<RegistrationInfoOData> registrationInfoOdataList = new ArrayList();
+            for(CloudResource cloudResource: cloudResourceList){
+                RegistrationInfoOData registrationInfoOdata = saveCloudResourceInDb(cloudResource);
+                if(registrationInfoOdata != null)
+                    registrationInfoOdataList.add(registrationInfoOdata);
+            }
+            result = addRegistrationInfoODataList(registrationInfoOdataList);
+            if(result)
+                fromMapToClasses();
+        } catch (Exception ex) {
+            log.error(ex);
+        }
+        return result;
     }
+    
+    private RegistrationInfoOData saveRegistrationInfoODataInDb(String id, String className, String superClass, List<Parameter> parameters) {
+        Set<ParameterInfo> parameterInfoList = new HashSet<>();
+        for (Parameter p : parameters) {
+            String type = "string";
+            Datatype datatype = p.getDatatype();
+            if (datatype.getClass().equals(ComplexDatatype.class)) {
+                type = ((ComplexDatatype) datatype).getBasedOnClass();
+            } else if (datatype.getClass().equals(PrimitiveDatatype.class)) {
+                type = ((PrimitiveDatatype) datatype).getBaseDatatype();
+            }
+            ParameterInfo parameterInfo = new ParameterInfo(type, p.getName(), p.isMandatory());
+            parameterInfoList.add(parameterInfo);
+        }
+        RegistrationInfoOData infoOData = new RegistrationInfoOData(id, className, superClass, parameterInfoList);
+        RegistrationInfoOData infoODataNew = infoODataRepo.insertNew(infoOData);
+        return infoODataNew;
+    }
+
+    private RegistrationInfoOData saveCloudResourceInDb(CloudResource cloudResource) {
+        RegistrationInfoOData result = null;
+        Resource r = cloudResource.getResource();
+        List<Parameter> parameters;
+        if (r.getClass().equals(Actuator.class)) {
+            Actuator actuator = (Actuator) r;
+            for (Capability capability : actuator.getCapabilities()) {
+                parameters = capability.getParameters();
+                //String className = "GenericCapability";
+                //String superClass = Capability.class.getSimpleName();
+                String className = Capability.class.getSimpleName();
+                String superClass = null;
+                result = saveRegistrationInfoODataInDb(r.getId(), className, superClass, parameters);
+            }
+        } else if (r.getClass().equals(Device.class)) {
+            Device device = (Device) r;
+            for (Service service : device.getServices()) {
+                parameters = service.getParameters();
+                //String className = "GenericService";
+                //String superClass = Service.class.getSimpleName();
+                String className = Service.class.getSimpleName();
+                String superClass = null;
+                result = saveRegistrationInfoODataInDb(r.getId(), className, superClass, parameters);
+            }
+        } else if (r.getClass().equals(Service.class)) {
+            Service service = (Service) r;
+            parameters = service.getParameters();
+            String className = Service.class.getSimpleName();
+            String superClass = null;
+            result = saveRegistrationInfoODataInDb(r.getId(), className, superClass, parameters);
+        }
+        return result;
+    }
+    
+    private Boolean addRegistrationInfoOdataFromDB(){
+        List<RegistrationInfoOData> registrationInfoODataList = infoODataRepo.findAll();
+        return addRegistrationInfoODataList(registrationInfoODataList);
+    }
+    
+    private Boolean addRegistrationInfoODataList(List<RegistrationInfoOData> registrationInfoODataList){
+        Boolean add = false;
+        try {
+            for(RegistrationInfoOData regInfo: registrationInfoODataList){
+                String superClassRegInfo = regInfo.getSuperClass();
+                String superClassCompelete = "";
+                if(superClassRegInfo != null && !superClassRegInfo.isEmpty()){
+                    superClassCompelete = getClassLongName(regInfo.getSuperClass(), map.keySet());
+                    if(superClassCompelete == null){
+                        superClassCompelete = privateUri + "#" + superClassRegInfo;
+                    }
+                }
+                
+                String classNameRegInfo = regInfo.getClassName();
+                String classNameComplete = getClassLongName(classNameRegInfo,map.keySet());
+                if(classNameComplete == null){
+                    classNameComplete = privateUri + "#" + classNameRegInfo;
+                    HashMap<String, String> class2type = new HashMap<>();
+                    class2type.put("Superclass", superClassCompelete);
+                    for(CustomField cf: regInfo.getParametersComplete()){
+                        class2type.put(cf.getName(), cf.getType());
+                    }
+                    map.put(classNameComplete, class2type);
+                }
+                else{
+                    HashMap<String, String> class2type = map.get(classNameComplete);
+                    if(superClassCompelete != null && !superClassCompelete.isEmpty()){
+                        String superClass = "";
+                        if(class2type.containsKey("Superclass"))
+                            superClass = class2type.get("Superclass");
+                        if(superClass != null && !superClass.isEmpty())
+                            superClass += ",";
+                        superClass += superClassCompelete;
+                        class2type.put("Superclass", superClass);
+                    }
+                    for(CustomField cf: regInfo.getParametersComplete()){
+                        class2type.put(cf.getName(), cf.getType());
+                    }
+                }
+            }
+            add = true;
+        } catch (Exception ex) {
+            log.error(ex);
+        }
+        return add;
+    }
+    
+    
+    private String getClassLongName(String simpleName, Set<String> fatherList) {
+        String classLongName = null;
+        Optional<String> classLongNameOp = fatherList.stream().filter(str -> getShortClassName(str).equals(simpleName)).findFirst();
+        if (classLongNameOp.isPresent()) {
+            classLongName = classLongNameOp.get();
+        }
+        return classLongName;
+    }
+    
+    private String getShortClassName(String type) {
+        String simpleName = type.replace("[]", "");
+        if (!CustomField.typeIsPrimitive(simpleName)) {
+            IRI iri = IRI.create(simpleName);
+            simpleName = iri.getShortForm();
+            if (simpleName.contains("#")) {
+                String[] array = simpleName.split("#");
+                simpleName = array[array.length - 1];
+            }
+        }
+        return simpleName;
+    }
+    
+    
     
     public HashSet<String> getSubClassesOfClass(String classStart){
         HashSet<String> subClasses = new HashSet<String>();
