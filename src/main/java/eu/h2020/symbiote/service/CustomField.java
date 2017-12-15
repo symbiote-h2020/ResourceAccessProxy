@@ -47,6 +47,7 @@ public class CustomField {
                 this.type.equalsIgnoreCase("string") ||
                 this.type.equalsIgnoreCase("boolean") ||
                 this.type.equalsIgnoreCase("integer") ||
+                this.type.equalsIgnoreCase("int") ||
                 this.type.equalsIgnoreCase("double") ||
                 type.equalsIgnoreCase("DateTimeStamp") ||
                 type.equalsIgnoreCase("DateTime") );
@@ -59,6 +60,7 @@ public class CustomField {
                 type.equalsIgnoreCase("string") ||
                 type.equalsIgnoreCase("boolean") ||
                 type.equalsIgnoreCase("integer") ||
+                type.equalsIgnoreCase("int") ||
                 type.equalsIgnoreCase("double") ||
                 type.equalsIgnoreCase("DateTimeStamp") ||
                 type.equalsIgnoreCase("DateTime") );

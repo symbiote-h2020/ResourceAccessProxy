@@ -138,6 +138,9 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
     }
 
     private List<CustomField> getAllFields(String iriString) {
+        if(owlApiHelp.haveToRestart())
+            class2field = new HashMap<String, List<CustomField>>();
+        
         if (class2field.containsKey(iriString)) {
             return class2field.get(iriString);
         }
@@ -254,7 +257,8 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
             fqn = EdmPrimitiveTypeKind.Double.getFullQualifiedName();
         } else if (genericType.compareToIgnoreCase("Long") == 0) {
             fqn = EdmPrimitiveTypeKind.Int64.getFullQualifiedName();
-        } else if (genericType.compareToIgnoreCase("integer") == 0) {
+        } else if (genericType.compareToIgnoreCase("integer") == 0
+                || genericType.compareToIgnoreCase("int") == 0) {
             fqn = EdmPrimitiveTypeKind.Int32.getFullQualifiedName();
         } else if (genericType.compareToIgnoreCase("Boolean") == 0) {
             fqn = EdmPrimitiveTypeKind.Boolean.getFullQualifiedName();

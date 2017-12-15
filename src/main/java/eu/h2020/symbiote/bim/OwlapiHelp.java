@@ -75,7 +75,7 @@ public class OwlapiHelp {
     private List<OWLOntologyID> allOntology;
     private URL ontologyFileURL;
     private boolean addInfoFromDB;
-    
+    private boolean addInfoFromRegistration;
     
     private static final String privateUri = "http://www.symbiote-h2020.eu/ontology/pim";
 
@@ -89,8 +89,14 @@ public class OwlapiHelp {
         this.ontologyFileURL = url;
         fromOwlToClasses();
         addInfoFromDB = false;
+        addInfoFromRegistration = false;
     }
-       
+    
+    public boolean haveToRestart(){
+        Boolean haveToRestart = addInfoFromRegistration;
+        addInfoFromRegistration = false;
+        return haveToRestart;
+    }
     
     public HashMap<String, HashMap<String, String>> getClasses(){
         if(!addInfoFromDB){
@@ -137,8 +143,10 @@ public class OwlapiHelp {
                     registrationInfoOdataList.add(registrationInfoOdata);
             }
             result = addRegistrationInfoODataList(registrationInfoOdataList);
-            if(result)
+            if(result){
                 fromMapToClasses();
+                addInfoFromRegistration = true;
+            }
         } catch (Exception ex) {
             log.error(ex);
         }
@@ -293,27 +301,27 @@ public class OwlapiHelp {
     private HashMap<String,String> fromOwlToClassesPrivate(String className, HashMap<String, String> key2value, HashMap<String, HashMap<String, String>> map){
         HashMap<String,String> attribute2type = new HashMap<String,String>();
         try{
-        for(String key: key2value.keySet()){
-            //prendere attributi delle superclass
-            String value = key2value.get(key);
-            if(key.equals("Superclass")){
-                String[] superClassArray = value.split(",");
-                for(String superClass: superClassArray){
-                    if(!superClass.equals(className) && map.containsKey(superClass)){
-                        HashMap<String,String> attribute2typeNew;
-                        if(classes.containsKey(superClass))
-                            attribute2typeNew = classes.get(superClass);
-                        else
-                            attribute2typeNew = fromOwlToClassesPrivate(superClass,map.get(superClass),map);
-                        
-                        attribute2type.putAll(attribute2typeNew);
+            for(String key: key2value.keySet()){
+                //prendere attributi delle superclass
+                String value = key2value.get(key);
+                if(key.equals("Superclass")){
+                    String[] superClassArray = value.split(",");
+                    for(String superClass: superClassArray){
+                        if(!superClass.isEmpty() && !superClass.equals(className) && map.containsKey(superClass)){
+                            HashMap<String,String> attribute2typeNew;
+                            if(classes.containsKey(superClass))
+                                attribute2typeNew = classes.get(superClass);
+                            else
+                                attribute2typeNew = fromOwlToClassesPrivate(superClass,map.get(superClass),map);
+
+                            attribute2type.putAll(attribute2typeNew);
+                        }
                     }
                 }
+                else if(! StringUtils.isAllUpperCase(key)){
+                    attribute2type.put(key, value);
+                }
             }
-            else if(! StringUtils.isAllUpperCase(key)){
-                attribute2type.put(key, value);
-            }
-        }
         }catch(Exception e){
             System.err.println(e);
         }
