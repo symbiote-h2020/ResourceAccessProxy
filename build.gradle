@@ -109,7 +109,8 @@ dependencies {
     compile("org.springframework.boot:spring-boot-starter-websocket")
     
     // test only
-    testCompile ("org.springframework.boot:spring-boot-starter-test")
+    compile("org.springframework.boot:spring-boot-starter-web")
+    testCompile("org.springframework.boot:spring-boot-starter-test")
     
     
     //Owlapi

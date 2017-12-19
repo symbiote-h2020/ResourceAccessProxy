@@ -43,6 +43,9 @@ public class SecurityHandlerConfig {
 
     @Value("${symbIoTe.validation.localaam}")
     private Boolean alwaysUseLocalAAMForValidation;
+    
+    @Value("${securityEnabled}")
+    private Boolean securityEnabler;
         
 /*  
     @Value("${rabbit.host}")
@@ -61,18 +64,21 @@ public class SecurityHandlerConfig {
         
         String componentId = RAP_KEY + "@" + platformId;
         // generating the CSH
-       IComponentSecurityHandler rapCSH = ComponentSecurityHandlerFactory.getComponentSecurityHandler(
-                coreAAMUrl,
-                keystorePath,
-                keystorePasswd,
-                componentId,
-                localAAMUrl,
-                alwaysUseLocalAAMForValidation,
-                platformOwner,
-                platformPasswd
-        );
-        // workaround to speed up following calls
-        rapCSH.generateServiceResponse();
+        IComponentSecurityHandler rapCSH = null;
+        if(securityEnabler){
+            rapCSH = ComponentSecurityHandlerFactory.getComponentSecurityHandler(
+                    coreAAMUrl,
+                    keystorePath,
+                    keystorePasswd,
+                    componentId,
+                    localAAMUrl,
+                    alwaysUseLocalAAMForValidation,
+                    platformOwner,
+                    platformPasswd
+            );
+            // workaround to speed up following calls
+            rapCSH.generateServiceResponse();
+        }
         return rapCSH;
     }    
 }

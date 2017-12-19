@@ -144,3 +144,4 @@ db
 
 # Keystores
 *.jks
+!/src/test/java/eu/h2020/symbiote/resources/db/

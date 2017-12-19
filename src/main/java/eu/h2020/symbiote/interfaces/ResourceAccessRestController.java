@@ -91,6 +91,9 @@ public class ResourceAccessRestController {
     @Value("${symbiote.notification.url}") 
     private String notificationUrl;
     
+    @Value("${securityEnabled}")
+    private Boolean securityEnabled;
+    
 
     /**
      * Used to retrieve the current value of a registered resource
@@ -170,13 +173,15 @@ public class ResourceAccessRestController {
             sendFailMessage(path, resourceId, e);
         }
         
-        try{
-            String serResponse = securityHandler.generateServiceResponse();
-            responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse);
-        }
-        catch(SecurityHandlerException sce){
-            log.error(sce.getMessage(), sce);
-            throw sce;
+        if(securityEnabled){
+            try{
+                String serResponse = securityHandler.generateServiceResponse();
+                responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse);
+            }
+            catch(SecurityHandlerException sce){
+                log.error(sce.getMessage(), sce);
+                throw sce;
+            }
         }
         return new ResponseEntity<>(ob , responseHeaders, httpStatus);
     }
@@ -257,13 +262,15 @@ public class ResourceAccessRestController {
             sendFailMessage(path, resourceId, e);
         }
         
-        try{
-            String serResponse = securityHandler.generateServiceResponse();
-            responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse);
-        }
-        catch(SecurityHandlerException sce){
-            log.error(sce.getMessage(), sce);
-            throw sce;
+        if(securityEnabled){
+            try{
+                String serResponse = securityHandler.generateServiceResponse();
+                responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse);
+            }
+            catch(SecurityHandlerException sce){
+                log.error(sce.getMessage(), sce);
+                throw sce;
+            }
         }
         return new ResponseEntity<>(observationsList, responseHeaders, httpStatus);
     }
@@ -336,13 +343,15 @@ public class ResourceAccessRestController {
             sendFailMessage(path, resourceId, e);
         }
         
-        try{
-            String serResponse = securityHandler.generateServiceResponse();
-            responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse);
-        }
-        catch(SecurityHandlerException sce){
-            log.error(sce.getMessage(), sce);
-            throw sce;
+        if(securityEnabled){
+            try{
+                String serResponse = securityHandler.generateServiceResponse();
+                responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse);
+            }
+            catch(SecurityHandlerException sce){
+                log.error(sce.getMessage(), sce);
+                throw sce;
+            }
         }
         return new ResponseEntity<>(response, responseHeaders, httpStatus);
     }
@@ -365,11 +374,12 @@ public class ResourceAccessRestController {
                 secHdrs.put(header, request.getHeader(header));
             }
         }
-        log.info("secHeaders: " + secHdrs);
-        SecurityRequest securityReq = new SecurityRequest(secHdrs);
-
-        checkAuthorization(securityReq, resourceId);
         
+        log.info("secHeaders: " + secHdrs);
+        if(securityEnabled){
+            SecurityRequest securityReq = new SecurityRequest(secHdrs);
+            checkAuthorization(securityReq, resourceId);
+        }
         return true;
     }
     

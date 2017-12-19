@@ -108,17 +108,19 @@ public class NotificationMessage {
         httpHeaders.set("Accept", MediaType.APPLICATION_JSON_VALUE);
         httpHeaders.setContentType(MediaType.APPLICATION_JSON);
 
-        try {
-            SecurityRequest securityRequest = securityHandler.generateSecurityRequestUsingLocalCredentials();
-            securityRequestHeaders = securityRequest.getSecurityRequestHeaderParams();
-            
-            for (Map.Entry<String, String> entry : securityRequestHeaders.entrySet()) {
-                httpHeaders.add(entry.getKey(), entry.getValue());
+        if(securityHandler != null){
+            try {
+                SecurityRequest securityRequest = securityHandler.generateSecurityRequestUsingLocalCredentials();
+                securityRequestHeaders = securityRequest.getSecurityRequestHeaderParams();
+
+                for (Map.Entry<String, String> entry : securityRequestHeaders.entrySet()) {
+                    httpHeaders.add(entry.getKey(), entry.getValue());
+                }
+                log.info("request headers: " + httpHeaders);
+
+            } catch (SecurityHandlerException | JsonProcessingException e) {
+                log.error("Fail to take header",e);
             }
-            log.info("request headers: " + httpHeaders);
-            
-        } catch (SecurityHandlerException | JsonProcessingException e) {
-            log.error("Fail to take header",e);
         }
         return httpHeaders;
     }

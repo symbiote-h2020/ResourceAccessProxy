@@ -99,6 +99,9 @@ public class RAPEntityProcessor implements EntityProcessor{
     
     private StorageHelper storageHelper;
     
+    @Value("${securityEnabled}")
+    private Boolean securityEnabled;
+    
     @Override
     public void init(OData odata, ServiceMetadata sm) {
         this.odata = odata;   
@@ -203,6 +206,23 @@ public class RAPEntityProcessor implements EntityProcessor{
                 return;
         }        
         //ArrayList<RequestInfo> requestInfos = storageHelper.getRequestInfoList(typeNameList,keyPredicates);
+        
+        if(securityEnabled){
+        // checking access policies
+            try {
+                String sid = resource.getSymbioteId();
+                if(sid != null && sid.length() > 0)
+                    storageHelper.checkAccessPolicies(request, sid);
+            } catch (Exception ex) {
+                log.error("Access policy check error: " + ex.getMessage());
+                customOdataException = new CustomODataApplicationException(resource.getSymbioteId(), ex.getMessage(), 
+                        HttpStatusCode.UNAUTHORIZED.getStatusCode(), Locale.ROOT);
+                setErrorResponse(response, customOdataException, responseFormat);
+                return;
+            }
+        }
+        
+        
         try {
             map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             String json = map.writeValueAsString(resource);
@@ -313,21 +333,22 @@ public class RAPEntityProcessor implements EntityProcessor{
         }
         
         
-        // checking access policies
-        try {
-            for(ResourceInfo resource : resourceInfoList) {
-                String sid = resource.getSymbioteId();
-                if(sid != null && sid.length() > 0)
-                    storageHelper.checkAccessPolicies(request, sid);
+        if(securityEnabled){
+            // checking access policies
+            try {
+                for(ResourceInfo resource : resourceInfoList) {
+                    String sid = resource.getSymbioteId();
+                    if(sid != null && sid.length() > 0)
+                        storageHelper.checkAccessPolicies(request, sid);
+                }
+            } catch (Exception ex) {
+                log.error("Access policy check error: " + ex.getMessage());
+                customOdataException = new CustomODataApplicationException(symbioteId, ex.getMessage(), 
+                        HttpStatusCode.UNAUTHORIZED.getStatusCode(), Locale.ROOT);
+                setErrorResponse(response, customOdataException, responseFormat);
+                return;
             }
-        } catch (Exception ex) {
-            log.error("Access policy check error: " + ex.getMessage());
-            customOdataException = new CustomODataApplicationException(symbioteId, ex.getMessage(), 
-                    HttpStatusCode.UNAUTHORIZED.getStatusCode(), Locale.ROOT);
-            setErrorResponse(response, customOdataException, responseFormat);
-            return;
         }
-        
         
         Object obj = storageHelper.setService(resourceInfoList, body);
         

@@ -89,6 +89,9 @@ public class WebSocketController extends TextWebSocketHandler {
     
     @Autowired
     private IComponentSecurityHandler securityHandler;
+    
+    @Value("${securityEnabled}")
+    private Boolean securityEnabled;
 
     private final HashMap<String, WebSocketSession> idSession = new HashMap();
 
@@ -138,7 +141,7 @@ public class WebSocketController extends TextWebSocketHandler {
             WebSocketMessageSecurityRequest webSocketMessageSecurity = mapper.readValue(message, WebSocketMessageSecurityRequest.class);
             
             Map<String,String> securityRequest = webSocketMessageSecurity.getSecRequest();
-            if(securityRequest == null)
+            if(securityRequest == null && securityEnabled)
                 throw new Exception("Security Request cannot be empty");
             
             WebSocketMessage webSocketMessage = webSocketMessageSecurity.getPayload();
@@ -275,12 +278,14 @@ public class WebSocketController extends TextWebSocketHandler {
 
     public void SendMessage(Observation obs) {
         Map<String,String> secResponse = new HashMap<String,String>();
-        try{
-            String serResponse = securityHandler.generateServiceResponse();
-            secResponse.put(SECURITY_RESPONSE_HEADER, serResponse);
-        }
-        catch(SecurityHandlerException sce){
-            log.error(sce.getMessage(), sce);
+        if(securityEnabled){
+            try{
+                String serResponse = securityHandler.generateServiceResponse();
+                secResponse.put(SECURITY_RESPONSE_HEADER, serResponse);
+            }
+            catch(SecurityHandlerException sce){
+                log.error(sce.getMessage(), sce);
+            }
         }
         
         WebSocketMessageSecurityResponse messageSecurityResp = new WebSocketMessageSecurityResponse(secResponse, obs);
@@ -400,13 +405,14 @@ public class WebSocketController extends TextWebSocketHandler {
     }
     
     public boolean checkAccessPolicies(Map<String, String> secHdrs, List<String> resourceIdList) throws Exception {
-        log.info("secHeaders: " + secHdrs);
-        SecurityRequest securityReq = new SecurityRequest(secHdrs);
-        
-        for(String resourceId: resourceIdList){
-            checkAuthorization(securityReq, resourceId);
+        if(securityEnabled){
+            log.info("secHeaders: " + secHdrs);
+            SecurityRequest securityReq = new SecurityRequest(secHdrs);
+
+            for(String resourceId: resourceIdList){
+                checkAuthorization(securityReq, resourceId);
+            }
         }
-        
         return true;
     }
     

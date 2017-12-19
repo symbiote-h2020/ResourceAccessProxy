@@ -85,6 +85,8 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
     @Value("${symbiote.notification.url}") 
     private String notificationUrl;
     
+    @Value("${securityEnabled}")
+    private Boolean securityEnabled;
 
     private StorageHelper storageHelper;
     
@@ -210,21 +212,23 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
             return;
         }
         
+        if(securityEnabled){
         // checking access policies
-        try {
-            for(ResourceInfo resource : resourceInfoList) {
-                String sid = resource.getSymbioteId();
-                if(sid != null && sid.length() > 0)
-                    storageHelper.checkAccessPolicies(request, sid);
+            try {
+                for(ResourceInfo resource : resourceInfoList) {
+                    String sid = resource.getSymbioteId();
+                    if(sid != null && sid.length() > 0)
+                        storageHelper.checkAccessPolicies(request, sid);
+                }
+            } catch (Exception ex) {
+                log.error("Access policy check error: " + ex.getMessage());
+                customOdataException = new CustomODataApplicationException(symbioteId, ex.getMessage(), 
+                        HttpStatusCode.UNAUTHORIZED.getStatusCode(), Locale.ROOT);
+                setErrorResponse(response, customOdataException, responseFormat);
+                return;
             }
-        } catch (Exception ex) {
-            log.error("Access policy check error: " + ex.getMessage());
-            customOdataException = new CustomODataApplicationException(symbioteId, ex.getMessage(), 
-                    HttpStatusCode.UNAUTHORIZED.getStatusCode(), Locale.ROOT);
-            setErrorResponse(response, customOdataException, responseFormat);
-            return;
         }
-        
+               
         try{
             obj = storageHelper.getRelatedObject(resourceInfoList, top, filterQuery);
         }
@@ -236,6 +240,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
                 setErrorResponse(response, customOdataException, responseFormat);
                 return;
         }
+        
 
         try {
             map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
