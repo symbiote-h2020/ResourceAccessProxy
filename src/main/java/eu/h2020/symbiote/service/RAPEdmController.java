@@ -300,7 +300,15 @@ public class RAPEdmController {
             beginIndex += httpRequest.getContextPath().length();
             rawODataPath = rawRequestUri.substring(beginIndex);
         } else {
-            rawODataPath = httpRequest.getRequestURI();
+            int beginIndex;
+            beginIndex = rawRequestUri.indexOf(URI);
+            if(beginIndex > 0){
+                beginIndex += URI.length();
+                rawODataPath = rawRequestUri.substring(beginIndex);
+            }
+            else{
+                rawODataPath = httpRequest.getRequestURI();
+            }
         }
 
         String rawServiceResolutionUri;

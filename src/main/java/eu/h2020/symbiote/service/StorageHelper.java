@@ -169,8 +169,7 @@ public class StorageHelper {
             } else {
                 response = (String) obj;
             }
-            List<Observation> observations = mapper.readValue(response, new TypeReference<List<Observation>>() {
-            });
+            List<Observation> observations = mapper.readValue(response, new TypeReference<List<Observation>>() {});
             if (observations == null || observations.isEmpty()) {
                 log.error("No observations for resource " + symbioteId);
                 return null;

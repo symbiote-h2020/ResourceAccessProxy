@@ -253,7 +253,8 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
                 || genericType.compareToIgnoreCase("Literal") == 0
                 || genericType.compareToIgnoreCase("ID") == 0) {
             fqn = EdmPrimitiveTypeKind.String.getFullQualifiedName();
-        } else if (genericType.compareToIgnoreCase("Double") == 0) {
+        } else if (genericType.compareToIgnoreCase("Double") == 0
+                || genericType.compareToIgnoreCase("decimal") == 0) {
             fqn = EdmPrimitiveTypeKind.Double.getFullQualifiedName();
         } else if (genericType.compareToIgnoreCase("Long") == 0) {
             fqn = EdmPrimitiveTypeKind.Int64.getFullQualifiedName();
