@@ -20,8 +20,7 @@ import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessMessage.AccessType;
 import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
 import eu.h2020.symbiote.model.cim.Observation;
-import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
-import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
+import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.AccessPolicy;
 import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
@@ -105,12 +104,13 @@ public class ResourceAccessRestController {
      * @throws java.lang.Exception
      */
     @RequestMapping(value="/rap/Sensor/{resourceId}", method=RequestMethod.GET)
-    public ResponseEntity<Observation> readResource(@PathVariable String resourceId, HttpServletRequest request) throws Exception {
+    public ResponseEntity<Object> readResource(@PathVariable String resourceId, HttpServletRequest request) throws Exception {
         Exception e = null;
         String path = "/rap/Sensor/"+resourceId;
         HttpStatus httpStatus = null;
         HttpHeaders responseHeaders = new HttpHeaders();
-        Observation ob = null;
+        //Observation ob = null;
+        Object response = null;
         try {
             log.info("Received read resource request for ID = " + resourceId);       
             
@@ -138,20 +138,23 @@ public class ResourceAccessRestController {
             
             
             Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);          
-            String response;
+            
+            response = obj;
             if (obj instanceof byte[]) {
                 response = new String((byte[]) obj, "UTF-8");
-            } else {
-                response = (String) obj;
             }
             if(response == null)
                 throw new Exception("No response from plugin");
-            List<Observation> observations = mapper.readValue(response, new TypeReference<List<Observation>>() {});
-            if(observations == null || observations.isEmpty())
-                throw new Exception("Plugin error");
             
-            Observation o = observations.get(0);
-            ob = new Observation(resourceId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
+            try{
+                List<Observation> observations = mapper.readValue(response.toString(), new TypeReference<List<Observation>>() {});
+                if(observations != null && !observations.isEmpty()){
+                    Observation o = observations.get(0);
+                    Observation ob = new Observation(resourceId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
+                    response = ob;
+                }
+            }catch (Exception ex) {
+            }
             sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
         
             httpStatus = HttpStatus.OK;
@@ -183,7 +186,7 @@ public class ResourceAccessRestController {
                 throw sce;
             }
         }
-        return new ResponseEntity<>(ob , responseHeaders, httpStatus);
+        return new ResponseEntity<>(response , responseHeaders, httpStatus);
     }
     
     /**
@@ -195,12 +198,13 @@ public class ResourceAccessRestController {
      * @return  the current value read from the resource
      */
     @RequestMapping(value="/rap/Sensor/{resourceId}/history", method=RequestMethod.GET)
-    public ResponseEntity<List<Observation> > readResourceHistory(@PathVariable String resourceId, HttpServletRequest request) throws Exception {
+    public ResponseEntity<Object> readResourceHistory(@PathVariable String resourceId, HttpServletRequest request) throws Exception {
         Exception e = null;
         String path = "/rap/Sensor/"+resourceId+"/history";
         HttpStatus httpStatus = null;
         HttpHeaders responseHeaders = new HttpHeaders();
-        List<Observation> observationsList = null;
+        //List<Observation> observationsList = null;
+        Object response = null;
         try {
             log.info("Received read resource request for ID = " + resourceId);           
             
@@ -225,21 +229,23 @@ public class ResourceAccessRestController {
                 pluginId = lst.get(0).getPlatformId();
             }
             String routingKey =  pluginId + "." + AccessType.HISTORY.toString().toLowerCase();
-            Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);            
-            String response;
+            Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);       
+            response = obj;
             if (obj instanceof byte[]) {
                 response = new String((byte[]) obj, "UTF-8");
-            } else {
-                response = (String) obj;
             }
-            List<Observation> observations = mapper.readValue(response, new TypeReference<List<Observation>>() {});
-            if(observations == null || observations.isEmpty())
-                throw new Exception("Plugin error");
             
-            observationsList = new ArrayList();
-            for(Observation o: observations){
-                Observation ob = new Observation(resourceId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
-                observationsList.add(ob);
+            try{
+                List<Observation> observations = mapper.readValue(response.toString(), new TypeReference<List<Observation>>() {});
+                if(observations != null && !observations.isEmpty()){
+                    List<Observation> observationsList = new ArrayList();
+                    for(Observation o: observations){
+                        Observation ob = new Observation(resourceId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
+                        observationsList.add(ob);
+                    }
+                    response = observationsList;
+                }
+            }catch (Exception ex) {
             }
             sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
 
@@ -272,7 +278,7 @@ public class ResourceAccessRestController {
                 throw sce;
             }
         }
-        return new ResponseEntity<>(observationsList, responseHeaders, httpStatus);
+        return new ResponseEntity<>(response, responseHeaders, httpStatus);
     }
     
     /**
@@ -425,7 +431,7 @@ public class ResourceAccessRestController {
             mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
             List<Date> dateList = new ArrayList();
             dateList.add(new Date());
-            NotificationMessage notificationMessage = new NotificationMessage(securityHandler,notificationUrl);
+            ResourceAccessNotification notificationMessage = new ResourceAccessNotification(securityHandler,notificationUrl);
             try {
                 notificationMessage.SetFailedAttempts(symbioteId, dateList,code, message, appId, issuer, validationStatus, path); 
                 jsonNotificationMessage = mapper.writeValueAsString(notificationMessage);
@@ -452,7 +458,7 @@ public class ResourceAccessRestController {
 
             List<Date> dateList = new ArrayList();
             dateList.add(new Date());
-            NotificationMessage notificationMessage = new NotificationMessage(securityHandler,notificationUrl);
+            ResourceAccessNotification notificationMessage = new ResourceAccessNotification(securityHandler,notificationUrl);
             try{
                 notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
                 jsonNotificationMessage = map.writeValueAsString(notificationMessage);

@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package eu.h2020.symbiote.messages.accessNotificationMessages;
+package eu.h2020.symbiote.messages.resourceAccessNotification;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Date;

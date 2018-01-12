@@ -19,8 +19,8 @@ import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.exceptions.EntityNotFoundException;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceWebSocketCondition;
 import eu.h2020.symbiote.messages.access.ResourceAccessUnSubscribeMessage;
-import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
-import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
+import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
+import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.AccessPolicy;
 import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
@@ -362,7 +362,7 @@ public class WebSocketController extends TextWebSocketHandler {
         
         List<Date> dateList = new ArrayList<Date>();
         dateList.add(new Date());
-        NotificationMessage notificationMessage = new NotificationMessage(securityHandler,notificationUrl);
+        ResourceAccessNotification notificationMessage = new ResourceAccessNotification(securityHandler,notificationUrl);
         
         try{
             notificationMessage.SetSuccessfulAttemptsList(symbioteIdList, dateList, accessType);
@@ -393,7 +393,7 @@ public class WebSocketController extends TextWebSocketHandler {
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         List<Date> dateList = new ArrayList<Date>();
         dateList.add(new Date());
-        NotificationMessage notificationMessage = new NotificationMessage(securityHandler,notificationUrl);
+        ResourceAccessNotification notificationMessage = new ResourceAccessNotification(securityHandler,notificationUrl);
         try {
             notificationMessage.SetFailedAttempts(symbioteId, dateList, 
             code, message, appId, issuer, validationStatus, path); 

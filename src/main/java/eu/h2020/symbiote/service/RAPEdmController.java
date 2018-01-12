@@ -47,7 +47,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
+import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import java.io.InputStream;
@@ -79,8 +79,8 @@ public class RAPEdmController {
     @Autowired
     private RAPEntityProcessor entityProcessor;
     
-    //@Autowired
-    //private RAPPrimitiveProcessor primitiveProcessor;
+    @Autowired
+    private RAPPrimitiveProcessor primitiveProcessor;
     
     @Autowired
     private IComponentSecurityHandler securityHandler;
@@ -120,7 +120,7 @@ public class RAPEdmController {
             ODataHttpHandler handler = odata.createHandler(edm);
             handler.register(entityCollectionProcessor);
             handler.register(entityProcessor);
-            //handler.register(primitiveProcessor);
+            handler.register(primitiveProcessor);
 
             response = handler.process(createODataRequest(req, split));
             
@@ -191,7 +191,7 @@ public class RAPEdmController {
             mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
             List<Date> dateList = new ArrayList<>();
             dateList.add(new Date());
-            NotificationMessage notificationMessage = new NotificationMessage(securityHandler,notificationUrl);
+            ResourceAccessNotification notificationMessage = new ResourceAccessNotification(securityHandler,notificationUrl);
             try {
                 notificationMessage.SetFailedAttempts(symbioTeId, dateList, 
                 code, message, appId, issuer, validationStatus, request.getRequestURI()); 

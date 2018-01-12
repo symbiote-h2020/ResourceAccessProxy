@@ -8,6 +8,7 @@ package eu.h2020.symbiote.service;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
@@ -16,8 +17,8 @@ import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
 import eu.h2020.symbiote.model.cim.Observation;
-import eu.h2020.symbiote.messages.accessNotificationMessages.NotificationMessage;
-import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
+import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
+import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Comparison;
 import eu.h2020.symbiote.resources.query.Filter;
@@ -120,6 +121,7 @@ public class StorageHelper {
 
     public Object getRelatedObject(ArrayList<ResourceInfo> resourceInfoList, Integer top, Query filterQuery) throws ODataApplicationException {
         String symbioteId = null;
+        Object response = null;
         try {
             top = (top == null) ? TOP_LIMIT : top;
             ResourceAccessMessage msg;
@@ -163,31 +165,34 @@ public class StorageHelper {
                 throw new ODataApplicationException("No response from plugin", HttpStatusCode.GATEWAY_TIMEOUT.getStatusCode(), Locale.ROOT);
             }
 
-            String response;
             if (obj instanceof byte[]) {
                 response = new String((byte[]) obj, "UTF-8");
             } else {
-                response = (String) obj;
+                response = obj;
             }
-            List<Observation> observations = mapper.readValue(response, new TypeReference<List<Observation>>() {});
-            if (observations == null || observations.isEmpty()) {
-                log.error("No observations for resource " + symbioteId);
-                return null;
-            }            
             
-            if (top == 1) {
-                Observation o = observations.get(0);
-                Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
-                return ob;
-            } else {
-                List<Observation> observationsList = new ArrayList();
-                for (Observation o : observations) {
-                    Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
-                    observationsList.add(ob);
-                }
-                return observationsList;
-            }
+            try {
+                List<Observation> observations = mapper.readValue(response.toString(), new TypeReference<List<Observation>>() {});
+                if (observations == null || observations.isEmpty()) {
+                    log.error("No observations for resource " + symbioteId);
+                    return null;
+                }            
 
+                if (top == 1) {
+                    Observation o = observations.get(0);
+                    Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
+                    response = ob;
+                } else {
+                    List<Observation> observationsList = new ArrayList();
+                    for (Observation o : observations) {
+                        Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
+                        observationsList.add(ob);
+                    }
+                    response = observationsList;
+                }
+            } catch (Exception e) {
+            }
+            return response;
         } catch (Exception e) {
             String err = "Unable to read resource " + symbioteId;
             err += "\n Error: " + e.getMessage();
@@ -432,7 +437,7 @@ public class StorageHelper {
 
             List<Date> dateList = new ArrayList<>();
             dateList.add(new Date());
-            NotificationMessage notificationMessage = new NotificationMessage(securityHandler,notificationUrl);
+            ResourceAccessNotification notificationMessage = new ResourceAccessNotification(securityHandler,notificationUrl);
 
             try{
                 notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);

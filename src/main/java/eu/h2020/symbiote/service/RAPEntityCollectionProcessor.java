@@ -10,7 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
-import eu.h2020.symbiote.messages.accessNotificationMessages.SuccessfulAccessMessageInfo;
+import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
@@ -19,13 +19,17 @@ import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Locale;
+import java.util.logging.Level;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
 import org.apache.olingo.commons.api.edm.EdmNavigationProperty;
@@ -241,7 +245,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
                 return;
         }
         
-
+        
         try {
             map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             String json = map.writeValueAsString(obj);
@@ -251,6 +255,23 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
         } catch (UnsupportedEncodingException ex) {
             log.error(ex.getMessage());
         }
+        
+        /*
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(baos);
+            oos.writeObject(obj);
+            oos.flush();
+            oos.close();
+            stream = new ByteArrayInputStream(baos.toByteArray());
+            
+        } catch (IOException ex) {
+            log.error(ex.getMessage());
+        }
+        */
+
+        
+        
         
         if(customOdataException == null && stream != null)
             storageHelper.sendSuccessfulAccessMessage(symbioteId,
