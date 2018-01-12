@@ -3,10 +3,13 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package eu.h2020.symbiote.messages.accessNotificationMessages;
+package eu.h2020.symbiote.interfaces;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import eu.h2020.symbiote.messages.resourceAccessNotification.FailedAccessMessageInfo;
+import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
+import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulPushesMessageInfo;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
@@ -27,12 +30,12 @@ import org.springframework.web.client.RestTemplate;
  *
  * @author Luca Tomaselli <l.tomaselli@nextworks.it>
  */
-public class NotificationMessage {
+public class ResourceAccessNotification {
     private String notificationUrl;
     
     private IComponentSecurityHandler securityHandler;
     
-    private static final Logger log = LoggerFactory.getLogger(NotificationMessage.class);
+    private static final Logger log = LoggerFactory.getLogger(ResourceAccessNotification.class);
     
     @JsonProperty("successfulAttempts")
     private List<SuccessfulAccessMessageInfo> successfulAttempts;
@@ -43,7 +46,7 @@ public class NotificationMessage {
     @JsonProperty("failedAttempts")
     private List<FailedAccessMessageInfo> failedAttempts;
     
-    public NotificationMessage(IComponentSecurityHandler securityHandler, String notificationUrl) {
+    public ResourceAccessNotification(IComponentSecurityHandler securityHandler, String notificationUrl) {
         this.securityHandler = securityHandler;
         this.notificationUrl = notificationUrl;
     }
@@ -99,7 +102,7 @@ public class NotificationMessage {
         HttpEntity<String> httpEntity = new HttpEntity<String>(message,httpHeaders);
         
         Object response = restTemplate.postForObject(notificationUrl, httpEntity, Object.class);
-        log.info("Response notification message: "+ (String)response);
+        log.info("Response resource access notification message: "+ (String)response);
     }
     
     public HttpHeaders getHeader(){
