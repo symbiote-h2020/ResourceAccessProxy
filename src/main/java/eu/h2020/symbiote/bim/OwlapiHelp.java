@@ -179,10 +179,10 @@ public class OwlapiHelp {
             Actuator actuator = (Actuator) r;
             for (Capability capability : actuator.getCapabilities()) {
                 parameters = capability.getParameters();
-                //String className = "GenericCapability";
-                //String superClass = Capability.class.getSimpleName();
-                String className = Capability.class.getSimpleName();
-                String superClass = null;
+                String className = capability.getName();
+                String superClass = Capability.class.getSimpleName();
+                //String className = Capability.class.getSimpleName();
+                //String superClass = null;
                 result = saveRegistrationInfoODataInDb(r.getId(), className, superClass, parameters);
             }
         } else if (r.getClass().equals(Device.class)) {
