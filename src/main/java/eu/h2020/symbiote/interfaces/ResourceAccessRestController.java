@@ -32,6 +32,7 @@ import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import java.util.*;
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,7 +93,14 @@ public class ResourceAccessRestController {
     
     @Value("${securityEnabled}")
     private Boolean securityEnabled;
+        
+    @Value("${rabbit.replyTimeout}")
+    private int rabbitReplyTimeout;
     
+    @PostConstruct
+    public void init() {
+        rabbitTemplate.setReplyTimeout(rabbitReplyTimeout);
+    }
 
     /**
      * Used to retrieve the current value of a registered resource

@@ -85,13 +85,14 @@ public class StorageHelper {
 
     public StorageHelper(ResourcesRepository resourcesRepository, PluginRepository pluginRepository,
                         AccessPolicyRepository accessPolicyRepository, IComponentSecurityHandler securityHandlerComponent,
-                         RabbitTemplate rabbit, TopicExchange topicExchange, String notificationUrl) {
+                         RabbitTemplate rabbit, int rabbitReplyTimeout, TopicExchange topicExchange, String notificationUrl) {
         //initSampleData();
         resourcesRepo = resourcesRepository;
         pluginRepo = pluginRepository;
         accessPolicyRepo = accessPolicyRepository;
         securityHandler = securityHandlerComponent;
         rabbitTemplate = rabbit;
+        rabbitTemplate.setReplyTimeout(rabbitReplyTimeout);
         exchange = topicExchange;
         this.notificationUrl = notificationUrl;
     }

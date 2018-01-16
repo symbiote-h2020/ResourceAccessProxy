@@ -25,13 +25,10 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
 import org.apache.olingo.commons.api.edm.EdmNavigationProperty;
-import org.apache.olingo.commons.api.edm.EdmPrimitiveType;
 import org.apache.olingo.commons.api.edm.EdmProperty;
-import org.apache.olingo.commons.api.edm.EdmType;
 import org.apache.olingo.commons.api.format.ContentType;
 import org.apache.olingo.commons.api.http.HttpHeader;
 import org.apache.olingo.commons.api.http.HttpStatusCode;
@@ -47,7 +44,6 @@ import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 import org.apache.olingo.server.api.uri.UriResourceNavigation;
-import org.apache.olingo.server.api.uri.UriResourceProperty;
 import org.apache.olingo.server.core.uri.UriResourcePrimitivePropertyImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,13 +88,15 @@ public class RAPPrimitiveProcessor implements PrimitiveProcessor {
     @Value("${securityEnabled}")
     private Boolean securityEnabled;
     
+    @Value("${rabbit.replyTimeout}")
+    private int rabbitReplyTimeout;
 
     private StorageHelper storageHelper;
     
     @Override
     public void init(OData odata, ServiceMetadata sm) {
-        storageHelper = new StorageHelper(resourcesRepo, pluginRepo, accessPolicyRepo,
-                                        securityHandler, rabbitTemplate, exchange,notificationUrl);
+        storageHelper = new StorageHelper(resourcesRepo, pluginRepo, accessPolicyRepo, securityHandler, 
+                                        rabbitTemplate, rabbitReplyTimeout, exchange,notificationUrl);
     }
     
     @Override
