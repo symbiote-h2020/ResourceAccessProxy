@@ -27,7 +27,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Conditional(NBInterfaceWebSocketCondition.class)
 @Configuration
-public class PluginNotificationConfig {
+public class PluginNotificationQueueConfig {
     
     @Bean(name=RapDefinitions.PLUGIN_NOTIFICATION_EXCHANGE_IN)
     TopicExchange pluginNotificationExchangeIn() {
