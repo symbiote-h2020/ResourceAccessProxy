@@ -31,11 +31,12 @@ import org.springframework.web.client.RestTemplate;
  * @author Luca Tomaselli <l.tomaselli@nextworks.it>
  */
 public class ResourceAccessNotification {
-    private String notificationUrl;
-    
-    private IComponentSecurityHandler securityHandler;
     
     private static final Logger log = LoggerFactory.getLogger(ResourceAccessNotification.class);
+
+    private final String notificationUrl;
+    private final IComponentSecurityHandler securityHandler;
+    
     
     @JsonProperty("successfulAttempts")
     private List<SuccessfulAccessMessageInfo> successfulAttempts;
@@ -99,10 +100,10 @@ public class ResourceAccessNotification {
         restTemplate.getMessageConverters().add(new StringHttpMessageConverter());
         
         HttpHeaders httpHeaders = getHeader();
-        HttpEntity<String> httpEntity = new HttpEntity<String>(message,httpHeaders);
+        HttpEntity<String> httpEntity = new HttpEntity(message,httpHeaders);
         
-        Object response = restTemplate.postForObject(notificationUrl, httpEntity, Object.class);
-        log.info("Response resource access notification message: "+ (String)response);
+        restTemplate.postForObject(notificationUrl, httpEntity, Object.class);
+        log.debug("Sent access notification message to CRAM");
     }
     
     public HttpHeaders getHeader(){
@@ -122,7 +123,7 @@ public class ResourceAccessNotification {
                 log.info("request headers: " + httpHeaders);
 
             } catch (SecurityHandlerException | JsonProcessingException e) {
-                log.error("Fail to take header",e);
+                log.error("Fail to take header", e);
             }
         }
         return httpHeaders;

@@ -169,7 +169,7 @@ public class ResourceAccessRestController {
             
         } catch(EntityNotFoundException enf) {
             e = enf;
-            log.error(e.toString(),e);
+            log.error(e.toString(), e);
             httpStatus = HttpStatus.NOT_FOUND;
         } catch (Exception ex) {
             e = ex;
@@ -444,11 +444,11 @@ public class ResourceAccessRestController {
                 notificationMessage.SetFailedAttempts(symbioteId, dateList,code, message, appId, issuer, validationStatus, path); 
                 jsonNotificationMessage = mapper.writeValueAsString(notificationMessage);
             } catch (JsonProcessingException jsonEx) {
-                //log.error(jsonEx.getMessage());
+                log.error("Error while processing json", jsonEx);
             }
             notificationMessage.SendFailAccessMessage(jsonNotificationMessage);
         }catch(Exception ex){
-            log.error("Error to send FailAccessMessage to CRAM");
+            log.error("Error to send FailAccessMessage to CRAM", ex);
             log.error(ex.getMessage(),ex);
         }
         return message;    
@@ -471,7 +471,7 @@ public class ResourceAccessRestController {
                 notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
                 jsonNotificationMessage = map.writeValueAsString(notificationMessage);
             } catch (JsonProcessingException e) {
-                //log.error(e.getMessage());
+                log.error("Error while processing json", e);
             }
             notificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
         }catch(Exception e){
