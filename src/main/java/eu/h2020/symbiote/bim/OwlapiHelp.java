@@ -179,7 +179,13 @@ public class OwlapiHelp {
             for (Capability capability : actuator.getCapabilities()) {
                 parameters = capability.getParameters();
                 String className = capability.getName();
-                String superClass = Capability.class.getSimpleName();
+                String superClass;
+                if(className != null && !className.isEmpty())
+                    superClass = Capability.class.getSimpleName();
+                else{
+                    className = Capability.class.getSimpleName();
+                    superClass = null;
+                }
                 //String className = Capability.class.getSimpleName();
                 //String superClass = null;
                 result = saveRegistrationInfoODataInDb(r.getId(), className, superClass, parameters);

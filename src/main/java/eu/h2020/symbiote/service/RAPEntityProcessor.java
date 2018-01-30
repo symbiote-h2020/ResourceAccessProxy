@@ -27,10 +27,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.logging.Level;
 import org.apache.commons.io.IOUtils;
 import org.apache.olingo.commons.api.data.Entity;
-import org.apache.olingo.commons.api.data.EntityCollection;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
 import org.apache.olingo.commons.api.edm.EdmNavigationProperty;
@@ -58,9 +56,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.apache.olingo.server.api.deserializer.DeserializerResult;
 import org.apache.olingo.server.api.deserializer.ODataDeserializer;
-import org.apache.olingo.server.api.uri.queryoption.FilterOption;
-import org.apache.olingo.server.api.uri.queryoption.TopOption;
-import org.apache.olingo.server.api.uri.queryoption.expression.Expression;
 import org.springframework.beans.factory.annotation.Value;
 
 /**
@@ -113,6 +108,7 @@ public class RAPEntityProcessor implements EntityProcessor{
                                         rabbitTemplate, rabbitReplyTimeout, exchange,notificationUrl);
     }
     
+    //Sensor('id')
     @Override
     public void readEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) 
             throws ODataApplicationException, ODataLibraryException{
@@ -124,50 +120,6 @@ public class RAPEntityProcessor implements EntityProcessor{
             map.configure(SerializationFeature.INDENT_OUTPUT, true);
 
             CustomODataApplicationException customOdataException = null;
-
-            String jsonFilter;
-            Integer top = null;
-            //TOP
-            TopOption topOption = uriInfo.getTopOption();
-            if (topOption != null) {
-                int topNumber = topOption.getValue();
-                if (topNumber >= 0) {
-                    log.info("Top: " + topNumber);
-                    top = topNumber;
-                } else {
-                    customOdataException = new CustomODataApplicationException(null,"Invalid value for $top", HttpStatusCode.BAD_REQUEST.getStatusCode(), Locale.ROOT);
-                    //throw customOdataException;
-                    RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
-                    log.error("Invalid value for $top");
-                    return;
-                }
-            }
-
-            //FILTER
-            FilterOption filter = uriInfo.getFilterOption();
-            Query filterQuery;
-            if (filter != null) {
-                Expression expression = filter.getExpression();
-                try {
-                    filterQuery = StorageHelper.calculateFilter(expression);
-                } catch (ODataApplicationException odataExc) {
-                    customOdataException = new CustomODataApplicationException(null,odataExc.getMessage(),
-                            odataExc.getStatusCode(), odataExc.getLocale());
-                    //throw customOdataException;
-                    RAPEntityCollectionProcessor.setErrorResponse(response, customOdataException, responseFormat);
-                    log.error("Invalid value for $filter", odataExc);      
-                    return;
-                }
-
-                try {
-                    map.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-                    jsonFilter = map.writeValueAsString(filterQuery);
-                    log.info("JsonFilter:");
-                    log.info(jsonFilter);
-                } catch (Exception e) {
-                    log.warn(e.getMessage());
-                }
-            }
 
             ArrayList<String> typeNameList = new ArrayList();
             // 1st retrieve the requested EntitySet from the uriInfo

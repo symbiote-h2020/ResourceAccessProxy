@@ -99,6 +99,7 @@ public class RAPPrimitiveProcessor implements PrimitiveProcessor {
                                         rabbitTemplate, rabbitReplyTimeout, exchange,notificationUrl);
     }
     
+    //Sensor('id')/name
     @Override
     public void readPrimitive(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) 
             throws ODataApplicationException, ODataLibraryException {
@@ -146,12 +147,6 @@ public class RAPPrimitiveProcessor implements PrimitiveProcessor {
                     UriResourcePrimitivePropertyImpl uriResourcePrimitivePropertyImpl = (UriResourcePrimitivePropertyImpl) segment;
                     EdmProperty edmProperty = uriResourcePrimitivePropertyImpl.getProperty();
                     String typeNameEntity = edmProperty.getName();
-                    /*
-                    EdmType edmType = uriResourcePrimitivePropertyImpl.getType();
-                    String segmentValue = uriResourcePrimitivePropertyImpl.getSegmentValue();
-                    
-                    String typeNameEntity = edmType.getName();
-                    */
                     typeNameList.add(typeNameEntity);
                 }
             }

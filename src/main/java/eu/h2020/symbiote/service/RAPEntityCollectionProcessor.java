@@ -105,6 +105,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
                                         rabbitTemplate, rabbitReplyTimeout, exchange,notificationUrl);
     }
 
+    //Sensor('id')/Observation
     @Override
     public void readEntityCollection(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat)
             throws ODataApplicationException, ODataLibraryException {

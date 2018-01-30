@@ -99,7 +99,6 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
 
             //add ComplexTypes
             List<CsdlComplexType> complexTypes = new ArrayList();
-            Map<String, Class> parentClasses = new HashMap();
             for (String iriString : getClassesName()) {
                 List<CustomField> fields = getAllFields(iriString);
                 for (CustomField f : fields) {
@@ -122,19 +121,6 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
         }
 
         return null;
-    }
-
-    private List<CustomField> getAllFieldsOld(String iriString) {
-        List<CustomField> fields = new ArrayList();
-        HashMap<String, String> property2type = getClasses().get(iriString);
-        if (property2type != null) {
-            for (String property : property2type.keySet()) {
-                String type = property2type.get(property);
-                CustomField cf = new CustomField(type, property);
-                fields.add(cf);
-            }
-        }
-        return fields;
     }
 
     private List<CustomField> getAllFields(String iriString) {
@@ -184,51 +170,6 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
             classLongName = classLongNameOp.get();
         }
         return classLongName;
-    }
-
-    private String getClassLongName(String simpleName, String father) {
-        try {
-            String name = null;
-            if (getShortClassName(father).equals(simpleName)) {
-                name = father;
-                return name;
-            }
-
-            List<CustomField> fields = getAllFields(father);
-            for (CustomField f : fields) {
-                String cl = f.getType();
-                if (cl.contains("[]")) {
-                    cl = getInternalTypeClassLong(f);
-                }
-                if ((cl != null) && (getShortClassName(cl).equals(simpleName))) {
-                    name = cl;
-                    break;
-                }
-            }
-            if (name == null) {
-                for (CustomField f : fields) {
-                    String cl = f.getType();
-                    if (cl.contains("[]")) {
-                        cl = getInternalTypeClassLong(f);
-                        if (!CustomField.typeIsPrimitive(getShortClassName(cl))) {
-                            name = getClassLongName(simpleName, cl);
-                        }
-                    } else {
-                        if (!CustomField.typeIsPrimitive(cl)) {
-                            name = getClassLongName(simpleName, f.getType());
-                        }
-                    }
-                    if (name != null) {
-                        break;
-                    }
-                }
-            }
-
-            return name;
-        } catch (Exception e) {
-            log.error(e.getMessage());
-        }
-        return null;
     }
 
     private String getShortClassName(String type) {
@@ -327,47 +268,49 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
             ArrayList<CsdlProperty> lst = new ArrayList();
             List<CsdlNavigationProperty> navPropList = new ArrayList<>();
             String keyEl = "";
+            //this list is used for accept name with final "s" and without it, es: rap/Sensor and rap/Sensors
+            String[] nots_s_array = {"","s"};
             for (CustomField f : fields) {
-                String cl;
-                boolean isList = false;
-                if (f.getType().contains("[]")) {
-                    cl = getInternalTypeClass(f);
-                    // adding navigation for this collection
-                    CsdlNavigationProperty navProp = new CsdlNavigationProperty()
-                            //.setName(cl + "s")
-                            .setName(cl)
-                            .setType(new FullQualifiedName(NAMESPACE, cl))
-                            .setCollection(true)
-                            .setPartner(entityTypeName.getName());
-                    navPropList.add(navProp);
-                    isList = true;
-                    //log.info("List type -> Name: " + f.getName() + ", Type: " + cl);
-                } else {
-                    cl = f.getType();
-                }
-                String shortName = getShortClassName(cl);
-                if (CustomField.typeIsPrimitive(cl)) {
-                    FullQualifiedName fqn = getFullQualifiedName(cl);
-                    CsdlProperty propId = new CsdlProperty()
-                            .setName(f.getName())
-                            .setType(fqn);
-                    lst.add(propId);
-                    //log.info("Primitive type: " + f.getName() + " - " + fqn.getFullQualifiedNameAsString());
-                } else {
-                    CsdlProperty propId = new CsdlProperty()
-                            .setName(f.getName())
-                            //.setName(shortName + "s")
-                            .setType(new FullQualifiedName(NAMESPACE, shortName));
-                    if (isList) {
-                        propId.setCollection(true);
+                for(String nots_s: nots_s_array){
+                    String cl;
+                    boolean isList = false;
+                    if (f.getType().contains("[]")) {
+                        cl = getInternalTypeClass(f);
+                        // adding navigation for this collection
+                        CsdlNavigationProperty navProp = new CsdlNavigationProperty()
+                                .setName(cl + nots_s)
+                                .setType(new FullQualifiedName(NAMESPACE, cl))
+                                .setCollection(true)
+                                .setPartner(entityTypeName.getName());
+                        navPropList.add(navProp);
+                        isList = true;
+                        //log.info("List type -> Name: " + f.getName() + ", Type: " + cl);
+                    } else {
+                        cl = f.getType();
                     }
-                    lst.add(propId);
-                    //log.info("Complex type: " + f.getName() + " - " + shortName);
-                }
+                    String shortName = getShortClassName(cl);
+                    if (CustomField.typeIsPrimitive(cl)) {
+                        FullQualifiedName fqn = getFullQualifiedName(cl);
+                        CsdlProperty propId = new CsdlProperty()
+                                .setName(f.getName())
+                                .setType(fqn);
+                        lst.add(propId);
+                        //log.info("Primitive type: " + f.getName() + " - " + fqn.getFullQualifiedNameAsString());
+                    } else {
+                        CsdlProperty propId = new CsdlProperty()
+                                .setName(f.getName() + nots_s)
+                                .setType(new FullQualifiedName(NAMESPACE, shortName));
+                        if (isList) {
+                            propId.setCollection(true);
+                        }
+                        lst.add(propId);
+                        //log.info("Complex type: " + f.getName() + " - " + shortName);
+                    }
 
-                if (f.isID()) {
-                    String nm = f.getName();
-                    keyEl = nm;
+                    if (f.isID()) {
+                        String nm = f.getName();
+                        keyEl = nm;
+                    }
                 }
             }
             CsdlPropertyRef propertyRef = null;
@@ -375,7 +318,8 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
                 // create CsdlPropertyRef for Key element
                 propertyRef = new CsdlPropertyRef();
                 propertyRef.setName(keyEl);
-            }
+            }  
+            
             // configure EntityType
             entityType = new CsdlEntityType();
             entityType.setName(entityTypeName.getName());
@@ -383,17 +327,19 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
             if (propertyRef != null) {
                 entityType.setKey(Collections.singletonList(propertyRef));
             }
-
+            
             String fath = getContainerClass(className, getClassesName());
             if (fath != null) {
-                CsdlNavigationProperty navProp1 = new CsdlNavigationProperty()
-                        .setName(getShortClassName(fath))
-                        .setType(new FullQualifiedName(NAMESPACE, getShortClassName(fath)))
-                        .setNullable(true)
-                        //.setPartner(entityTypeName.getName() + "s");
-                        .setPartner(entityTypeName.getName());
-                navPropList.add(navProp1);
+                for(String nots_s: nots_s_array){
+                    CsdlNavigationProperty navProp1 = new CsdlNavigationProperty()
+                            .setName(getShortClassName(fath))
+                            .setType(new FullQualifiedName(NAMESPACE, getShortClassName(fath)))
+                            .setNullable(true)
+                            .setPartner(entityTypeName.getName() + nots_s);
+                    navPropList.add(navProp1);
+                }
             }
+            
             entityType.setNavigationProperties(navPropList);
         } catch (Exception e) {
             log.error(e.toString());
@@ -437,37 +383,39 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
         return null;
     }
 
-    //DA RIFARE
     @Override
     public CsdlEntitySet getEntitySet(FullQualifiedName entityContainer, String entitySetName) throws ODataException {
 
         if (entityContainer.equals(CONTAINER)) {
             HashSet<String> classess = getClassesName();
-            //Optional<String> classLongName = classess.stream().filter(str -> (getShortClassName(str) + "s").equalsIgnoreCase(entitySetName)).findFirst();
-            Optional<String> classLongName = classess.stream().filter(str -> (getShortClassName(str)).equalsIgnoreCase(entitySetName)).findFirst();
-            if (classLongName.isPresent()) {
-                String s = classLongName.get();
-                String simpleName = getShortClassName(s);
-                //String simpleNames = simpleName + "s";
-                CsdlEntitySet entitySet = new CsdlEntitySet();
-                entitySet.setName(simpleName);
-                entitySet.setType(new FullQualifiedName(NAMESPACE, simpleName));
+            //this list is used for accept name with final "s" and without it, es: rap/Sensor and rap/Sensors
+            String[] nots_s_array = {"","s"};
+            for(String nots_s: nots_s_array){
+                Optional<String> classLongName = classess.stream().filter(str -> 
+                        (getShortClassName(str) + nots_s).equalsIgnoreCase(entitySetName)).findFirst();
+                if (classLongName.isPresent()) {
+                    String s = classLongName.get();
+                    String simpleName = getShortClassName(s);
+                    simpleName = simpleName + nots_s;
+                    CsdlEntitySet entitySet = new CsdlEntitySet();
+                    entitySet.setName(simpleName);
+                    entitySet.setType(new FullQualifiedName(NAMESPACE, simpleName));
 
-                List<CsdlNavigationPropertyBinding> navPropBindingList = new ArrayList();
-                List<CustomField> fields = getAllFields(s);
-                for (CustomField f : fields) {
-                    String type = f.getType();
-                    if (type.contains("[]") && getClassesName().contains(type.replace("[]", ""))) {
-                        //String typeSimpleName = getShortClassName(type) + "s";
-                        String typeSimpleName = getShortClassName(type);
-                        CsdlNavigationPropertyBinding navPropBinding = new CsdlNavigationPropertyBinding();
-                        navPropBinding.setTarget(typeSimpleName);//target entitySet, where the nav prop points to
-                        navPropBinding.setPath(typeSimpleName); // the path from entity type to navigation property
-                        navPropBindingList.add(navPropBinding);
+                    List<CsdlNavigationPropertyBinding> navPropBindingList = new ArrayList();
+                    List<CustomField> fields = getAllFields(s);
+                    for (CustomField f : fields) {
+                        String type = f.getType();
+                        if (type.contains("[]") && getClassesName().contains(type.replace("[]", ""))) {
+                            String typeSimpleName = getShortClassName(type) + nots_s;
+                            CsdlNavigationPropertyBinding navPropBinding = new CsdlNavigationPropertyBinding();
+                            navPropBinding.setTarget(typeSimpleName);//target entitySet, where the nav prop points to
+                            navPropBinding.setPath(typeSimpleName); // the path from entity type to navigation property
+                            navPropBindingList.add(navPropBinding);
+                        }
                     }
+                    entitySet.setNavigationPropertyBindings(navPropBindingList);
+                    return entitySet;
                 }
-                entitySet.setNavigationPropertyBindings(navPropBindingList);
-                return entitySet;
             }
         }
 
@@ -479,14 +427,18 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
 
         // create EntitySets
         List<CsdlEntitySet> entitySets = new ArrayList();
-        for (String s : getClassesName()) {
-            //entitySets.add(getEntitySet(CONTAINER, getShortClassName(s) + "s"));
-            entitySets.add(getEntitySet(CONTAINER, getShortClassName(s)));
+        //this list is used for accept name with final "s" and without it, es: rap/Sensor and rap/Sensors
+        String[] nots_s_array = {"","s"};
+        for(String nots_s: nots_s_array){
+            for (String s : getClassesName()) {
+                entitySets.add(getEntitySet(CONTAINER, getShortClassName(s) + nots_s));
+            }
         }
         // create EntityContainer
         CsdlEntityContainer entityContainer = new CsdlEntityContainer();
         entityContainer.setName(CONTAINER_NAME);
         entityContainer.setEntitySets(entitySets);
+        
 
         return entityContainer;
     }
