@@ -57,7 +57,9 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
     public static final String CONTAINER_NAME = "Container";
     public static final FullQualifiedName CONTAINER = new FullQualifiedName(NAMESPACE, CONTAINER_NAME);
 
-
+    //this list is used for accept name with final "s" and without it, es: rap/Sensor and rap/Sensors
+    private static final String[] nots_s_array = {"","s"};
+    
     @Autowired
     private OwlapiHelp owlApiHelp;
     private HashMap<String, HashMap<String, String>> classes;
@@ -267,9 +269,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
             List<CustomField> fields = getAllFields(className);
             ArrayList<CsdlProperty> lst = new ArrayList();
             List<CsdlNavigationProperty> navPropList = new ArrayList<>();
-            String keyEl = "";
-            //this list is used for accept name with final "s" and without it, es: rap/Sensor and rap/Sensors
-            String[] nots_s_array = {"","s"};
+            String keyEl = "";            
             for (CustomField f : fields) {
                 for(String nots_s: nots_s_array){
                     String cl;
@@ -388,17 +388,15 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
 
         if (entityContainer.equals(CONTAINER)) {
             HashSet<String> classess = getClassesName();
-            //this list is used for accept name with final "s" and without it, es: rap/Sensor and rap/Sensors
-            String[] nots_s_array = {"","s"};
             for(String nots_s: nots_s_array){
                 Optional<String> classLongName = classess.stream().filter(str -> 
                         (getShortClassName(str) + nots_s).equalsIgnoreCase(entitySetName)).findFirst();
                 if (classLongName.isPresent()) {
                     String s = classLongName.get();
                     String simpleName = getShortClassName(s);
-                    simpleName = simpleName + nots_s;
+                    String simpleNames = simpleName + nots_s;
                     CsdlEntitySet entitySet = new CsdlEntitySet();
-                    entitySet.setName(simpleName);
+                    entitySet.setName(simpleNames);
                     entitySet.setType(new FullQualifiedName(NAMESPACE, simpleName));
 
                     List<CsdlNavigationPropertyBinding> navPropBindingList = new ArrayList();
@@ -427,8 +425,6 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
 
         // create EntitySets
         List<CsdlEntitySet> entitySets = new ArrayList();
-        //this list is used for accept name with final "s" and without it, es: rap/Sensor and rap/Sensors
-        String[] nots_s_array = {"","s"};
         for(String nots_s: nots_s_array){
             for (String s : getClassesName()) {
                 entitySets.add(getEntitySet(CONTAINER, getShortClassName(s) + nots_s));
