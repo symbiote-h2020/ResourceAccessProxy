@@ -64,8 +64,7 @@ public abstract class PlatformPlugin {
                         if(internalIdTemp != null && !internalIdTemp.isEmpty())
                             internalId = internalIdTemp;
                     }
-                    List<Observation> observationLst = readResource(internalId);
-                    json = mapper.writeValueAsString(observationLst);
+                    json = readResource(internalId);
                     break;
                 }
                 case HISTORY: {
@@ -77,8 +76,7 @@ public abstract class PlatformPlugin {
                         if(internalIdTemp != null && !internalIdTemp.isEmpty())
                             internalId = internalIdTemp;
                     }
-                    List<Observation> observationLst = readResourceHistory(internalId);
-                    json = mapper.writeValueAsString(observationLst);       
+                    json = readResourceHistory(internalId);
                     break;
                 }
                 case SET: {
@@ -138,7 +136,7 @@ public abstract class PlatformPlugin {
     /*  
     *   OVERRIDE this, inserting the query to the platform with internal resource id
     */
-    public abstract List<Observation> readResource(String resourceId);
+    public abstract String readResource(String resourceId);
     
     /*  
     *   OVERRIDE this, inserting here a call to the platform with internal resource id
@@ -149,7 +147,7 @@ public abstract class PlatformPlugin {
     /*  
     *   OVERRIDE this, inserting the query to the platform with internal resource id
     */
-    public abstract List<Observation> readResourceHistory(String resourceId);
+    public abstract String readResourceHistory(String resourceId);
     
     /*  
     *   OVERRIDE this, inserting the subscription of the resource

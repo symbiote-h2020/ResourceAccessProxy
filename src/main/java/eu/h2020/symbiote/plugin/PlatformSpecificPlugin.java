@@ -5,6 +5,7 @@
  */
 package eu.h2020.symbiote.plugin;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import eu.h2020.symbiote.model.cim.WGS84Location;
 import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.model.cim.ObservationValue;
@@ -20,6 +21,8 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.TimeZone;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 
 /**
  *
@@ -41,16 +44,24 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
     }
 
     @Override
-    public List<Observation> readResource(String resourceId) {
-        List<Observation> value = new ArrayList();
-        //
-        // INSERT HERE: query to the platform with internal resource id
-        //
-        // example
-        Observation obs = observationExampleValue();
-        value.add(obs);
+    public String readResource(String resourceId) {
+        String json;
+        try {
+            //
+            // INSERT HERE: query to the platform with internal resource id
+            //
+            // example
+            Observation obs = observationExampleValue();
+            ObjectMapper mapper = new ObjectMapper();
+            json = mapper.writeValueAsString(obs);
+            
+            
+        } catch (JsonProcessingException ex) {
+            log.error(ex.getMessage(), ex);
+            json = ex.getMessage();
+        }
         
-        return value;
+        return json;
     }
     
     @Override
@@ -61,18 +72,27 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
     }
     
     @Override
-    public List<Observation> readResourceHistory(String resourceId) {
-        List<Observation> value = new ArrayList();
-        //
-        // INSERT HERE: query to the platform with internal resource id
-        //
-        // example
-        Observation obs1 = observationExampleValue();
-        Observation obs2 = observationExampleValue();
-        value.add(obs1);
-        value.add(obs2);
+    public String readResourceHistory(String resourceId) {
+        String json;
+        try {
+            List<Observation> value = new ArrayList();
+            //
+            // INSERT HERE: query to the platform with internal resource id
+            //
+            // example
+            Observation obs1 = observationExampleValue();
+            Observation obs2 = observationExampleValue();
+            value.add(obs1);
+            value.add(obs2);
+
+            ObjectMapper mapper = new ObjectMapper();
+            json = mapper.writeValueAsString(value);
+        } catch (Exception ex) {
+            log.error(ex.getMessage(), ex);
+            json = ex.getMessage();
+        }
         
-        return value;
+        return json;
     }
     
     @Override
