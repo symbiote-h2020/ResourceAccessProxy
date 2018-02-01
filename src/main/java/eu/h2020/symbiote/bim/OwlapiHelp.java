@@ -60,8 +60,7 @@ public class OwlapiHelp {
     private static final Log log = LogFactory.getLog(OwlapiHelp.class);
 
     private static final String BIM_FILE = "/bim.owl";
-    //private static final String PIM_FILE = "/pim.owl";
-    private static final String PIM_FILE = "/bim2.owl";
+    private static final String PIM_FILE = "/pim.owl";
     private static final String PIM_PARTIAL_FILE = "/pim_partial.owl";
     
     @Autowired
