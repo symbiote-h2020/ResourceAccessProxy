@@ -44,19 +44,8 @@ public class SecurityHandlerConfig {
     @Value("${symbIoTe.validation.localaam}")
     private Boolean alwaysUseLocalAAMForValidation;
     
-    @Value("${securityEnabled}")
-    private Boolean securityEnabler;
-        
-/*  
-    @Value("${rabbit.host}")
-    String rabbitMQHostIP;
-
-    @Value("${rabbit.username}")
-    String rabbitMQUsername;  
-
-    @Value("${rabbit.password}")
-    String rabbitMQPassword;
-*/
+    @Value("${rap.debug.disableSecurity}")
+    private Boolean disableSecurity;
     
 
     @Bean
@@ -65,7 +54,7 @@ public class SecurityHandlerConfig {
         String componentId = RAP_KEY + "@" + platformId;
         // generating the CSH
         IComponentSecurityHandler rapCSH = null;
-        if(securityEnabler){
+        if(!disableSecurity) {
             rapCSH = ComponentSecurityHandlerFactory.getComponentSecurityHandler(
                     coreAAMUrl,
                     keystorePath,

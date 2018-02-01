@@ -87,15 +87,15 @@ public class RAPEntityProcessor implements EntityProcessor{
     @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
     private TopicExchange exchange;
     
-    @Value("${symbiote.notification.url}") 
+    @Value("${symbiote.rap.cram.url}") 
     private String notificationUrl;
     
     private OData odata;
     
     private StorageHelper storageHelper;
     
-    @Value("${securityEnabled}")
-    private Boolean securityEnabled;
+    @Value("${rap.debug.disableSecurity}")
+    private Boolean disableSecurity;
     
     @Value("${rabbit.replyTimeout}")
     private int rabbitReplyTimeout;
@@ -164,7 +164,7 @@ public class RAPEntityProcessor implements EntityProcessor{
                 return;
             }
             
-            if (securityEnabled) {
+            if (!disableSecurity) {
                 // checking access policies
                 try {
                     String sid = resource.getSymbioteId();
@@ -285,7 +285,7 @@ public class RAPEntityProcessor implements EntityProcessor{
             }
 
 
-            if(securityEnabled){
+            if(!disableSecurity){
                 // checking access policies
                 try {
                     for(ResourceInfo resource : resourceInfoList) {

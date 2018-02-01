@@ -82,11 +82,11 @@ public class RAPPrimitiveProcessor implements PrimitiveProcessor {
     @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
     TopicExchange exchange;
     
-    @Value("${symbiote.notification.url}") 
+    @Value("${symbiote.rap.cram.url}") 
     private String notificationUrl;
     
-    @Value("${securityEnabled}")
-    private Boolean securityEnabled;
+    @Value("${rap.debug.disableSecurity}")
+    private Boolean disableSecurity;
     
     @Value("${rabbit.replyTimeout}")
     private int rabbitReplyTimeout;
@@ -170,7 +170,7 @@ public class RAPPrimitiveProcessor implements PrimitiveProcessor {
             return;
         }
         
-        if(securityEnabled){
+        if(!disableSecurity){
         // checking access policies
             try {
                 for(ResourceInfo resource : resourceInfoList) {

@@ -28,7 +28,6 @@ import org.springframework.stereotype.Component;
 import eu.h2020.symbiote.interfaces.ResourceAccessRestController;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;

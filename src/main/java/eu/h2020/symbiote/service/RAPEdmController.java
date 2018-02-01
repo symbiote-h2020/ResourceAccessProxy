@@ -85,11 +85,11 @@ public class RAPEdmController {
     @Autowired
     private IComponentSecurityHandler securityHandler;
             
-    @Value("${symbiote.notification.url}") 
+    @Value("${symbiote.rap.cram.url}") 
     private String notificationUrl;
     
-    @Value("${securityEnabled}")
-    private Boolean securityEnabled;
+    @Value("${rap.debug.disableSecurity}")
+    private Boolean disableSecurity;
     
     /**
      * Process.
@@ -149,7 +149,7 @@ public class RAPEdmController {
             headers.add("Access-Control-Allow-Methods", "OPTIONS, GET, POST, PUT");
             headers.add("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token");
             
-            if(securityEnabled){
+            if(!disableSecurity){
                 String securityResponseHrd = securityHandler.generateServiceResponse();
                 headers.add(SECURITY_RESPONSE_HEADER, securityResponseHrd);
             }
