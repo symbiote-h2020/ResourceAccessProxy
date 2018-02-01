@@ -88,11 +88,11 @@ public class ResourceAccessRestController {
     @Autowired
     private AccessPolicyRepository accessPolicyRepo;
    
-    @Value("${symbiote.notification.url}") 
+    @Value("${symbiote.rap.cram.url}") 
     private String notificationUrl;
     
-    @Value("${securityEnabled}")
-    private Boolean securityEnabled;
+    @Value("${rap.debug.disableSecurity}")
+    private Boolean disableSecurity;
         
     @Value("${rabbit.replyTimeout}")
     private int rabbitReplyTimeout;
@@ -184,7 +184,7 @@ public class ResourceAccessRestController {
             sendFailMessage(path, resourceId, e);
         }
         
-        if(securityEnabled){
+        if(!disableSecurity){
             try{
                 String serResponse = securityHandler.generateServiceResponse();
                 responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse);
@@ -276,7 +276,7 @@ public class ResourceAccessRestController {
             sendFailMessage(path, resourceId, e);
         }
         
-        if(securityEnabled){
+        if(!disableSecurity){
             try{
                 String serResponse = securityHandler.generateServiceResponse();
                 responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse);
@@ -357,7 +357,7 @@ public class ResourceAccessRestController {
             sendFailMessage(path, resourceId, e);
         }
         
-        if(securityEnabled){
+        if(!disableSecurity){
             try{
                 String serResponse = securityHandler.generateServiceResponse();
                 responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse);
@@ -390,7 +390,7 @@ public class ResourceAccessRestController {
         }
         
         log.info("secHeaders: " + secHdrs);
-        if(securityEnabled){
+        if(!disableSecurity){
             SecurityRequest securityReq = new SecurityRequest(secHdrs);
             checkAuthorization(securityReq, resourceId);
         }

@@ -30,7 +30,7 @@ public class PluginNotification {
     @Autowired
     WebSocketController webSocketController;
     
-    @Value("${symbiote.notification.url}") 
+    @Value("${symbiote.rap.cram.url}") 
     private String notificationUrl;
     
     @Autowired

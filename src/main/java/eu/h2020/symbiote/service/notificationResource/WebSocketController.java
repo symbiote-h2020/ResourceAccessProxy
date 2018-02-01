@@ -84,14 +84,14 @@ public class WebSocketController extends TextWebSocketHandler {
     @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
     TopicExchange exchange;
     
-    @Value("${symbiote.notification.url}") 
+    @Value("${symbiote.rap.cram.url}") 
     private String notificationUrl;
     
     @Autowired
     private IComponentSecurityHandler securityHandler;
     
-    @Value("${securityEnabled}")
-    private Boolean securityEnabled;
+    @Value("${rap.debug.disableSecurity}")
+    private Boolean disableSecurity;
 
     private final HashMap<String, WebSocketSession> idSession = new HashMap();
 
@@ -141,7 +141,7 @@ public class WebSocketController extends TextWebSocketHandler {
             WebSocketMessageSecurityRequest webSocketMessageSecurity = mapper.readValue(message, WebSocketMessageSecurityRequest.class);
             
             Map<String,String> securityRequest = webSocketMessageSecurity.getSecRequest();
-            if(securityRequest == null && securityEnabled)
+            if(securityRequest == null && !disableSecurity)
                 throw new Exception("Security Request cannot be empty");
             
             WebSocketMessage webSocketMessage = webSocketMessageSecurity.getPayload();
@@ -278,7 +278,7 @@ public class WebSocketController extends TextWebSocketHandler {
 
     public void SendMessage(Observation obs) {
         Map<String,String> secResponse = new HashMap<String,String>();
-        if(securityEnabled){
+        if(!disableSecurity){
             try{
                 String serResponse = securityHandler.generateServiceResponse();
                 secResponse.put(SECURITY_RESPONSE_HEADER, serResponse);
@@ -405,7 +405,7 @@ public class WebSocketController extends TextWebSocketHandler {
     }
     
     public boolean checkAccessPolicies(Map<String, String> secHdrs, List<String> resourceIdList) throws Exception {
-        if(securityEnabled){
+        if(!disableSecurity){
             log.info("secHeaders: " + secHdrs);
             SecurityRequest securityReq = new SecurityRequest(secHdrs);
 

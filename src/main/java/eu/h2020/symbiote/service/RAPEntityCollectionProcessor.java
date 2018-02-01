@@ -19,17 +19,13 @@ import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectOutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.Locale;
-import java.util.logging.Level;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
 import org.apache.olingo.commons.api.edm.EdmNavigationProperty;
@@ -86,11 +82,11 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
     @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
     TopicExchange exchange;
     
-    @Value("${symbiote.notification.url}") 
+    @Value("${symbiote.rap.cram.url}") 
     private String notificationUrl;
     
-    @Value("${securityEnabled}")
-    private Boolean securityEnabled;
+    @Value("${rap.debug.disableSecurity}")
+    private Boolean disableSecurity;
     
     @Value("${rabbit.replyTimeout}")
     private int rabbitReplyTimeout;
@@ -211,7 +207,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
                 return;
             }
 
-            if(securityEnabled){
+            if(!disableSecurity){
             // checking access policies
                 try {
                     for(ResourceInfo resource : resourceInfoList) {
