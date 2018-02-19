@@ -7,6 +7,8 @@ package eu.h2020.symbiote.interfaces;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import eu.h2020.symbiote.managers.AuthorizationManager;
+import eu.h2020.symbiote.managers.ServiceRequest;
 import eu.h2020.symbiote.messages.resourceAccessNotification.FailedAccessMessageInfo;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulPushesMessageInfo;
@@ -35,7 +37,7 @@ public class ResourceAccessNotification {
     private static final Logger log = LoggerFactory.getLogger(ResourceAccessNotification.class);
 
     private final String notificationUrl;
-    private final IComponentSecurityHandler securityHandler;
+    private final AuthorizationManager authManager;
     
     
     @JsonProperty("successfulAttempts")
@@ -47,8 +49,8 @@ public class ResourceAccessNotification {
     @JsonProperty("failedAttempts")
     private List<FailedAccessMessageInfo> failedAttempts;
     
-    public ResourceAccessNotification(IComponentSecurityHandler securityHandler, String notificationUrl) {
-        this.securityHandler = securityHandler;
+    public ResourceAccessNotification(AuthorizationManager authManager, String notificationUrl) {
+        this.authManager = authManager;
         this.notificationUrl = notificationUrl;
     }
             
@@ -99,33 +101,17 @@ public class ResourceAccessNotification {
         restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
         restTemplate.getMessageConverters().add(new StringHttpMessageConverter());
         
-        HttpHeaders httpHeaders = getHeader();
-        HttpEntity<String> httpEntity = new HttpEntity(message,httpHeaders);
+        ServiceRequest serviceReq = authManager.getServiceRequestHeaders();
+        if(serviceReq.isCreatedSuccessfully()) {
+            HttpHeaders httpHeaders = serviceReq.getServiceRequestHeaders();
+            HttpEntity<String> httpEntity = new HttpEntity(message,httpHeaders);
         
-        restTemplate.postForObject(notificationUrl, httpEntity, Object.class);
-        log.debug("Sent access notification message to CRAM");
+            restTemplate.postForObject(notificationUrl, httpEntity, Object.class);
+            log.debug("Sent access notification message to CRAM");
+        } else {
+            log.error("Access notification message to CRAM not sent: service request was not created successfully");
+        }
     }
     
-    public HttpHeaders getHeader(){
-        Map<String, String> securityRequestHeaders = null;
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.set("Accept", MediaType.APPLICATION_JSON_VALUE);
-        httpHeaders.setContentType(MediaType.APPLICATION_JSON);
-
-        if(securityHandler != null){
-            try {
-                SecurityRequest securityRequest = securityHandler.generateSecurityRequestUsingLocalCredentials();
-                securityRequestHeaders = securityRequest.getSecurityRequestHeaderParams();
-
-                for (Map.Entry<String, String> entry : securityRequestHeaders.entrySet()) {
-                    httpHeaders.add(entry.getKey(), entry.getValue());
-                }
-                log.info("request headers: " + httpHeaders);
-
-            } catch (SecurityHandlerException | JsonProcessingException e) {
-                log.error("Fail to take header", e);
-            }
-        }
-        return httpHeaders;
-    }
+    
 }

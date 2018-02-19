@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
+import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
@@ -66,14 +67,11 @@ public class RAPPrimitiveProcessor implements PrimitiveProcessor {
     @Autowired
     private ResourcesRepository resourcesRepo;
     
-    @Autowired        
-    private AccessPolicyRepository accessPolicyRepo;
-    
     @Autowired
     private PluginRepository pluginRepo;
     
     @Autowired
-    private IComponentSecurityHandler securityHandler;
+    private AuthorizationManager authManager;
     
     @Autowired
     private RabbitTemplate rabbitTemplate;
@@ -84,10 +82,7 @@ public class RAPPrimitiveProcessor implements PrimitiveProcessor {
     
     @Value("${symbiote.rap.cram.url}") 
     private String notificationUrl;
-    
-    @Value("${rap.debug.disableSecurity}")
-    private Boolean disableSecurity;
-    
+        
     @Value("${rabbit.replyTimeout}")
     private int rabbitReplyTimeout;
 
@@ -95,8 +90,8 @@ public class RAPPrimitiveProcessor implements PrimitiveProcessor {
     
     @Override
     public void init(OData odata, ServiceMetadata sm) {
-        storageHelper = new StorageHelper(resourcesRepo, pluginRepo, accessPolicyRepo, securityHandler, 
-                                        rabbitTemplate, rabbitReplyTimeout, exchange,notificationUrl);
+        storageHelper = new StorageHelper(resourcesRepo, pluginRepo, authManager,
+                rabbitTemplate, rabbitReplyTimeout, exchange,notificationUrl);
     }
     
     //Sensor('id')/name
@@ -170,22 +165,21 @@ public class RAPPrimitiveProcessor implements PrimitiveProcessor {
             return;
         }
         
-        if(!disableSecurity){
         // checking access policies
-            try {
-                for(ResourceInfo resource : resourceInfoList) {
-                    String sid = resource.getSymbioteId();
-                    if(sid != null && sid.length() > 0)
-                        storageHelper.checkAccessPolicies(request, sid);
-                }
-            } catch (Exception ex) {
-                log.error("Access policy check error: " + ex.getMessage());
-                customOdataException = new CustomODataApplicationException(symbioteId, ex.getMessage(), 
-                        HttpStatusCode.UNAUTHORIZED.getStatusCode(), Locale.ROOT);
-                setErrorResponse(response, customOdataException, responseFormat);
-                return;
+        try {
+            for(ResourceInfo resource : resourceInfoList) {
+                String sid = resource.getSymbioteId();
+                if(sid != null && sid.length() > 0)
+                    storageHelper.checkAccessPolicies(request, sid);
             }
+        } catch (Exception ex) {
+            log.error("Access policy check error: " + ex.getMessage());
+            customOdataException = new CustomODataApplicationException(symbioteId, ex.getMessage(), 
+                    HttpStatusCode.UNAUTHORIZED.getStatusCode(), Locale.ROOT);
+            setErrorResponse(response, customOdataException, responseFormat);
+            return;
         }
+        
         
         
         try{

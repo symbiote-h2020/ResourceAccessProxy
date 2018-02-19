@@ -10,14 +10,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
+import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
-import eu.h2020.symbiote.resources.query.Query;
-import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import static eu.h2020.symbiote.service.RAPEntityCollectionProcessor.setErrorResponse;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -73,12 +72,9 @@ public class RAPEntityProcessor implements EntityProcessor{
     
     @Autowired
     private PluginRepository pluginRepo;
-    
-    @Autowired        
-    private AccessPolicyRepository accessPolicyRepo;
-    
+        
     @Autowired
-    private IComponentSecurityHandler securityHandler;
+    private AuthorizationManager authManager;
     
     @Autowired
     private RabbitTemplate rabbitTemplate;
@@ -93,10 +89,7 @@ public class RAPEntityProcessor implements EntityProcessor{
     private OData odata;
     
     private StorageHelper storageHelper;
-    
-    @Value("${rap.debug.disableSecurity}")
-    private Boolean disableSecurity;
-    
+        
     @Value("${rabbit.replyTimeout}")
     private int rabbitReplyTimeout;
     
@@ -104,8 +97,8 @@ public class RAPEntityProcessor implements EntityProcessor{
     public void init(OData odata, ServiceMetadata sm) {
         this.odata = odata;   
     //    this.serviceMetadata = sm;
-        storageHelper = new StorageHelper(resourcesRepo, pluginRepo, accessPolicyRepo, securityHandler, 
-                                        rabbitTemplate, rabbitReplyTimeout, exchange,notificationUrl);
+        storageHelper = new StorageHelper(resourcesRepo, pluginRepo, authManager, 
+                rabbitTemplate, rabbitReplyTimeout, exchange,notificationUrl);
     }
     
     //Sensor('id')
@@ -164,21 +157,19 @@ public class RAPEntityProcessor implements EntityProcessor{
                 return;
             }
             
-            if (!disableSecurity) {
-                // checking access policies
-                try {
-                    String sid = resource.getSymbioteId();
-                    if(sid != null && sid.length() > 0)
-                        storageHelper.checkAccessPolicies(request, sid);
-                } catch (Exception ex) {
-                    customOdataException = new CustomODataApplicationException(resource.getSymbioteId(), ex.getMessage(), 
-                            HttpStatusCode.UNAUTHORIZED.getStatusCode(), Locale.ROOT);
-                    setErrorResponse(response, customOdataException, responseFormat);
-                    log.error("Access policy check error", ex);
-                    return;
-                }
+            // checking access policies
+            try {
+                String sid = resource.getSymbioteId();
+                if(sid != null && sid.length() > 0)
+                    storageHelper.checkAccessPolicies(request, sid);
+            } catch (Exception ex) {
+                customOdataException = new CustomODataApplicationException(resource.getSymbioteId(), ex.getMessage(), 
+                        HttpStatusCode.UNAUTHORIZED.getStatusCode(), Locale.ROOT);
+                setErrorResponse(response, customOdataException, responseFormat);
+                log.error("Access policy check error", ex);
+                return;
             }
-
+            
             try {
                 map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
                 String json = map.writeValueAsString(resource);
@@ -284,22 +275,19 @@ public class RAPEntityProcessor implements EntityProcessor{
                 return;
             }
 
-
-            if(!disableSecurity){
-                // checking access policies
-                try {
-                    for(ResourceInfo resource : resourceInfoList) {
-                        String sid = resource.getSymbioteId();
-                        if(sid != null && sid.length() > 0)
-                            storageHelper.checkAccessPolicies(request, sid);
-                    }
-                } catch (Exception ex) {
-                    customOdataException = new CustomODataApplicationException(symbioteId, ex.getMessage(), 
-                            HttpStatusCode.UNAUTHORIZED.getStatusCode(), Locale.ROOT);
-                    setErrorResponse(response, customOdataException, responseFormat);
-                    log.error("Access policy check error", ex);
-                    return;
+            // checking access policies
+            try {
+                for(ResourceInfo resource : resourceInfoList) {
+                    String sid = resource.getSymbioteId();
+                    if(sid != null && sid.length() > 0)
+                        storageHelper.checkAccessPolicies(request, sid);
                 }
+            } catch (Exception ex) {
+                customOdataException = new CustomODataApplicationException(symbioteId, ex.getMessage(), 
+                        HttpStatusCode.UNAUTHORIZED.getStatusCode(), Locale.ROOT);
+                setErrorResponse(response, customOdataException, responseFormat);
+                log.error("Access policy check error", ex);
+                return;
             }
 
             Object obj = storageHelper.setService(resourceInfoList, body);        

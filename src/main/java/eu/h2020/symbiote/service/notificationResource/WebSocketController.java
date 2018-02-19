@@ -22,16 +22,15 @@ import eu.h2020.symbiote.messages.access.ResourceAccessUnSubscribeMessage;
 import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
-import eu.h2020.symbiote.resources.db.AccessPolicy;
 import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
-import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import static eu.h2020.symbiote.security.commons.SecurityConstants.SECURITY_RESPONSE_HEADER;
-import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
-import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
+import eu.h2020.symbiote.managers.AuthorizationManager;
+import eu.h2020.symbiote.managers.AuthorizationResult;
+import eu.h2020.symbiote.managers.ServiceResponseResult;
 import eu.h2020.symbiote.service.notificationResource.WebSocketMessage.Action;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -73,10 +72,7 @@ public class WebSocketController extends TextWebSocketHandler {
     
     @Autowired
     PluginRepository pluginRepo;
-    
-    @Autowired
-    private AccessPolicyRepository accessPolicyRepo;
-    
+        
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
@@ -88,10 +84,7 @@ public class WebSocketController extends TextWebSocketHandler {
     private String notificationUrl;
     
     @Autowired
-    private IComponentSecurityHandler securityHandler;
-    
-    @Value("${rap.debug.disableSecurity}")
-    private Boolean disableSecurity;
+    private AuthorizationManager authManager;
 
     private final HashMap<String, WebSocketSession> idSession = new HashMap();
 
@@ -141,8 +134,10 @@ public class WebSocketController extends TextWebSocketHandler {
             WebSocketMessageSecurityRequest webSocketMessageSecurity = mapper.readValue(message, WebSocketMessageSecurityRequest.class);
             
             Map<String,String> securityRequest = webSocketMessageSecurity.getSecRequest();
-            if(securityRequest == null && !disableSecurity)
+            if(securityRequest == null) {
+                log.error("Security Request cannot be empty");
                 throw new Exception("Security Request cannot be empty");
+            }
             
             WebSocketMessage webSocketMessage = webSocketMessageSecurity.getPayload();
             List<String> resourcesId = webSocketMessage.getIds();
@@ -277,17 +272,11 @@ public class WebSocketController extends TextWebSocketHandler {
     }
 
     public void SendMessage(Observation obs) {
-        Map<String,String> secResponse = new HashMap<String,String>();
-        if(!disableSecurity){
-            try{
-                String serResponse = securityHandler.generateServiceResponse();
-                secResponse.put(SECURITY_RESPONSE_HEADER, serResponse);
-            }
-            catch(SecurityHandlerException sce){
-                log.error(sce.getMessage(), sce);
-            }
-        }
-        
+        Map<String,String> secResponse = new HashMap();
+        ServiceResponseResult serResponse = authManager.generateServiceResponse();
+        if(serResponse.isCreatedSuccessfully()) {
+            secResponse.put(SECURITY_RESPONSE_HEADER, serResponse.getServiceResponse());
+        }        
         WebSocketMessageSecurityResponse messageSecurityResp = new WebSocketMessageSecurityResponse(secResponse, obs);
         
         String internalId = obs.getResourceId();
@@ -362,7 +351,7 @@ public class WebSocketController extends TextWebSocketHandler {
         
         List<Date> dateList = new ArrayList<Date>();
         dateList.add(new Date());
-        ResourceAccessNotification notificationMessage = new ResourceAccessNotification(securityHandler,notificationUrl);
+        ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager, notificationUrl);
         
         try{
             notificationMessage.SetSuccessfulAttemptsList(symbioteIdList, dateList, accessType);
@@ -393,7 +382,7 @@ public class WebSocketController extends TextWebSocketHandler {
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         List<Date> dateList = new ArrayList<Date>();
         dateList.add(new Date());
-        ResourceAccessNotification notificationMessage = new ResourceAccessNotification(securityHandler,notificationUrl);
+        ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager, notificationUrl);
         try {
             notificationMessage.SetFailedAttempts(symbioteId, dateList, 
             code, message, appId, issuer, validationStatus, path); 
@@ -405,36 +394,19 @@ public class WebSocketController extends TextWebSocketHandler {
     }
     
     public boolean checkAccessPolicies(Map<String, String> secHdrs, List<String> resourceIdList) throws Exception {
-        if(!disableSecurity){
-            log.info("secHeaders: " + secHdrs);
-            SecurityRequest securityReq = new SecurityRequest(secHdrs);
+        
+        log.debug("secHeaders: " + secHdrs);
+        SecurityRequest securityReq = new SecurityRequest(secHdrs);
 
-            for(String resourceId: resourceIdList){
-                checkAuthorization(securityReq, resourceId);
+        for(String resourceId: resourceIdList){        
+            AuthorizationResult result = authManager.checkResourceUrlRequest(resourceId, securityReq);
+            log.info(result.getMessage());
+            if(!result.isValidated()) {
+                log.error("Resource " + resourceId + "access has been denied with message: " + result.getMessage());
+                return false;
             }
         }
-        return true;
-    }
-    
-    private void checkAuthorization(SecurityRequest request, String resourceId) throws Exception {
-        log.debug("RAP received a security request : " + request.toString());        
-         // building dummy access policy
-        Map<String, IAccessPolicy> accessPolicyMap = new HashMap<>();
-        // to get policies here
-        Optional<AccessPolicy> accPolicy = accessPolicyRepo.findById(resourceId);
-        if(accPolicy == null)
-            throw new Exception("No access policies for resource");
         
-        accessPolicyMap.put(resourceId, accPolicy.get().getPolicy());
-
-        Set<String> ids = null;
-        try {
-            ids = securityHandler.getSatisfiedPoliciesIdentifiers(accessPolicyMap, request);
-        } catch (Exception e) {
-            log.error("Exception thrown during checking policies:", e);
-            throw new Exception(e.getMessage());
-        }
-        if(!ids.contains(resourceId))
-            throw new Exception("Security Policy is not valid");
+        return true;
     }
 }

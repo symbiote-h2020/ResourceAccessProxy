@@ -1,4 +1,4 @@
-package eu.h2020.symbiote.resources.bim;
+package eu.h2020.symbiote.rap.tests;
 
 
 import eu.h2020.symbiote.bim.OwlapiHelp;
@@ -11,6 +11,7 @@ import org.semanticweb.owlapi.model.IRI;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 /*
@@ -26,6 +27,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @TestConfiguration
+@ActiveProfiles("test")
 public class TestReadBim {
     
     @Autowired

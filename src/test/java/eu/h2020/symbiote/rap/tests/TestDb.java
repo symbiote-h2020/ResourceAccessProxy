@@ -1,5 +1,14 @@
-package eu.h2020.symbiote.resources.db;
+package eu.h2020.symbiote.rap.tests;
 
+import eu.h2020.symbiote.resources.db.AccessPolicy;
+import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
+import eu.h2020.symbiote.resources.db.ParameterInfo;
+import eu.h2020.symbiote.resources.db.PlatformInfo;
+import eu.h2020.symbiote.resources.db.PluginRepository;
+import eu.h2020.symbiote.resources.db.RegistrationInfoOData;
+import eu.h2020.symbiote.resources.db.RegistrationInfoODataRepository;
+import eu.h2020.symbiote.resources.db.ResourceInfo;
+import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.accesspolicies.common.SingleTokenAccessPolicyFactory;
 import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenAccessPolicySpecifier;
@@ -18,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 /*
@@ -33,6 +43,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @TestConfiguration 
+@ActiveProfiles("test")
 public class TestDb {
     private static final Logger log = LoggerFactory.getLogger(TestDb.class);
     

@@ -48,8 +48,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
-import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
-import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
+import eu.h2020.symbiote.managers.AuthorizationManager;
+import eu.h2020.symbiote.managers.ServiceResponseResult;
 import java.io.InputStream;
 import java.util.Date;
 import org.springframework.beans.factory.annotation.Value;
@@ -83,13 +83,10 @@ public class RAPEdmController {
     private RAPPrimitiveProcessor primitiveProcessor;
     
     @Autowired
-    private IComponentSecurityHandler securityHandler;
+    private AuthorizationManager authManager;
             
     @Value("${symbiote.rap.cram.url}") 
     private String notificationUrl;
-    
-    @Value("${rap.debug.disableSecurity}")
-    private Boolean disableSecurity;
     
     /**
      * Process.
@@ -149,16 +146,11 @@ public class RAPEdmController {
             headers.add("Access-Control-Allow-Methods", "OPTIONS, GET, POST, PUT");
             headers.add("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token");
             
-            if(!disableSecurity){
-                String securityResponseHrd = securityHandler.generateServiceResponse();
-                headers.add(SECURITY_RESPONSE_HEADER, securityResponseHrd);
+            ServiceResponseResult serResponse = authManager.generateServiceResponse();
+            if(serResponse.isCreatedSuccessfully()) {
+                headers.add(SECURITY_RESPONSE_HEADER, serResponse.getServiceResponse());
             }
-        }
-        catch(SecurityHandlerException sce){
-            log.error(sce.getMessage(), sce);
-            throw sce;
-        }
-        catch(Exception e){
+        } catch(Exception e) {
             log.error(e.getMessage(), e);
         }
         
@@ -191,7 +183,7 @@ public class RAPEdmController {
             mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
             List<Date> dateList = new ArrayList<>();
             dateList.add(new Date());
-            ResourceAccessNotification notificationMessage = new ResourceAccessNotification(securityHandler,notificationUrl);
+            ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager, notificationUrl);
             try {
                 notificationMessage.SetFailedAttempts(symbioTeId, dateList, 
                 code, message, appId, issuer, validationStatus, request.getRequestURI()); 

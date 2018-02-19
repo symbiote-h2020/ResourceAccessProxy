@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import eu.h2020.symbiote.service.notificationResource.WebSocketController;
@@ -34,7 +35,7 @@ public class PluginNotification {
     private String notificationUrl;
     
     @Autowired
-    private IComponentSecurityHandler securityHandler;
+    private AuthorizationManager authManager;
     
     
     public void receiveNotification(byte[] messageByte) {
@@ -60,7 +61,7 @@ public class PluginNotification {
         
         List<Date> dateList = new ArrayList<Date>();
         dateList.add(new Date());
-        ResourceAccessNotification notificationMessage = new ResourceAccessNotification(securityHandler,notificationUrl);
+        ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager,notificationUrl);
         
         try{
             notificationMessage.SetSuccessfulPushes(symbioteId, dateList);

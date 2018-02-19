@@ -18,6 +18,8 @@ import eu.h2020.symbiote.messages.access.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
 import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
+import eu.h2020.symbiote.managers.AuthorizationManager;
+import eu.h2020.symbiote.managers.AuthorizationResult;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Comparison;
@@ -70,13 +72,12 @@ public class StorageHelper {
     
     private final int TOP_LIMIT = 100;
     
-    private final IComponentSecurityHandler securityHandler;
-    private final AccessPolicyRepository accessPolicyRepo;
     private final ResourcesRepository resourcesRepo;
     private final PluginRepository pluginRepo;
     private final RabbitTemplate rabbitTemplate;
     private final TopicExchange exchange;
-    private String notificationUrl;
+    private final String notificationUrl;
+    private final AuthorizationManager authManager;
 
     private static final Pattern PATTERN = Pattern.compile(
             "\\p{Digit}{1,4}-\\p{Digit}{1,2}-\\p{Digit}{1,2}"
@@ -84,17 +85,16 @@ public class StorageHelper {
             + "(Z|([-+]\\p{Digit}{1,2}:\\p{Digit}{2}))?");
 
     public StorageHelper(ResourcesRepository resourcesRepository, PluginRepository pluginRepository,
-                        AccessPolicyRepository accessPolicyRepository, IComponentSecurityHandler securityHandlerComponent,
-                         RabbitTemplate rabbit, int rabbitReplyTimeout, TopicExchange topicExchange, String notificationUrl) {
+            AuthorizationManager authMan, RabbitTemplate rabbit, int rabbitReplyTimeout, 
+            TopicExchange topicExchange, String notifUrl) {
         //initSampleData();
         resourcesRepo = resourcesRepository;
         pluginRepo = pluginRepository;
-        accessPolicyRepo = accessPolicyRepository;
-        securityHandler = securityHandlerComponent;
         rabbitTemplate = rabbit;
         rabbitTemplate.setReplyTimeout(rabbitReplyTimeout);
         exchange = topicExchange;
-        this.notificationUrl = notificationUrl;
+        notificationUrl = notifUrl;
+        authManager = authMan;
     }
 
     public ResourceInfo getResourceInfo(List<UriParameter> keyParams) {
@@ -389,42 +389,13 @@ public class StorageHelper {
         for(String key : headers.keySet()) {
             secHdrs.put(key, request.getHeader(key));
         }
-        log.info("Headers: " + secHdrs);
+        log.debug("Headers: " + secHdrs);
         SecurityRequest securityReq = new SecurityRequest(secHdrs);
 
-        checkAuthorization(securityReq, resourceId);
+        AuthorizationResult result = authManager.checkResourceUrlRequest(resourceId, securityReq);
+        log.info(result.getMessage());
         
-        return true;
-    }
-    
-    private void checkAuthorization(SecurityRequest request, String resourceId) throws Exception {
-        log.debug("Received a security request : " + request.toString());
-         // building dummy access policy
-        Map<String, IAccessPolicy> accessPolicyMap = new HashMap<>();
-        // to get policies here
-        Optional<AccessPolicy> accPolicy = accessPolicyRepo.findById(resourceId);
-        if(accPolicy == null) {
-            log.error("No access policies for resource");
-            throw new Exception("No access policies for resource");
-        }
-        
-        accessPolicyMap.put(resourceId, accPolicy.get().getPolicy());
-        String mapString = accessPolicyMap.entrySet().stream().map(entry -> entry.getKey() + " - " + entry.getValue())
-                .collect(Collectors.joining(", "));
-        log.info("accessPolicyMap: " + mapString);
-        log.info("request: " + request.toString());
-
-        Set<String> ids = null;
-        try {
-            ids = securityHandler.getSatisfiedPoliciesIdentifiers(accessPolicyMap, request);
-        } catch (Exception e) {
-            log.error("Exception thrown during checking policies:", e);
-            throw new Exception(e.getMessage());
-        }
-        if(!ids.contains(resourceId)) {
-            log.error("Security Policy is not valid");
-            throw new Exception("Security Policy is not valid");
-        }
+        return result.isValidated();
     }
     
     public void sendSuccessfulAccessMessage(String symbioteId, String accessType){
@@ -438,7 +409,7 @@ public class StorageHelper {
 
             List<Date> dateList = new ArrayList<>();
             dateList.add(new Date());
-            ResourceAccessNotification notificationMessage = new ResourceAccessNotification(securityHandler,notificationUrl);
+            ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager, notificationUrl);
 
             try{
                 notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);

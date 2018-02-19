@@ -15,6 +15,9 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import eu.h2020.symbiote.exceptions.*;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceRESTCondition;
+import eu.h2020.symbiote.managers.AuthorizationManager;
+import eu.h2020.symbiote.managers.AuthorizationResult;
+import eu.h2020.symbiote.managers.ServiceResponseResult;
 import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessMessage.AccessType;
@@ -83,16 +86,13 @@ public class ResourceAccessRestController {
     private PluginRepository pluginRepo;
     
     @Autowired
-    private IComponentSecurityHandler securityHandler; 
+    private AuthorizationManager authManager; 
     
     @Autowired
     private AccessPolicyRepository accessPolicyRepo;
    
     @Value("${symbiote.rap.cram.url}") 
     private String notificationUrl;
-    
-    @Value("${rap.debug.disableSecurity}")
-    private Boolean disableSecurity;
         
     @Value("${rabbit.replyTimeout}")
     private int rabbitReplyTimeout;
@@ -184,16 +184,11 @@ public class ResourceAccessRestController {
             sendFailMessage(path, resourceId, e);
         }
         
-        if(!disableSecurity){
-            try{
-                String serResponse = securityHandler.generateServiceResponse();
-                responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse);
-            }
-            catch(SecurityHandlerException sce){
-                log.error(sce.getMessage(), sce);
-                throw sce;
-            }
+        ServiceResponseResult serResponse = authManager.generateServiceResponse();
+        if(serResponse.isCreatedSuccessfully()) {
+            responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse.getServiceResponse());
         }
+        
         return new ResponseEntity<>(response , responseHeaders, httpStatus);
     }
     
@@ -276,16 +271,11 @@ public class ResourceAccessRestController {
             sendFailMessage(path, resourceId, e);
         }
         
-        if(!disableSecurity){
-            try{
-                String serResponse = securityHandler.generateServiceResponse();
-                responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse);
-            }
-            catch(SecurityHandlerException sce){
-                log.error(sce.getMessage(), sce);
-                throw sce;
-            }
+        ServiceResponseResult serResponse = authManager.generateServiceResponse();
+        if(serResponse.isCreatedSuccessfully()) {
+            responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse.getServiceResponse());
         }
+        
         return new ResponseEntity<>(response, responseHeaders, httpStatus);
     }
     
@@ -357,16 +347,11 @@ public class ResourceAccessRestController {
             sendFailMessage(path, resourceId, e);
         }
         
-        if(!disableSecurity){
-            try{
-                String serResponse = securityHandler.generateServiceResponse();
-                responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse);
-            }
-            catch(SecurityHandlerException sce){
-                log.error(sce.getMessage(), sce);
-                throw sce;
-            }
+        ServiceResponseResult serResponse = authManager.generateServiceResponse();
+        if(serResponse.isCreatedSuccessfully()) {
+            responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse.getServiceResponse());
         }
+        
         return new ResponseEntity<>(response, responseHeaders, httpStatus);
     }
     
@@ -387,36 +372,14 @@ public class ResourceAccessRestController {
                 String header = headerNames.nextElement();
                 secHdrs.put(header, request.getHeader(header));
             }
-        }
-        
+        }        
         log.info("secHeaders: " + secHdrs);
-        if(!disableSecurity){
-            SecurityRequest securityReq = new SecurityRequest(secHdrs);
-            checkAuthorization(securityReq, resourceId);
-        }
-        return true;
-    }
-    
-    private void checkAuthorization(SecurityRequest request, String resourceId) throws Exception {
-        log.debug("RAP received a security request : " + request.toString());        
-         // building dummy access policy
-        Map<String, IAccessPolicy> accessPolicyMap = new HashMap<>();
-        // to get policies here
-        Optional<AccessPolicy> accPolicy = accessPolicyRepo.findById(resourceId);
-        if(accPolicy == null)
-            throw new Exception("No access policies for resource");
+        SecurityRequest securityReq = new SecurityRequest(secHdrs);
         
-        accessPolicyMap.put(resourceId, accPolicy.get().getPolicy());
-
-        Set<String> ids = null;
-        try {
-            ids = securityHandler.getSatisfiedPoliciesIdentifiers(accessPolicyMap, request);
-        } catch (Exception e) {
-            log.error("Exception thrown during checking policies:", e);
-            throw new Exception(e.getMessage());
-        }
-        if(!ids.contains(resourceId))
-            throw new Exception("Security Policy is not valid");
+        AuthorizationResult result = authManager.checkResourceUrlRequest(resourceId, securityReq);
+        log.info(result.getMessage());
+        
+        return result.isValidated();
     }
     
     private String sendFailMessage(String path, String symbioteId, Exception e) {
@@ -439,7 +402,7 @@ public class ResourceAccessRestController {
             mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
             List<Date> dateList = new ArrayList();
             dateList.add(new Date());
-            ResourceAccessNotification notificationMessage = new ResourceAccessNotification(securityHandler,notificationUrl);
+            ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager, notificationUrl);
             try {
                 notificationMessage.SetFailedAttempts(symbioteId, dateList,code, message, appId, issuer, validationStatus, path); 
                 jsonNotificationMessage = mapper.writeValueAsString(notificationMessage);
@@ -466,7 +429,7 @@ public class ResourceAccessRestController {
 
             List<Date> dateList = new ArrayList();
             dateList.add(new Date());
-            ResourceAccessNotification notificationMessage = new ResourceAccessNotification(securityHandler,notificationUrl);
+            ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager, notificationUrl);
             try{
                 notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
                 jsonNotificationMessage = map.writeValueAsString(notificationMessage);
