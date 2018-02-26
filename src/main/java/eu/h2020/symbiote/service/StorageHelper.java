@@ -16,6 +16,9 @@ import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
+import eu.h2020.symbiote.messages.plugin.RapPluginErrorResponse;
+import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
+import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
 import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
 import eu.h2020.symbiote.managers.AuthorizationManager;
@@ -37,6 +40,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -48,6 +52,8 @@ import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import org.apache.olingo.commons.api.ex.ODataException;
 import org.apache.olingo.commons.api.http.HttpStatusCode;
 import org.apache.olingo.server.api.ODataApplicationException;
 import org.apache.olingo.server.api.uri.UriParameter;
@@ -58,6 +64,7 @@ import org.apache.olingo.server.api.uri.queryoption.expression.BinaryOperatorKin
 import org.apache.olingo.server.api.uri.queryoption.expression.Expression;
 import org.apache.olingo.server.api.uri.queryoption.expression.Literal;
 import org.apache.olingo.server.api.uri.queryoption.expression.Member;
+import org.hamcrest.core.IsInstanceOf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
@@ -120,9 +127,9 @@ public class StorageHelper {
         return resInfo;
     }
 
-    public Object getRelatedObject(ArrayList<ResourceInfo> resourceInfoList, Integer top, Query filterQuery) throws ODataApplicationException {
+    public RapPluginResponse getRelatedObject(ArrayList<ResourceInfo> resourceInfoList, Integer top, Query filterQuery) throws ODataApplicationException {
         String symbioteId = null;
-        Object response = null;
+        RapPluginResponse response = null;
         try {
             top = (top == null) ? TOP_LIMIT : top;
             ResourceAccessMessage msg;
@@ -166,34 +173,75 @@ public class StorageHelper {
                 throw new ODataApplicationException("No response from plugin", HttpStatusCode.GATEWAY_TIMEOUT.getStatusCode(), Locale.ROOT);
             }
 
+            String rawObj;
             if (obj instanceof byte[]) {
-                response = new String((byte[]) obj, "UTF-8");
+                rawObj = new String((byte[]) obj, "UTF-8");
+            } else if (obj instanceof String){
+                rawObj = (String) obj;
             } else {
-                response = obj;
+                throw new ODataApplicationException("Can not parse response from RAP plugin. Expected byte[] or String but got " + obj.getClass().getName(), 
+                        HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), 
+                        Locale.ROOT);
             }
             
             try {
-                List<Observation> observations = mapper.readValue(response.toString(), new TypeReference<List<Observation>>() {});
-                if (observations == null || observations.isEmpty()) {
-                    log.error("No observations for resource " + symbioteId);
-                    return null;
-                }            
-
-                if (top == 1) {
-                    Observation o = observations.get(0);
-                    Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
-                    response = ob;
-                } else {
-                    List<Observation> observationsList = new ArrayList();
-                    for (Observation o : observations) {
-                        Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
-                        observationsList.add(ob);
-                    }
-                    response = observationsList;
-                }
+                response = mapper.readValue(rawObj, RapPluginResponse.class);
             } catch (Exception e) {
+                throw new ODataApplicationException("Can not parse response from RAP to JSON.\n Cause: " + e.getMessage(),
+                        HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), 
+                        Locale.ROOT,
+                        e);
             }
+            
+            if(response instanceof RapPluginOkResponse) {
+                RapPluginOkResponse okResponse = (RapPluginOkResponse) response;
+                if(okResponse.getBody() != null) {
+                    // need to clean up response if top 1 is used and RAP plugin does not support filtering
+                    try {
+                        
+                        if(okResponse.getBody() instanceof List) {
+                            List list = (List) okResponse.getBody();
+                            if(list.size() != 0 && list.get(0) instanceof Observation) {
+                                List<Observation> observations = (List<Observation>) okResponse.getBody();
+// TODO check if this is ok                        
+//                        if (observations == null || observations.isEmpty()) {
+//                            log.error("No observations for resource " + symbioteId);
+//                            return null;
+//                        }            
+                        
+                                if (top == 1) {
+                                    Observation o = observations.get(0);
+                                    Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
+                                    okResponse.setBody(mapper.writeValueAsString(ob));
+                                } 
+
+// TODO this is not needed
+//                        else {
+//                            List<Observation> observationsList = new ArrayList();
+//                            for (Observation o : observations) {
+//                                Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
+//                                observationsList.add(ob);
+//                            }
+//                            response = observationsList;
+//                        }
+                            }
+                        } else if(okResponse.getBody() instanceof Observation) {
+                            okResponse.setBody(Arrays.asList(okResponse.getBody()));
+                        } else {
+                            throw new IllegalStateException("Unsupported body response form RAP plugin. Expected observation list but got " + okResponse.getBody().getClass().getName());
+                        }
+                    } catch (Exception e) {
+                        throw new ODataApplicationException("Can not parse observation list from RAP plugin.\nCause: " + e.getMessage(), 
+                                HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), 
+                                Locale.ROOT,
+                                e);
+                    }
+                }
+            }
+            
             return response;
+        } catch (ODataApplicationException ae) {
+            throw ae;
         } catch (Exception e) {
             String err = "Unable to read resource " + symbioteId;
             err += "\n Error: " + e.getMessage();

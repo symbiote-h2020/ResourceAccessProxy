@@ -6,6 +6,10 @@
 package eu.h2020.symbiote.plugin;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.model.cim.Observation;
@@ -15,14 +19,20 @@ import eu.h2020.symbiote.messages.access.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessSubscribeMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessUnSubscribeMessage;
+import eu.h2020.symbiote.messages.plugin.RapPluginErrorResponse;
+import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
+import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
 import eu.h2020.symbiote.messages.registration.RegisterPluginMessage;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
+
+import java.io.IOException;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.core.ParameterizedTypeReference;
 
 /**
  *
@@ -47,13 +57,22 @@ public abstract class PlatformPlugin {
     
     
     public String receiveMessage(String message) {
+        ObjectMapper mapper = new ObjectMapper();
         String json = null;
-        try {            
-            ObjectMapper mapper = new ObjectMapper();
-            ResourceAccessMessage msg = mapper.readValue(message, ResourceAccessMessage.class);
-            ResourceAccessMessage.AccessType access = msg.getAccessType();
+        ResourceAccessMessage.AccessType access = null;
+        ResourceAccessMessage msg;
+        try {
+            msg = mapper.readValue(message, ResourceAccessMessage.class);
+            access = msg.getAccessType();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        } catch (IOException e) {
+            log.error("Error parsing request from generic RAP", e);
+            return serializeResponse(mapper, 
+                    new RapPluginErrorResponse(500, "Bad request arrived in RAP plugin.\nCause: " + e.getMessage()));
+        }
+            
+        try {            
             switch(access) {
                 case GET: {
                     ResourceAccessGetMessage msgGet = (ResourceAccessGetMessage) msg;
@@ -64,8 +83,7 @@ public abstract class PlatformPlugin {
                         if(internalIdTemp != null && !internalIdTemp.isEmpty())
                             internalId = internalIdTemp;
                     }
-                    json = readResource(internalId);
-                    break;
+                    return serializeResponse(mapper, createOkResponse(mapper, readResource(internalId)));
                 }
                 case HISTORY: {
                     ResourceAccessHistoryMessage msgHistory = (ResourceAccessHistoryMessage) msg;
@@ -76,8 +94,7 @@ public abstract class PlatformPlugin {
                         if(internalIdTemp != null && !internalIdTemp.isEmpty())
                             internalId = internalIdTemp;
                     }
-                    json = readResourceHistory(internalId);
-                    break;
+                    return serializeResponse(mapper, createOkResponse(mapper, readResourceHistory(internalId)));
                 }
                 case SET: {
                     ResourceAccessSetMessage msgSet = (ResourceAccessSetMessage)msg;
@@ -89,7 +106,10 @@ public abstract class PlatformPlugin {
                             internalId = internalIdTemp;
                     }
                     json = writeResource(internalId, msgSet.getBody());
-                    break;
+                    if(json == null)
+                        return serializeResponse(mapper, new RapPluginOkResponse());
+                    else
+                        return serializeResponse(mapper, new RapPluginOkResponse(json));
                 }
                 case SUBSCRIBE: {
                     ResourceAccessSubscribeMessage mess = (ResourceAccessSubscribeMessage)msg;
@@ -97,7 +117,7 @@ public abstract class PlatformPlugin {
                     for(ResourceInfo info : infoList) {
                         subscribeResource(info.getInternalId());
                     }
-                    break;
+                    return serializeResponse(mapper, new RapPluginOkResponse());
                 }
                 case UNSUBSCRIBE: {
                     ResourceAccessUnSubscribeMessage mess = (ResourceAccessUnSubscribeMessage)msg;
@@ -105,13 +125,42 @@ public abstract class PlatformPlugin {
                     for(ResourceInfo info : infoList) {
                         unsubscribeResource(info.getInternalId());
                     }
-                    break;
+                    return serializeResponse(mapper, new RapPluginOkResponse());
                 }
                 default:
-                    throw new Exception("Access type " + access.toString() + " not supported");
+                    return serializeResponse(mapper, new RapPluginErrorResponse(501,
+                            "Access type " + access.toString() + " not supported"));
             }
-        } catch (Exception e) {
-            log.error("Error while processing message:\n" + message + "\n" + e);
+        } catch (RapPluginException e) {
+            return serializeResponse(mapper, e.getResponse());
+        }
+    }
+
+    private RapPluginResponse createOkResponse(ObjectMapper mapper, String jsonBody) {
+        if(jsonBody == null)
+            throw new RapPluginException(500, "RAP plugin when reading must not return null value.");
+        
+        Object o = null;
+        
+        try {
+            o = mapper.readValue(jsonBody, new TypeReference<List<Observation>>() {});
+        } catch (IOException e) {
+            try {
+                o = mapper.readValue(jsonBody, new TypeReference<Observation>() {});
+            } catch (IOException e1) {
+                throw new RapPluginException(500, "RAP plugin implementation did not raturn List<Observation> or Observation.");
+            }
+        }
+        return new RapPluginOkResponse(o);
+    }
+
+    private String serializeResponse(ObjectMapper mapper, RapPluginResponse response) {
+        String json;
+        try {
+            json = mapper.writeValueAsString(response);
+        } catch (JsonProcessingException e1) {
+            log.error("Serializing RapPluginResponse should not have error", e1);
+            json = "{\"responseCode\": 500, \"message\": \"Serializing RapPluginErrorResponse should not have error\"}";
         }
         return json;
     }

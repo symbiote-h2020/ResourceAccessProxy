@@ -60,7 +60,6 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
             log.error(ex.getMessage(), ex);
             json = ex.getMessage();
         }
-        
         return json;
     }
     

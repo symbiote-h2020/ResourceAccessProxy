@@ -11,6 +11,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
 import eu.h2020.symbiote.managers.AuthorizationManager;
+import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
+import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
@@ -19,9 +21,14 @@ import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
+
+import static org.hamcrest.CoreMatchers.instanceOf;
+
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +55,8 @@ import org.apache.olingo.server.api.uri.UriResourceNavigation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.apache.olingo.server.api.uri.queryoption.FilterOption;
+import org.apache.olingo.server.api.uri.queryoption.SystemQueryOption;
+import org.apache.olingo.server.api.uri.queryoption.SystemQueryOptionKind;
 import org.apache.olingo.server.api.uri.queryoption.TopOption;
 import org.apache.olingo.server.api.uri.queryoption.expression.Expression;
 import org.springframework.amqp.core.TopicExchange;
@@ -101,7 +110,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
     public void readEntityCollection(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat)
             throws ODataApplicationException, ODataLibraryException {
         try {
-            Object obj;
+            RapPluginResponse rapPluginResponse;
             InputStream stream = null;
             ObjectMapper map = new ObjectMapper();
             map.configure(SerializationFeature.INDENT_OUTPUT, true);        
@@ -109,6 +118,19 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
             String jsonFilter;
             Integer top = null;
             
+            // check if all query options are valid
+            StringBuffer sb = new StringBuffer();
+            for(SystemQueryOption option: uriInfo.getSystemQueryOptions()) {
+                if(option.getKind() != SystemQueryOptionKind.TOP && option.getKind() != SystemQueryOptionKind.FILTER)
+                    sb.append("Query option '" + option.getName() + "' is not supported. ");
+            }
+            if(sb.length() != 0) {
+                setErrorResponse(response, 
+                        new CustomODataApplicationException(null, sb.toString().trim(), HttpStatusCode.NOT_IMPLEMENTED.getStatusCode(), Locale.ROOT),
+                        responseFormat);
+                return;
+            }
+                
             //TOP
             TopOption topOption = uriInfo.getTopOption();
             if (topOption != null) {
@@ -218,9 +240,9 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
             }
 
             try {
-                obj = storageHelper.getRelatedObject(resourceInfoList, top, filterQuery);
+                rapPluginResponse = storageHelper.getRelatedObject(resourceInfoList, top, filterQuery);
             } catch(ODataApplicationException odataExc) {
-                log.error("Resource ID has not been found.", odataExc.getMessage());
+                log.error("Resource ID has not been served. Cause:\n" + odataExc.getMessage(), odataExc);
                 customOdataException = new CustomODataApplicationException(symbioteId, odataExc.getMessage(), 
                         odataExc.getStatusCode(), odataExc.getLocale());
                 //throw customOdataException;
@@ -229,22 +251,22 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
             }
 
 
-            try {
-                map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-                String json = map.writeValueAsString(obj);
-                stream = new ByteArrayInputStream(json.getBytes("UTF-8"));
-            } catch (JsonProcessingException e) {
-                log.error("Error while trying to convert json", e);
-            } catch (UnsupportedEncodingException e) {
-                log.error("Unsupported encoding", e);
-            }
-            if(customOdataException == null && stream != null)
+//            try {
+//                map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+//                String json = map.writeValueAsString(rapPluginResponse);
+//                stream = new ByteArrayInputStream(json.getBytes("UTF-8"));
+//            } catch (JsonProcessingException e) {
+//                log.error("Error while trying to convert json", e);
+//            } catch (UnsupportedEncodingException e) {
+//                log.error("Unsupported encoding", e);
+//            }
+            if(customOdataException == null && rapPluginResponse instanceof RapPluginOkResponse)
                 storageHelper.sendSuccessfulAccessMessage(symbioteId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
 
             // 4th: configure the response object: set the body, headers and status code
             //response.setContent(serializerResult.getContent());
-            response.setContent(stream);
-            response.setStatusCode(HttpStatusCode.OK.getStatusCode());
+            response.setContent(new ByteArrayInputStream(rapPluginResponse.getContent().getBytes(StandardCharsets.UTF_8)));
+            response.setStatusCode(rapPluginResponse.getResponseCode());
             response.addHeader("Access-Control-Allow-Origin", "*");
             response.addHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
         } catch (Exception ex) {
