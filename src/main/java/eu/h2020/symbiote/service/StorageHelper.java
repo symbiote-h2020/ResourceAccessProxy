@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -212,18 +213,25 @@ public class StorageHelper {
                                 if (top == 1) {
                                     Observation o = observations.get(0);
                                     Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
-                                    okResponse.setBody(mapper.writeValueAsString(ob));
-                                } 
-
-// TODO this is not needed
-//                        else {
-//                            List<Observation> observationsList = new ArrayList();
-//                            for (Observation o : observations) {
-//                                Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
-//                                observationsList.add(ob);
-//                            }
-//                            response = observationsList;
-//                        }
+                                    okResponse.setBody(mapper.writeValueAsString(Arrays.asList(ob)));
+                                } else {
+                                    List<Observation> observationsList = new ArrayList();
+                                    for (Observation o : observations) {
+                                        Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
+                                        observationsList.add(ob);
+                                    }
+                                    // truncate list to max top size
+                                    if(top < observationsList.size()) {
+                                        int i = 0;
+                                        for (Iterator<Observation> iter = observationsList.iterator(); iter.hasNext();) {
+                                            Observation o = iter.next();
+                                            i++;
+                                            if(i > top)
+                                                iter.remove();
+                                        }
+                                    }
+                                    okResponse.setBody(observationsList);
+                                }
                             }
                         } else if(okResponse.getBody() instanceof Observation) {
                             okResponse.setBody(Arrays.asList(okResponse.getBody()));
