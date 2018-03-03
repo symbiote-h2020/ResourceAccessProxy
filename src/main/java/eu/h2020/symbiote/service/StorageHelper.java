@@ -144,18 +144,21 @@ public class StorageHelper {
                 if(pluginIdTemp != null && !pluginIdTemp.isEmpty())
                     pluginId = pluginIdTemp;
             }
+
+            // set default plugin if only one plugin registered in RAP
             if(pluginId == null) {
-                List<PlatformInfo> lst = pluginRepo.findAll();
-                if(lst == null || lst.isEmpty())
-                    throw new Exception("No plugin found");
+                if(pluginRepo.count() != 1)
+                    throw new ODataApplicationException("No plugin found for specified resource", 
+                            HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), Locale.ROOT);
                 
+                List<PlatformInfo> lst = pluginRepo.findAll();
                 pluginId = lst.get(0).getPlatformId();
-            }
+            }        
+
             String routingKey;
             if (top == 1) {
                 msg = new ResourceAccessGetMessage(resourceInfoList);
                 routingKey =  pluginId + "." + ResourceAccessMessage.AccessType.GET.toString().toLowerCase();
-                
             } else {
                 msg = new ResourceAccessHistoryMessage(resourceInfoList, top, filterQuery);
                 routingKey =  pluginId + "." + ResourceAccessMessage.AccessType.HISTORY.toString().toLowerCase();
@@ -423,6 +426,7 @@ public class StorageHelper {
                         if (resInfoOptional.isPresent()) {
                             noResourceFound = false;
                             resInfo.setInternalId(resInfoOptional.get().getInternalId());
+                            resInfo.setPluginId(resInfoOptional.get().getPluginId());
                         }
                     }
                 } catch (Exception e) {
