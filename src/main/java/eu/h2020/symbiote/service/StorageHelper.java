@@ -216,7 +216,7 @@ public class StorageHelper {
                                 if (top == 1) {
                                     Observation o = observations.get(0);
                                     Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
-                                    okResponse.setBody(mapper.writeValueAsString(Arrays.asList(ob)));
+                                    okResponse.setBody(Arrays.asList(ob));
                                 } else {
                                     List<Observation> observationsList = new ArrayList();
                                     for (Observation o : observations) {
