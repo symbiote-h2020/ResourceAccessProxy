@@ -5,22 +5,33 @@
  */
 package eu.h2020.symbiote.plugin;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+
 import eu.h2020.symbiote.model.cim.WGS84Location;
 import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.model.cim.ObservationValue;
 import eu.h2020.symbiote.model.cim.Property;
 import eu.h2020.symbiote.model.cim.UnitOfMeasurement;
+
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.TimeZone;
+
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 
@@ -63,11 +74,44 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
         return json;
     }
     
+    // This is for actuating resource or invoking service.
+    // In the case of actuation body will be JSON Object with capabilities and parameters. Actuation does not return value (it will be ignored). 
+    // In the case of invoking service body will be JSON Array with parameters.
     @Override
     public String writeResource(String resourceId, String body) {
         // INSERT HERE: call to the platform with internal resource id
-        // setting the actuator value
-        return PLUGIN_PLATFORM_ID;
+        String newBody = body.trim();
+        if(newBody.charAt(0) == '{') {
+            // actuation
+            System.out.println("Actuation on resource " + resourceId + " called.");
+            if("iaid1".equals(resourceId)) {
+                try {
+                    ObjectMapper mapper = new ObjectMapper();  
+                    HashMap<String,ArrayList<HashMap<String, Object>>> jsonObject = 
+                            mapper.readValue(body, new TypeReference<HashMap<String,ArrayList<HashMap<String, Object>>>>() { });
+                    for(Entry<String, ArrayList<HashMap<String,Object>>> capabilityEntry: jsonObject.entrySet()) {
+                        System.out.println("Found capability " + capabilityEntry.getKey());
+                        System.out.println(" There are " + capabilityEntry.getValue().size() + " parameters.");
+                        for(HashMap<String, Object> parameterMap: capabilityEntry.getValue()) {
+                            for(Entry<String, Object> parameter: parameterMap.entrySet()) {
+                                System.out.println(" paramName: " + parameter.getKey());
+                                System.out.println(" paramValueType: " + parameter.getValue().getClass().getName() + " value: " + parameter.getValue() + "\n");
+                            }
+                        }
+                    }
+                    System.out.println("jsonObject:  " + jsonObject);
+                    
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            } else if(!"iaid1".equals(resourceId)) {
+                throw new RapPluginException(404, "Resource with id " + resourceId + " was not found!");
+            }
+            return null;
+        } else {
+            // invoking service
+            return "\"some json\"";
+        }
     }
     
     @Override

@@ -11,6 +11,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
 import eu.h2020.symbiote.managers.AuthorizationManager;
+import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
+import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
@@ -290,31 +292,31 @@ public class RAPEntityProcessor implements EntityProcessor{
                 return;
             }
 
-            Object obj = storageHelper.setService(resourceInfoList, body);        
-            responseString = "";        
-            if ((obj != null) && (obj instanceof byte[])) {
-                try {
-                    responseString = new String((byte[]) obj, "UTF-8");
-                } catch (UnsupportedEncodingException ex) {
-                    log.warn(ex.getMessage());
-                }
-            } else {
-                responseString = (String) obj;
-            }       
+            RapPluginResponse rapPluginResponse = storageHelper.setService(resourceInfoList, body);        
+//            responseString = "";        
+//            if ((obj != null) && (obj instanceof byte[])) {
+//                try {
+//                    responseString = new String((byte[]) obj, "UTF-8");
+//                } catch (UnsupportedEncodingException ex) {
+//                    log.warn(ex.getMessage());
+//                }
+//            } else {
+//                responseString = (String) obj;
+//            }       
+//
+//            try {
+//                stream = new ByteArrayInputStream(responseString.getBytes("UTF-8"));
+//            } catch(Exception e){
+//                log.error(e.getMessage());
+//            }
 
-            try {
-                stream = new ByteArrayInputStream(responseString.getBytes("UTF-8"));
-            } catch(Exception e){
-                log.error(e.getMessage());
-            }
-
-            if(customOdataException == null && stream != null)
+            if(customOdataException == null && rapPluginResponse instanceof RapPluginOkResponse)
                 storageHelper.sendSuccessfulAccessMessage(resourceInfoList.get(0).getSymbioteId(),SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
 
             // 4th: configure the response object: set the body, headers and status code
             //response.setContent(serializerResult.getContent());
-            response.setContent(stream);
-            response.setStatusCode(HttpStatusCode.OK.getStatusCode());
+            response.setContent(new ByteArrayInputStream(rapPluginResponse.getContent().getBytes(StandardCharsets.UTF_8)));
+            response.setStatusCode(rapPluginResponse.getResponseCode());
             response.addHeader("Access-Control-Allow-Origin", "*");
             response.addHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
          } catch (Exception ex) {

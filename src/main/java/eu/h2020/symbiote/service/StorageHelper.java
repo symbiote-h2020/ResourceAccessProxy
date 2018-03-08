@@ -36,6 +36,8 @@ import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
+
+import java.io.UnsupportedEncodingException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -172,30 +174,7 @@ public class StorageHelper {
             log.debug("Message: ");
             log.debug(json);
             Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-            if (obj == null) {
-                log.error("No response from plugin");
-                throw new ODataApplicationException("No response from plugin", HttpStatusCode.GATEWAY_TIMEOUT.getStatusCode(), Locale.ROOT);
-            }
-
-            String rawObj;
-            if (obj instanceof byte[]) {
-                rawObj = new String((byte[]) obj, "UTF-8");
-            } else if (obj instanceof String){
-                rawObj = (String) obj;
-            } else {
-                throw new ODataApplicationException("Can not parse response from RAP plugin. Expected byte[] or String but got " + obj.getClass().getName(), 
-                        HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), 
-                        Locale.ROOT);
-            }
-            
-            try {
-                response = mapper.readValue(rawObj, RapPluginResponse.class);
-            } catch (Exception e) {
-                throw new ODataApplicationException("Can not parse response from RAP to JSON.\n Cause: " + e.getMessage(),
-                        HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), 
-                        Locale.ROOT,
-                        e);
-            }
+            response = extractRapPluginResponse(obj);
             
             if(response instanceof RapPluginOkResponse) {
                 RapPluginOkResponse okResponse = (RapPluginOkResponse) response;
@@ -261,13 +240,43 @@ public class StorageHelper {
         }
     }
 
-    public Object setService(ArrayList<ResourceInfo> resourceInfoList, String requestBody) throws ODataApplicationException {
-        Object obj = null;
+    private RapPluginResponse extractRapPluginResponse(Object obj)
+            throws ODataApplicationException, UnsupportedEncodingException {
+        ObjectMapper mapper = new ObjectMapper();
+        if (obj == null) {
+            log.error("No response from plugin");
+            throw new ODataApplicationException("No response from plugin", HttpStatusCode.GATEWAY_TIMEOUT.getStatusCode(), Locale.ROOT);
+        }
+
+        String rawObj;
+        if (obj instanceof byte[]) {
+            rawObj = new String((byte[]) obj, "UTF-8");
+        } else if (obj instanceof String){
+            rawObj = (String) obj;
+        } else {
+            throw new ODataApplicationException("Can not parse response from RAP plugin. Expected byte[] or String but got " + obj.getClass().getName(), 
+                    HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), 
+                    Locale.ROOT);
+        }
+        
+        try {
+            return mapper.readValue(rawObj, RapPluginResponse.class);
+        } catch (Exception e) {
+            throw new ODataApplicationException("Can not parse response from RAP to JSON.\n Cause: " + e.getMessage(),
+                    HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), 
+                    Locale.ROOT,
+                    e);
+        }
+    }
+
+    public RapPluginResponse setService(ArrayList<ResourceInfo> resourceInfoList, String requestBody) throws ODataApplicationException {
+        String type = "";
         try {
             ResourceAccessMessage msg;
             String pluginId = null;
             for(ResourceInfo resourceInfo: resourceInfoList){
                 pluginId = resourceInfo.getPluginId();
+                type = resourceInfo.getType();
                 if(pluginId != null)
                     break;
             }
@@ -278,6 +287,11 @@ public class StorageHelper {
                 
                 pluginId = lst.get(0).getPlatformId();
             }
+            
+            if("Service".equals(type)) {
+                requestBody = "[" + requestBody + "]";
+            }
+            
             String routingKey = pluginId + "." + ResourceAccessMessage.AccessType.SET.toString().toLowerCase();
             
             msg = new ResourceAccessSetMessage(resourceInfoList, requestBody);
@@ -293,12 +307,13 @@ public class StorageHelper {
                 log.error("JSon processing exception: " + ex.getMessage());
             }
             log.info("Message Set: " + json);
-            obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+            Object o = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+            RapPluginResponse rpResponse = extractRapPluginResponse(o);
+            return rpResponse;
             
         } catch (Exception e) {
             throw new ODataApplicationException("Internal Error", HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), Locale.ROOT);
         }
-        return obj;
     }
     
     public static Query calculateFilter(Expression expression) throws ODataApplicationException {
