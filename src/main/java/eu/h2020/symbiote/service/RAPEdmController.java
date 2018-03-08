@@ -5,19 +5,27 @@
  */
 package eu.h2020.symbiote.service;
 
+import eu.h2020.symbiote.cloud.model.data.InputParameter;
 /**
  *
  * @author Luca Tomaselli <l.tomaselli@nextworks.it>
  */
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceODataCondition;
+
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.input.ReaderInputStream;
 import org.apache.olingo.commons.api.ex.ODataException;
 
 import org.apache.olingo.commons.api.http.HttpHeader;
@@ -45,12 +53,16 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.managers.ServiceResponseResult;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.Date;
 import org.springframework.beans.factory.annotation.Value;
 
@@ -154,7 +166,7 @@ public class RAPEdmController {
             log.error(e.getMessage(), e);
         }
         
-        return new ResponseEntity(responseStr, headers, httpStatus);
+        return new ResponseEntity<String>(responseStr, headers, httpStatus);
     }
 
     private String sendFailMessage(HttpServletRequest request, String error) {
@@ -213,11 +225,31 @@ public class RAPEdmController {
         try {
             ODataRequest odRequest = new ODataRequest();
 
-            odRequest.setBody(httpRequest.getInputStream());
             extractHeaders(odRequest, httpRequest);
             extractMethod(odRequest, httpRequest);
             extractUri(odRequest, httpRequest, split);
 
+            // set body
+            StringWriter writer = new StringWriter();
+            IOUtils.copy(httpRequest.getInputStream(), writer, StandardCharsets.UTF_8);
+            String input = writer.toString();
+            log.info("Input: {}", input);
+            if(odRequest.getRawODataPath().startsWith("Service(")) {
+                // service - coverting input JSON to input parametres separated by comma
+                ObjectMapper mapper = new ObjectMapper();
+                List<Object> objects = mapper.readValue(input, new TypeReference<List<Object>>() { });
+                StringWriter sw = new StringWriter();
+                for (Iterator<Object> iter = objects.iterator(); iter.hasNext();) {
+                    Object o = iter.next();
+                    mapper.writeValue(sw, o);
+                    if(iter.hasNext())
+                        sw.append(",\n");
+                }
+                input = sw.toString();
+            }
+
+            odRequest.setBody(new ReaderInputStream(new StringReader(input), StandardCharsets.UTF_8));
+            
             return odRequest;
         } catch (final IOException e) {
             throw new SerializerException("An I/O exception occurred.", e,
