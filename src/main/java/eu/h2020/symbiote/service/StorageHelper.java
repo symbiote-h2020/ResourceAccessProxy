@@ -310,7 +310,8 @@ public class StorageHelper {
             Object o = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             RapPluginResponse rpResponse = extractRapPluginResponse(o);
             return rpResponse;
-            
+        } catch (ODataApplicationException ae) {
+            throw ae;        
         } catch (Exception e) {
             throw new ODataApplicationException("Internal Error", HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), Locale.ROOT);
         }
