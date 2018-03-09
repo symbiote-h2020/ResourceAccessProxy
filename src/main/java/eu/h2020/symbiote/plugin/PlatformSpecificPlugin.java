@@ -86,6 +86,7 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
             System.out.println("Actuation on resource " + resourceId + " called.");
             if("iaid1".equals(resourceId)) {
                 try {
+                    // This is example of extracting data from body
                     ObjectMapper mapper = new ObjectMapper();  
                     HashMap<String,ArrayList<HashMap<String, Object>>> jsonObject = 
                             mapper.readValue(body, new TypeReference<HashMap<String,ArrayList<HashMap<String, Object>>>>() { });
@@ -100,17 +101,39 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
                         }
                     }
                     System.out.println("jsonObject:  " + jsonObject);
-                    
+                    // actuation always returns null if everything is ok
+                    return null;
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    throw new RapPluginException(500, e.getMessage());
                 }
-            } else if(!"iaid1".equals(resourceId)) {
+            } else {
                 throw new RapPluginException(404, "Resource with id " + resourceId + " was not found!");
             }
-            return null;
         } else {
             // invoking service
-            return "\"some json\"";
+            System.out.println("Invoking service " + resourceId + ".");
+            if("isrid1".equals(resourceId)) {
+                try {
+                    ObjectMapper mapper = new ObjectMapper();  
+                    ArrayList<HashMap<String, Object>> jsonObject = 
+                            mapper.readValue(body, new TypeReference<ArrayList<HashMap<String, Object>>>() { });
+                    for(HashMap<String,Object> parameters: jsonObject) {
+                        System.out.println("Found " + parameters.size() + " parameter(s).");
+                        for(Entry<String, Object> parameter: parameters.entrySet()) {
+                            System.out.println(" paramName: " + parameter.getKey());
+                            System.out.println(" paramValueType: " + parameter.getValue().getClass().getName() + " value: " + parameter.getValue() + "\n");
+                        }
+                    }
+                    System.out.println("jsonObject:  " + jsonObject);
+                    // Service can return either null if nothing to return or some JSON
+                    return null;
+                    //return "\"some json\"";
+                } catch (IOException e) {
+                    throw new RapPluginException(500, e.getMessage());
+                }
+            } else {
+                throw new RapPluginException(404, "Service with id " + resourceId + " was not found!");
+            }
         }
     }
     

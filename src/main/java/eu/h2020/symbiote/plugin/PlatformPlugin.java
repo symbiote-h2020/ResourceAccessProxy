@@ -108,8 +108,14 @@ public abstract class PlatformPlugin {
                     json = writeResource(internalId, msgSet.getBody());
                     if(json == null)
                         return serializeResponse(mapper, new RapPluginOkResponse());
-                    else
-                        return serializeResponse(mapper, new RapPluginOkResponse(json));
+                    else {
+                        try {
+                            Object returnObject = mapper.readValue(json, Object.class);
+                            return serializeResponse(mapper, new RapPluginOkResponse(returnObject));
+                        } catch (IOException e) {
+                            throw new RapPluginException(500, "PlatfromSpecificPlugin dit not return valid JSON string.");
+                        }
+                    }
                 }
                 case SUBSCRIBE: {
                     ResourceAccessSubscribeMessage mess = (ResourceAccessSubscribeMessage)msg;
