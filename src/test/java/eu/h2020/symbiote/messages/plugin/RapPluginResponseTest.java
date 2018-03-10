@@ -10,7 +10,6 @@ import org.junit.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import eu.h2020.symbiote.model.cim.Observation;
-import eu.h2020.symbiote.plugin.RapPluginException;
 
 public class RapPluginResponseTest {
     ObjectMapper mapper;
@@ -156,7 +155,7 @@ public class RapPluginResponseTest {
         assertThat(response.getResponseCode()).isEqualTo(200);
         Object body = ((RapPluginOkResponse)response).getBody();
         assertThat(body).isInstanceOf(List.class);
-        List list = (List) body;
+        List<?> list = (List<?>) body;
         assertThat(list.get(0)).isInstanceOf(Observation.class);
     }
 

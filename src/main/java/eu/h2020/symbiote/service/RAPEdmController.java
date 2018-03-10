@@ -5,7 +5,6 @@
  */
 package eu.h2020.symbiote.service;
 
-import eu.h2020.symbiote.cloud.model.data.InputParameter;
 /**
  *
  * @author Luca Tomaselli <l.tomaselli@nextworks.it>
@@ -13,7 +12,6 @@ import eu.h2020.symbiote.cloud.model.data.InputParameter;
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceODataCondition;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -60,7 +58,6 @@ import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.managers.ServiceResponseResult;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Date;
@@ -125,7 +122,7 @@ public class RAPEdmController {
         HttpStatus httpStatus = null;
         try {            
             OData odata = OData.newInstance();
-            ServiceMetadata edm = odata.createServiceMetadata(edmProvider, new ArrayList());
+            ServiceMetadata edm = odata.createServiceMetadata(edmProvider, new ArrayList<>());
             ODataHttpHandler handler = odata.createHandler(edm);
             handler.register(entityCollectionProcessor);
             handler.register(entityProcessor);
@@ -375,7 +372,7 @@ public class RAPEdmController {
     private void extractHeaders(final ODataRequest odRequest, final HttpServletRequest req) {
         for (Enumeration<?> headerNames = req.getHeaderNames(); headerNames.hasMoreElements();) {
             String headerName = (String) headerNames.nextElement();
-            List<String> headerValues = new ArrayList();
+            List<String> headerValues = new ArrayList<>();
             for (Enumeration<?> headers = req.getHeaders(headerName); headers.hasMoreElements();) {
                 String value = (String) headers.nextElement();
                 headerValues.add(value);

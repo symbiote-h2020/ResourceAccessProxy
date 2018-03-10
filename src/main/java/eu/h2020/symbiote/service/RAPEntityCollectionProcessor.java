@@ -16,18 +16,13 @@ import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
-import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
-import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
-
-import static org.hamcrest.CoreMatchers.instanceOf;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import org.slf4j.Logger;
@@ -111,7 +106,6 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
             throws ODataApplicationException, ODataLibraryException {
         try {
             RapPluginResponse rapPluginResponse;
-            InputStream stream = null;
             ObjectMapper map = new ObjectMapper();
             map.configure(SerializationFeature.INDENT_OUTPUT, true);        
             CustomODataApplicationException customOdataException = null;
@@ -172,7 +166,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
                 }
             }
 
-            ArrayList<String> typeNameList = new ArrayList();
+            ArrayList<String> typeNameList = new ArrayList<>();
             // 1st retrieve the requested EntitySet from the uriInfo
             List<UriResource> resourceParts = uriInfo.getUriResourceParts();
             int segmentCount = resourceParts.size();
@@ -208,7 +202,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
 
             List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
             String symbioteId = null;
-            ArrayList<ResourceInfo> resourceInfoList;
+            List<ResourceInfo> resourceInfoList;
             try {
                 resourceInfoList = storageHelper.getResourceInfoList(typeNameList,keyPredicates);
                 for(ResourceInfo resourceInfo: resourceInfoList){

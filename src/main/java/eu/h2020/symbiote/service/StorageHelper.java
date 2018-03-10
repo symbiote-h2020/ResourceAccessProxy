@@ -7,8 +7,6 @@ package eu.h2020.symbiote.service;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
@@ -16,7 +14,6 @@ import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
-import eu.h2020.symbiote.messages.plugin.RapPluginErrorResponse;
 import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
 import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
 import eu.h2020.symbiote.model.cim.Observation;
@@ -29,13 +26,9 @@ import eu.h2020.symbiote.resources.query.Comparison;
 import eu.h2020.symbiote.resources.query.Filter;
 import eu.h2020.symbiote.resources.query.Operator;
 import eu.h2020.symbiote.resources.query.Query;
-import eu.h2020.symbiote.resources.db.AccessPolicy;
-import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
-import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
-import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 
 import java.io.UnsupportedEncodingException;
 import java.text.DateFormat;
@@ -50,13 +43,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
-import org.apache.olingo.commons.api.ex.ODataException;
 import org.apache.olingo.commons.api.http.HttpStatusCode;
 import org.apache.olingo.server.api.ODataApplicationException;
 import org.apache.olingo.server.api.uri.UriParameter;
@@ -67,7 +57,6 @@ import org.apache.olingo.server.api.uri.queryoption.expression.BinaryOperatorKin
 import org.apache.olingo.server.api.uri.queryoption.expression.Expression;
 import org.apache.olingo.server.api.uri.queryoption.expression.Literal;
 import org.apache.olingo.server.api.uri.queryoption.expression.Member;
-import org.hamcrest.core.IsInstanceOf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
@@ -123,14 +112,14 @@ public class StorageHelper {
                     }
                 }
             } catch (Exception e) {
-                int a = 0;
+                throw new RuntimeException(e);
             }
         }
 
         return resInfo;
     }
 
-    public RapPluginResponse getRelatedObject(ArrayList<ResourceInfo> resourceInfoList, Integer top, Query filterQuery) throws ODataApplicationException {
+    public RapPluginResponse getRelatedObject(List<ResourceInfo> resourceInfoList, Integer top, Query filterQuery) throws ODataApplicationException {
         String symbioteId = null;
         RapPluginResponse response = null;
         try {
@@ -183,9 +172,10 @@ public class StorageHelper {
                     try {
                         
                         if(okResponse.getBody() instanceof List) {
-                            List list = (List) okResponse.getBody();
+                            List<?> list = (List<?>) okResponse.getBody();
                             if(list.size() != 0 && list.get(0) instanceof Observation) {
-                                List<Observation> observations = (List<Observation>) okResponse.getBody();
+                                @SuppressWarnings("unchecked")
+                                List<Observation> observations = (List<Observation>) list;
 // TODO check if this is ok                        
 //                        if (observations == null || observations.isEmpty()) {
 //                            log.error("No observations for resource " + symbioteId);
@@ -197,7 +187,7 @@ public class StorageHelper {
                                     Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
                                     okResponse.setBody(Arrays.asList(ob));
                                 } else {
-                                    List<Observation> observationsList = new ArrayList();
+                                    List<Observation> observationsList = new ArrayList<>();
                                     for (Observation o : observations) {
                                         Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
                                         observationsList.add(ob);
@@ -206,7 +196,7 @@ public class StorageHelper {
                                     if(top < observationsList.size()) {
                                         int i = 0;
                                         for (Iterator<Observation> iter = observationsList.iterator(); iter.hasNext();) {
-                                            Observation o = iter.next();
+                                            iter.next();
                                             i++;
                                             if(i > top)
                                                 iter.remove();
@@ -269,7 +259,7 @@ public class StorageHelper {
         }
     }
 
-    public RapPluginResponse setService(ArrayList<ResourceInfo> resourceInfoList, String requestBody) throws ODataApplicationException {
+    public RapPluginResponse setService(List<ResourceInfo> resourceInfoList, String requestBody) throws ODataApplicationException {
         String type = "";
         try {
             ResourceAccessMessage msg;
@@ -325,7 +315,7 @@ public class StorageHelper {
             Expression right = ((Binary) expression).getRightOperand();
 
             if (left instanceof Binary && right instanceof Binary) {
-                ArrayList<Query> exprs = new ArrayList();
+                List<Query> exprs = new ArrayList<>();
                 Operator op = null;
                 try {
                     op = new Operator(operator.name());
@@ -422,9 +412,9 @@ public class StorageHelper {
         return parsedData;
     }
 
-    public ArrayList<ResourceInfo> getResourceInfoList(ArrayList<String> typeNameList, List<UriParameter> keyPredicates) throws ODataApplicationException {
+    public List<ResourceInfo> getResourceInfoList(List<String> typeNameList, List<UriParameter> keyPredicates) throws ODataApplicationException {
         Boolean noResourceFound = true;
-        ArrayList<ResourceInfo> resourceInfoList = new ArrayList();
+        List<ResourceInfo> resourceInfoList = new ArrayList<>();
         for(int i = 0; i< typeNameList.size(); i++){
             ResourceInfo resInfo = new ResourceInfo();
             resInfo.setType(typeNameList.get(i));
@@ -461,7 +451,7 @@ public class StorageHelper {
     public boolean checkAccessPolicies(ODataRequest request, String resourceId) throws Exception {
         log.debug("Checking access policies for resource " + resourceId);
         Map<String,List<String>> headers = request.getAllHeaders();
-        Map<String, String> secHdrs = new HashMap();
+        Map<String, String> secHdrs = new HashMap<>();
         for(String key : headers.keySet()) {
             secHdrs.put(key, request.getHeader(key));
         }

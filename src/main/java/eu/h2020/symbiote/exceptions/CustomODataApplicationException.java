@@ -8,7 +8,6 @@ package eu.h2020.symbiote.exceptions;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Locale;
-import org.apache.olingo.server.api.ODataApplicationException;
 
 /**
  *

@@ -16,7 +16,6 @@ import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
-import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import static eu.h2020.symbiote.service.RAPEntityCollectionProcessor.setErrorResponse;
@@ -29,7 +28,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import org.apache.commons.io.IOUtils;
-import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
 import org.apache.olingo.commons.api.edm.EdmNavigationProperty;
@@ -55,7 +53,6 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import org.apache.olingo.server.api.deserializer.DeserializerResult;
 import org.apache.olingo.server.api.deserializer.ODataDeserializer;
 import org.springframework.beans.factory.annotation.Value;
 
@@ -116,7 +113,7 @@ public class RAPEntityProcessor implements EntityProcessor{
 
             CustomODataApplicationException customOdataException = null;
 
-            ArrayList<String> typeNameList = new ArrayList();
+            ArrayList<String> typeNameList = new ArrayList<>();
             // 1st retrieve the requested EntitySet from the uriInfo
             List<UriResource> resourceParts = uriInfo.getUriResourceParts();
             int segmentCount = resourceParts.size();
@@ -207,11 +204,9 @@ public class RAPEntityProcessor implements EntityProcessor{
     public void updateEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType requestFormat, ContentType responseFormat) throws ODataApplicationException, ODataLibraryException {
         try {
             CustomODataApplicationException customOdataException = null;        
-            String responseString;
-            InputStream stream = null;
             String body = null;
 
-            ArrayList<String> typeNameList = new ArrayList();
+            ArrayList<String> typeNameList = new ArrayList<>();
 
             // 1st retrieve the requested EntitySet from the uriInfo
             List<UriResource> resourceParts = uriInfo.getUriResourceParts();
@@ -258,11 +253,10 @@ public class RAPEntityProcessor implements EntityProcessor{
                 log.error("Invalid message body", ex);
             }
             requestInputStream = new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8));
-            DeserializerResult result = deserializer.entity(requestInputStream, targetEntityType);
-            Entity requestEntity = result.getEntity();
+            deserializer.entity(requestInputStream, targetEntityType);
 
             String symbioteId = null;
-            ArrayList<ResourceInfo> resourceInfoList;
+            List<ResourceInfo> resourceInfoList;
             try {
                 resourceInfoList = storageHelper.getResourceInfoList(typeNameList,keyPredicates);
                 for(ResourceInfo resourceInfo: resourceInfoList){

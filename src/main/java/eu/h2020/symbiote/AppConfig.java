@@ -32,6 +32,7 @@ class AppConfig extends AbstractMongoConfiguration {
         return databaseName;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public Mongo mongo() throws Exception {
         return new Mongo();

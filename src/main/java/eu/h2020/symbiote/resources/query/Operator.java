@@ -23,13 +23,13 @@ public class Operator {
     public Operator(String lopStr) throws Exception {
         switch(lopStr){
             case "AND":
-                this.lop = lop.AND;
+                this.lop = Lop.AND;
                 break;
             case "OR":
-                this.lop = lop.OR;
+                this.lop = Lop.OR;
                 break;
             case "NOT":
-                this.lop = lop.NOT;
+                this.lop = Lop.NOT;
                 break;
             default:
                 throw new Exception("Operator not recognize");

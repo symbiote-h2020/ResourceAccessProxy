@@ -1,9 +1,7 @@
 package eu.h2020.symbiote.messages.plugin;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.*;
 
-import org.junit.Before;
 import org.junit.Test;
 
 import eu.h2020.symbiote.messages.plugin.RapPluginResponseTest.ClassWithSelfReference;

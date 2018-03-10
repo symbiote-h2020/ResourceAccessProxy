@@ -6,24 +6,18 @@
 package eu.h2020.symbiote.interfaces;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.managers.ServiceRequest;
 import eu.h2020.symbiote.messages.resourceAccessNotification.FailedAccessMessageInfo;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulPushesMessageInfo;
-import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
-import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
-import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
@@ -104,7 +98,7 @@ public class ResourceAccessNotification {
         ServiceRequest serviceReq = authManager.getServiceRequestHeaders();
         if(serviceReq.isCreatedSuccessfully()) {
             HttpHeaders httpHeaders = serviceReq.getServiceRequestHeaders();
-            HttpEntity<String> httpEntity = new HttpEntity(message,httpHeaders);
+            HttpEntity<String> httpEntity = new HttpEntity<>(message,httpHeaders);
         
             restTemplate.postForObject(notificationUrl, httpEntity, Object.class);
             log.debug("Sent access notification message to CRAM");

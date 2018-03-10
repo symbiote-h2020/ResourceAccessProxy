@@ -91,7 +91,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
             schema.setNamespace(NAMESPACE);
 
             // add EntityTypes
-            List<CsdlEntityType> entityTypes = new ArrayList();
+            List<CsdlEntityType> entityTypes = new ArrayList<>();
             for (String s : getClassesName()) {
                 IRI iri = IRI.create(s);
                 entityTypes.add(getEntityType(new FullQualifiedName(NAMESPACE, iri.getShortForm())));
@@ -99,7 +99,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
             schema.setEntityTypes(entityTypes);
 
             //add ComplexTypes
-            List<CsdlComplexType> complexTypes = new ArrayList();
+            List<CsdlComplexType> complexTypes = new ArrayList<>();
             for (String iriString : getClassesName()) {
                 List<CustomField> fields = getAllFields(iriString);
                 for (CustomField f : fields) {
@@ -113,7 +113,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
             // add EntityContainer
             schema.setEntityContainer(getEntityContainer());
             // finally
-            List<CsdlSchema> schemas = new ArrayList();
+            List<CsdlSchema> schemas = new ArrayList<>();
             schemas.add(schema);
 
             return schemas;
@@ -131,7 +131,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
         if (class2field.containsKey(iriString)) {
             return class2field.get(iriString);
         }
-        List<CustomField> fields = new ArrayList();
+        List<CustomField> fields = new ArrayList<>();
         HashMap<String, String> property2type = getClasses().get(iriString);
         if (property2type != null) {
             for (String property : property2type.keySet()) {
@@ -160,6 +160,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
         return getShortClassName(f.getType());
     }
 
+    @SuppressWarnings("unused")
     private String getInternalTypeClassLong(CustomField f) {
         return f.getType().replace("[]", "");
     }
@@ -266,7 +267,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
             //Class [] classes = {Sensor.class, Actuator.class, ActuatingService.class};
             String className = getClassLongName(entityTypeName.getName(), getClassesName());
             List<CustomField> fields = getAllFields(className);
-            ArrayList<CsdlProperty> lst = new ArrayList();
+            ArrayList<CsdlProperty> lst = new ArrayList<>();
             List<CsdlNavigationProperty> navPropList = new ArrayList<>();
             String keyEl = "";            
             for (CustomField f : fields) {
@@ -353,7 +354,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
         try {
             String className = getClassLongName(complexTypeName.getName(), getClassesName());
             List<CustomField> fields = getAllFields(className);
-            ArrayList<CsdlProperty> propList = new ArrayList();
+            List<CsdlProperty> propList = new ArrayList<>();
             for (CustomField f : fields) {
                 String name = f.getName();
                 String type = f.getType();
@@ -398,7 +399,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
                     entitySet.setName(simpleNames);
                     entitySet.setType(new FullQualifiedName(NAMESPACE, simpleName));
 
-                    List<CsdlNavigationPropertyBinding> navPropBindingList = new ArrayList();
+                    List<CsdlNavigationPropertyBinding> navPropBindingList = new ArrayList<>();
                     List<CustomField> fields = getAllFields(s);
                     for (CustomField f : fields) {
                         String type = f.getType();
@@ -423,7 +424,7 @@ public class RAPEdmProvider extends CsdlAbstractEdmProvider {
     public CsdlEntityContainer getEntityContainer() throws ODataException {
 
         // create EntitySets
-        List<CsdlEntitySet> entitySets = new ArrayList();
+        List<CsdlEntitySet> entitySets = new ArrayList<>();
         for(String nots_s: nots_s_array){
             for (String s : getClassesName()) {
                 entitySets.add(getEntitySet(CONTAINER, getShortClassName(s) + nots_s));

@@ -6,7 +6,6 @@
 package eu.h2020.symbiote.rap.tests;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -16,13 +15,9 @@ import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.plugin.PlatformSpecificPlugin;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
-import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
-import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
-import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.service.RAPEdmController;
 import java.nio.charset.Charset;
 import java.util.List;
-import java.util.Map;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

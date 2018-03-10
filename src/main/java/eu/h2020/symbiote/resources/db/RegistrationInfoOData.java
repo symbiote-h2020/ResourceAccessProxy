@@ -45,7 +45,7 @@ public class RegistrationInfoOData {
         this.parameters = null;
     }
     
-    public RegistrationInfoOData(String symbioteId, String className, String superClass, Set parameters) {
+    public RegistrationInfoOData(String symbioteId, String className, String superClass, Set<ParameterInfo> parameters) {
         this.symbioteId = symbioteId;
         this.className = className;
         this.superClass = superClass;
@@ -84,11 +84,11 @@ public class RegistrationInfoOData {
         this.superClass = superClass;
     }
 
-    public Set getParameters() {
+    public Set<ParameterInfo> getParameters() {
         return parameters;
     }
 
-    public void setParameters(Set parameters) {
+    public void setParameters(Set<ParameterInfo> parameters) {
         this.parameters = parameters;
     }
     

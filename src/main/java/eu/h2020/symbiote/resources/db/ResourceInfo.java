@@ -108,7 +108,7 @@ public class ResourceInfo {
     @JsonIgnore
     public void addToSessionList(String sessionId) {
         if(this.sessionIdList == null)
-            this.sessionIdList = new ArrayList();
+            this.sessionIdList = new ArrayList<>();
         this.sessionIdList.add(sessionId);
     }
     
