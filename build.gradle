@@ -84,10 +84,9 @@ dependencies {
             3) project dependency requires changes in settings.gradle file in this project
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
-    //compile project(':SymbIoTeLibraries')
 
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:5+')
-    
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:5.+') { }
+
     // Spring
     compile('org.springframework.cloud:spring-cloud-starter')
     compile('org.springframework.cloud:spring-cloud-starter-config')
@@ -110,7 +109,7 @@ dependencies {
     
     // test only
     compile("org.springframework.boot:spring-boot-starter-web")
-    testCompile("org.springframework.boot:spring-boot-starter-test")
+    testCompile ("org.springframework.boot:spring-boot-starter-test")
     
     
     //Owlapi

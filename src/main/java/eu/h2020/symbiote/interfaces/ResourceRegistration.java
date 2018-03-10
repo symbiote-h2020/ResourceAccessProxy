@@ -18,11 +18,12 @@ import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import java.util.List;
+
+import eu.h2020.symbiote.security.accesspolicies.common.AccessPolicyFactory;
+import eu.h2020.symbiote.security.accesspolicies.common.IAccessPolicySpecifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenAccessPolicySpecifier;
-import eu.h2020.symbiote.security.accesspolicies.common.SingleTokenAccessPolicyFactory;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import java.util.Optional;
 
@@ -73,7 +74,7 @@ public class ResourceRegistration {
                 }
                 log.debug("Registering "+ resourceClass +" with symbioteId: " + symbioteId + ", internalId: " + internalId);
                 
-                addPolicy(symbioteId, internalId, msg.getSingleTokenAccessPolicy());
+                addPolicy(symbioteId, internalId, msg.getAccessPolicy());
                 addResource(symbioteId, internalId, props, pluginId);
             }
             addCloudResourceInfoForOData(msgs);
@@ -125,7 +126,7 @@ public class ResourceRegistration {
                 }                
                 log.debug("Updating resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
                 
-                addPolicy(symbioteId, internalId, msg.getSingleTokenAccessPolicy());
+                addPolicy(symbioteId, internalId, msg.getAccessPolicy());
                 addResource(symbioteId, internalId, props, pluginId);
             }
             addCloudResourceInfoForOData(msgs);
@@ -160,9 +161,9 @@ public class ResourceRegistration {
         }
     }  
     
-    private void addPolicy(String resourceId, String internalId, SingleTokenAccessPolicySpecifier accPolicy) throws InvalidArgumentsException {
+    private void addPolicy(String resourceId, String internalId, IAccessPolicySpecifier accPolicy) throws InvalidArgumentsException {
         try {            
-            IAccessPolicy policy = SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(accPolicy);
+            IAccessPolicy policy = AccessPolicyFactory.getAccessPolicy(accPolicy);
             AccessPolicy ap = new AccessPolicy(resourceId, internalId, policy);
             accessPolicyRepository.save(ap);            
             
