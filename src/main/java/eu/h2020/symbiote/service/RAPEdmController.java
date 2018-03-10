@@ -13,7 +13,6 @@ import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceODataCondition;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -57,7 +56,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.managers.ServiceResponseResult;
-import java.io.InputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Date;
@@ -130,18 +128,13 @@ public class RAPEdmController {
 
             response = handler.process(createODataRequest(req, split));
             
-            
+            responseStr = StreamUtils.copyToString(response.getContent(), StandardCharsets.UTF_8);
             if(response.getStatusCode() != HttpStatus.OK.value()){
-                String errorMessage = Integer.toString(response.getStatusCode());
-                InputStream inputStream = response.getContent();
-                if(inputStream != null)
-                    errorMessage = StreamUtils.copyToString(inputStream, Charset.defaultCharset());
-                responseStr = sendFailMessage(req, errorMessage);
+                if(responseStr != null && !responseStr.isEmpty())
+                    sendFailMessage(req, responseStr);
+                else
+                    sendFailMessage(req, Integer.toString(response.getStatusCode()));
             }
-            else 
-                responseStr = StreamUtils.copyToString(
-                    response.getContent(), Charset.defaultCharset());
-
 
             httpStatus = HttpStatus.valueOf(response.getStatusCode());            
         } catch (IOException | ODataException e) {
@@ -149,7 +142,7 @@ public class RAPEdmController {
             log.error(e.getMessage(), e);
             httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
         }
-        try{
+        try {
             headers.add("Access-Control-Allow-Origin", "*");
             headers.add("Access-Control-Allow-Credentials", "true");
             headers.add("Access-Control-Allow-Methods", "OPTIONS, GET, POST, PUT");

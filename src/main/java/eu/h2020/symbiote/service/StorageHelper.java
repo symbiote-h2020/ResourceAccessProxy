@@ -14,6 +14,7 @@ import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
+import eu.h2020.symbiote.messages.plugin.RapPluginErrorResponse;
 import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
 import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
 import eu.h2020.symbiote.model.cim.Observation;
@@ -217,6 +218,9 @@ public class StorageHelper {
                                 e);
                     }
                 }
+            } else {
+                RapPluginErrorResponse errorResponse = (RapPluginErrorResponse) response;
+                throw new ODataApplicationException(errorResponse.getMessage(), errorResponse.getResponseCode(), null);
             }
             
             return response;
@@ -299,6 +303,10 @@ public class StorageHelper {
             log.info("Message Set: " + json);
             Object o = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             RapPluginResponse rpResponse = extractRapPluginResponse(o);
+            if(rpResponse instanceof RapPluginErrorResponse) {
+                RapPluginErrorResponse errorResponse = (RapPluginErrorResponse) rpResponse;
+                throw new ODataApplicationException(errorResponse.getMessage(), errorResponse.getResponseCode(), null);
+            }
             return rpResponse;
         } catch (ODataApplicationException ae) {
             throw ae;        

@@ -226,6 +226,8 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
             } else {
                 throw new RapPluginException(404, "Sensor not found.");
             }
+        } catch (RapPluginException e) {
+            throw e;
         } catch (Exception ex) {
             throw new RapPluginException(500, ex);
         }

@@ -202,8 +202,9 @@ public class RAPEntityProcessor implements EntityProcessor{
 
     @Override
     public void updateEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType requestFormat, ContentType responseFormat) throws ODataApplicationException, ODataLibraryException {
+        String symbioteId = null;
+        CustomODataApplicationException customOdataException = null;        
         try {
-            CustomODataApplicationException customOdataException = null;        
             String body = null;
 
             ArrayList<String> typeNameList = new ArrayList<>();
@@ -255,7 +256,6 @@ public class RAPEntityProcessor implements EntityProcessor{
             requestInputStream = new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8));
             deserializer.entity(requestInputStream, targetEntityType);
 
-            String symbioteId = null;
             List<ResourceInfo> resourceInfoList;
             try {
                 resourceInfoList = storageHelper.getResourceInfoList(typeNameList,keyPredicates);
@@ -313,7 +313,14 @@ public class RAPEntityProcessor implements EntityProcessor{
             response.setStatusCode(rapPluginResponse.getResponseCode());
             response.addHeader("Access-Control-Allow-Origin", "*");
             response.addHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
-         } catch (Exception ex) {
+        } catch (ODataApplicationException odataExc) {
+            log.error("Resource ID has not been served. Cause:\n" + odataExc.getMessage(), odataExc);
+            customOdataException = new CustomODataApplicationException(symbioteId, odataExc.getMessage(), 
+                    odataExc.getStatusCode(), odataExc.getLocale());
+            //throw customOdataException;
+            setErrorResponse(response, customOdataException, responseFormat);
+            return;
+        } catch (Exception ex) {
             log.error("Generic Error", ex);
             throw ex;
         }
