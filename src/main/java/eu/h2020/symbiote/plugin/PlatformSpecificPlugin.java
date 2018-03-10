@@ -5,7 +5,6 @@
  */
 package eu.h2020.symbiote.plugin;
 
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 
@@ -19,7 +18,6 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 
 import org.slf4j.Logger;
@@ -31,12 +29,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.TimeZone;
 
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 
 /**
- *
  * @author Matteo Pardi <m.pardi@nextworks.it>
  */
 public class PlatformSpecificPlugin extends PlatformPlugin {
@@ -54,6 +50,19 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
         super(rabbitTemplate, exchange, PLUGIN_PLATFORM_ID, PLUGIN_PLATFORM_FILTERS_FLAG, PLUGIN_PLATFORM_NOTIFICATIONS_FLAG);
     }
 
+    /**
+     * This is called when received request for reading resource.
+     * 
+     * You need to checked if you can read sensor data with that internal id and in case
+     * of problem you can throw RapPluginException
+     * 
+     * @param resourceId internal id of sensor as registered
+     * 
+     * @return string that contains JSON of one Observation
+     * 
+     * @throws RapPluginException can be thrown when something went wrong. It has return code 
+     * that can be returned to consumer.
+     */
     @Override
     public String readResource(String resourceId) {
         String json;
@@ -62,21 +71,61 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
             // INSERT HERE: query to the platform with internal resource id
             //
             // example
-            Observation obs = observationExampleValue();
-            ObjectMapper mapper = new ObjectMapper();
-            json = mapper.writeValueAsString(obs);
-            
-            
+            if("isen1".equals(resourceId)) {
+                Observation obs = observationExampleValue();
+                ObjectMapper mapper = new ObjectMapper();
+                json = mapper.writeValueAsString(obs);
+                return json;
+            } else {
+                throw new RapPluginException(404, "Sensor not found.");
+            }
         } catch (JsonProcessingException ex) {
-            log.error(ex.getMessage(), ex);
-            json = ex.getMessage();
+            throw new RapPluginException(500, "Can not convert to JSON.", ex);
         }
-        return json;
     }
     
-    // This is for actuating resource or invoking service.
-    // In the case of actuation body will be JSON Object with capabilities and parameters. Actuation does not return value (it will be ignored). 
-    // In the case of invoking service body will be JSON Array with parameters.
+    /**
+     * This method is called when actuating resource or invoking service is requested.
+     * 
+     * In the case of actuation 
+     * body will be JSON Object with capabilities and parameters. 
+     * Actuation does not return value (it will be ignored).
+     * Example of body:
+     * <pre>
+     * { 
+     *   "SomeCapabililty" : [
+     *     {
+     *       "param1" : true
+     *     },
+     *     {
+     *       "param2" : "some text"
+     *     },
+     *     ...
+     *   ]
+     * }
+     * </pre>
+     * 
+     * In the case of invoking service body will be JSON Array with parameters.
+     * Example of body:
+     * <pre>
+     * [
+     *   {
+     *     "inputParam1" : false
+     *   },
+     *   {
+     *     "inputParam2":"some text"
+     *   },
+     *   ...
+     * ]
+     * </pre>
+     * 
+     * @param body JSON input depending on what is called (actuation or invoking service)
+     * 
+     * @return returns JSON string that will be returned as response
+     * 
+     * @throws RapPluginException can be thrown when something went wrong. It has return code 
+     * that can be returned to consumer.
+     */
     @Override
     public String writeResource(String resourceId, String body) {
         // INSERT HERE: call to the platform with internal resource id
@@ -107,13 +156,14 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
                     throw new RapPluginException(500, e.getMessage());
                 }
             } else {
-                throw new RapPluginException(404, "Resource with id " + resourceId + " was not found!");
+                throw new RapPluginException(404, "Sensor not found.");
             }
         } else {
             // invoking service
             System.out.println("Invoking service " + resourceId + ".");
             if("isrid1".equals(resourceId)) {
                 try {
+                    // extracting service parameters
                     ObjectMapper mapper = new ObjectMapper();  
                     ArrayList<HashMap<String, Object>> jsonObject = 
                             mapper.readValue(body, new TypeReference<ArrayList<HashMap<String, Object>>>() { });
@@ -126,39 +176,59 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
                     }
                     System.out.println("jsonObject:  " + jsonObject);
                     // Service can return either null if nothing to return or some JSON
-                    return null;
-                    //return "\"some json\"";
+                    // example
+                    return "\"some json\"";
                 } catch (IOException e) {
                     throw new RapPluginException(500, e.getMessage());
                 }
             } else {
-                throw new RapPluginException(404, "Service with id " + resourceId + " was not found!");
+                throw new RapPluginException(404, "Service not found!");
             }
         }
     }
     
+    /**
+     * This is called when received request for reading resource history.
+     * 
+     * You need to checked if you can read sensor data with that internal id and in case
+     * of problem you can throw RapPluginException.
+     * 
+     * Default is to return maximum of 100 observations. 
+     * 
+     * @param resourceId internal id of sensor as registered
+     * 
+     * @return string that contains JSON with array of Observations (maximum 100)
+     * 
+     * @throws RapPluginException can be thrown when something went wrong. It has return code 
+     * that can be returned to consumer.
+     */
     @Override
     public String readResourceHistory(String resourceId) {
         String json;
         try {
-            List<Observation> value = new ArrayList();
+            List<Observation> value = new ArrayList<>();
             //
-            // INSERT HERE: query to the platform with internal resource id
+            // INSERT HERE: query to the platform with internal resource id and 
+            // return list of observations in JSON
             //
-            // example
-            Observation obs1 = observationExampleValue();
-            Observation obs2 = observationExampleValue();
-            value.add(obs1);
-            value.add(obs2);
-
-            ObjectMapper mapper = new ObjectMapper();
-            json = mapper.writeValueAsString(value);
+            // Here is example
+            if("isen1".equals(resourceId)) {
+                Observation obs1 = observationExampleValue();
+                Observation obs2 = observationExampleValue();
+                Observation obs3 = observationExampleValue();
+                value.add(obs1);
+                value.add(obs2);
+                value.add(obs3);
+    
+                ObjectMapper mapper = new ObjectMapper();
+                json = mapper.writeValueAsString(value);
+                return json;
+            } else {
+                throw new RapPluginException(404, "Sensor not found.");
+            }
         } catch (Exception ex) {
-            log.error(ex.getMessage(), ex);
-            json = ex.getMessage();
+            throw new RapPluginException(500, ex);
         }
-        
-        return json;
     }
     
     @Override
@@ -172,11 +242,11 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
     }
     
     /* 
-    *   Some sample code for observations 
+    *   Some sample code for creating one observation
     */   
     public Observation observationExampleValue () {        
         String sensorId = "symbIoTeID1";
-        ArrayList<String> ldescr = new ArrayList();
+        ArrayList<String> ldescr = new ArrayList<>();
         ldescr.add("City of Zagreb");
         WGS84Location loc = new WGS84Location(15.9, 45.8, 145, "Spansko", ldescr);
         TimeZone zoneUTC = TimeZone.getTimeZone("UTC");
@@ -187,12 +257,12 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
         long ms = date.getTime() - 1000;
         date.setTime(ms);
         String samplet = dateFormat.format(date);
-        ArrayList<String> pdescr = new ArrayList();
+        ArrayList<String> pdescr = new ArrayList<>();
         pdescr.add("Air temperature");
-        ArrayList<String> umdescr = new ArrayList();
+        ArrayList<String> umdescr = new ArrayList<>();
         umdescr.add("Temperature in degree Celsius");
         ObservationValue obsval = new ObservationValue("7", new Property("Temperature", pdescr), new UnitOfMeasurement("C", "degree Celsius", umdescr));
-        ArrayList<ObservationValue> obsList = new ArrayList();
+        ArrayList<ObservationValue> obsList = new ArrayList<>();
         obsList.add(obsval);
         Observation obs = new Observation(sensorId, loc, timestamp, samplet , obsList);
         

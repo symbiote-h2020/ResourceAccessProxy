@@ -10,6 +10,16 @@ public class RapPluginException extends RuntimeException {
         response = new RapPluginErrorResponse(responseCode, message);
     }
 
+    public RapPluginException(int responseCode, String message, Throwable reason) {
+        super(message, reason);
+        response = new RapPluginErrorResponse(responseCode, message);
+    }
+
+    public RapPluginException(int responseCode, Throwable reason) {
+        super(reason);
+        response = new RapPluginErrorResponse(responseCode, reason.getMessage());
+    }
+    
     public RapPluginErrorResponse getResponse() {
         return response;
     }
