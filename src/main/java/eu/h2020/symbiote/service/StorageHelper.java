@@ -39,7 +39,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -169,47 +168,55 @@ public class StorageHelper {
             if(response instanceof RapPluginOkResponse) {
                 RapPluginOkResponse okResponse = (RapPluginOkResponse) response;
                 if(okResponse.getBody() != null) {
-                    // need to clean up response if top 1 is used and RAP plugin does not support filtering
                     try {
-                        
-                        if(okResponse.getBody() instanceof List) {
-                            List<?> list = (List<?>) okResponse.getBody();
-                            if(list.size() != 0 && list.get(0) instanceof Observation) {
-                                @SuppressWarnings("unchecked")
-                                List<Observation> observations = (List<Observation>) list;
-// TODO check if this is ok                        
-//                        if (observations == null || observations.isEmpty()) {
-//                            log.error("No observations for resource " + symbioteId);
-//                            return null;
-//                        }            
-                        
-                                if (top == 1) {
-                                    Observation o = observations.get(0);
-                                    Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
-                                    okResponse.setBody(Arrays.asList(ob));
+                        // need to clean up response if top 1 is used and RAP plugin does not support filtering
+                        if (top == 1) {
+                            Observation internalObservation;
+                            if(okResponse.getBody() instanceof List) {
+                                List<?> list = (List<?>) okResponse.getBody();
+                                if(list.size() != 0 && list.get(0) instanceof Observation) {
+                                    @SuppressWarnings("unchecked")
+                                    List<Observation> observations = (List<Observation>) list;
+                                    internalObservation = observations.get(0);
                                 } else {
+                                    throw new IllegalStateException("When reading one resource returned list must have exactly one Observation. Got: " + list.size() + ".");
+                                }
+                            } else if(okResponse.getBody() instanceof Observation) {
+                                internalObservation = (Observation) okResponse.getBody();
+                            } else if(okResponse.getBody() instanceof Map) {
+                                String jsonBody = mapper.writeValueAsString(okResponse.getBody());
+                                internalObservation = mapper.readValue(jsonBody, Observation.class);
+                            } else {
+                                throw new IllegalStateException("Unsupported body response form RAP plugin when reading one resource. Got " + 
+                                        okResponse.getBody().getClass().getName());
+                            }
+                            Observation observation = new Observation(symbioteId, internalObservation.getLocation(), 
+                                    internalObservation.getResultTime(), internalObservation.getSamplingTime(), 
+                                    internalObservation.getObsValues());
+                            okResponse.setBody(Arrays.asList(observation));
+                        } else { 
+                            // top is not 1
+                            if(okResponse.getBody() instanceof List) {
+                                List<?> list = (List<?>) okResponse.getBody();
+                                if(list.size() != 0 && list.get(0) instanceof Observation) {
+                                    @SuppressWarnings("unchecked")
+                                    List<Observation> internalObservations = (List<Observation>) list;
+
                                     List<Observation> observationsList = new ArrayList<>();
-                                    for (Observation o : observations) {
+                                    int i = 0;
+                                    for (Observation o : internalObservations) {
+                                        i++;
+                                        if(i > top) {
+                                            break;
+                                        }
                                         Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
                                         observationsList.add(ob);
                                     }
-                                    // truncate list to max top size
-                                    if(top < observationsList.size()) {
-                                        int i = 0;
-                                        for (Iterator<Observation> iter = observationsList.iterator(); iter.hasNext();) {
-                                            iter.next();
-                                            i++;
-                                            if(i > top)
-                                                iter.remove();
-                                        }
-                                    }
                                     okResponse.setBody(observationsList);
                                 }
+                            } else {
+                                throw new IllegalStateException("Unsupported body response form RAP plugin. Expected observation list but got " + okResponse.getBody().getClass().getName());
                             }
-                        } else if(okResponse.getBody() instanceof Observation) {
-                            okResponse.setBody(Arrays.asList(okResponse.getBody()));
-                        } else {
-                            throw new IllegalStateException("Unsupported body response form RAP plugin. Expected observation list but got " + okResponse.getBody().getClass().getName());
                         }
                     } catch (Exception e) {
                         throw new ODataApplicationException("Can not parse observation list from RAP plugin.\nCause: " + e.getMessage(), 
