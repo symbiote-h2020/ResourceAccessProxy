@@ -263,7 +263,8 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
         pdescr.add("Air temperature");
         ArrayList<String> umdescr = new ArrayList<>();
         umdescr.add("Temperature in degree Celsius");
-        ObservationValue obsval = new ObservationValue("7", new Property("Temperature", pdescr), new UnitOfMeasurement("C", "degree Celsius", umdescr));
+        ObservationValue obsval = new ObservationValue("7", new Property("Temperature", "TempIRI", pdescr), 
+                new UnitOfMeasurement("C", "degree Celsius", "CelsiusIRI", umdescr));
         ArrayList<ObservationValue> obsList = new ArrayList<>();
         obsList.add(obsval);
         Observation obs = new Observation(sensorId, loc, timestamp, samplet , obsList);

@@ -10,9 +10,9 @@ import eu.h2020.symbiote.resources.db.RegistrationInfoODataRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
+import eu.h2020.symbiote.security.accesspolicies.common.AccessPolicyType;
 import eu.h2020.symbiote.security.accesspolicies.common.SingleTokenAccessPolicyFactory;
 import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenAccessPolicySpecifier;
-import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenAccessPolicySpecifier.SingleTokenAccessPolicyType;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -128,7 +128,7 @@ public class TestDb {
         ResourceInfo resourceInfoResult = addResource(resourceId, platformResourceId, obsProperties, pluginId);
         assert(resourceInfoResult != null);
         //insert
-        SingleTokenAccessPolicyType policyType = SingleTokenAccessPolicyType.PUBLIC;
+        AccessPolicyType policyType = AccessPolicyType.PUBLIC;
         Map<String, String> requiredClaims = new HashMap<>();
         SingleTokenAccessPolicySpecifier accPolicy = new SingleTokenAccessPolicySpecifier(policyType,requiredClaims);
         AccessPolicy accessPolicy = addPolicy(resourceId,platformResourceId,accPolicy);

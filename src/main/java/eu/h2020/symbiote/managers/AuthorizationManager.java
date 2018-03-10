@@ -43,12 +43,12 @@ public class AuthorizationManager {
 
     private final String componentOwnerName;
     private final String componentOwnerPassword;
-    private final String coreAamAddress;
+    // TODO SL5.0 remove private final String coreAamAddress;
     private final String localAamAddress;
     private final String clientId;
     private final String keystoreName;
     private final String keystorePass;
-    private final Boolean alwaysUseLocalAAMForValidation;
+    // TODO SL5.0 remove private final Boolean alwaysUseLocalAAMForValidation;
     private Boolean securityEnabled;
     
     @Autowired
@@ -75,8 +75,9 @@ public class AuthorizationManager {
         Assert.notNull(componentOwnerPassword,"componentOwnerPassword can not be null!");
         this.componentOwnerPassword = componentOwnerPassword;
 
-        Assert.notNull(coreAamAddress,"coreAamAddress can not be null!");
-        this.coreAamAddress = coreAamAddress;
+        // TODO remove SL5.0
+//        Assert.notNull(coreAamAddress,"coreAamAddress can not be null!");
+//        this.coreAamAddress = coreAamAddress;
         
         Assert.notNull(localAamAddress,"localAamAddress can not be null!");
         this.localAamAddress = localAamAddress;
@@ -90,8 +91,9 @@ public class AuthorizationManager {
         Assert.notNull(keystorePass,"keystorePass can not be null!");
         this.keystorePass = keystorePass;
 
-        Assert.notNull(alwaysUseLocalAAMForValidation,"alwaysUseLocalAAMForValidation can not be null!");
-        this.alwaysUseLocalAAMForValidation = alwaysUseLocalAAMForValidation;
+        // TODO removeSL5.0
+//        Assert.notNull(alwaysUseLocalAAMForValidation,"alwaysUseLocalAAMForValidation can not be null!");
+//        this.alwaysUseLocalAAMForValidation = alwaysUseLocalAAMForValidation;
 
         Assert.notNull(securityEnabled,"securityEnabled can not be null!");
         this.securityEnabled = securityEnabled;
@@ -175,12 +177,10 @@ public class AuthorizationManager {
     private void enableSecurity() throws SecurityHandlerException {
         securityEnabled = true;
         componentSecurityHandler = ComponentSecurityHandlerFactory.getComponentSecurityHandler(
-                coreAamAddress,
                 keystoreName,
                 keystorePass,
                 "rap@" + clientId,
                 localAamAddress,
-                alwaysUseLocalAAMForValidation,
                 componentOwnerName,
                 componentOwnerPassword);
         
