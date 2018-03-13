@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
@@ -62,6 +63,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+
+import static eu.h2020.symbiote.resources.RapDefinitions.JSON_OBJECT_TYPE_FIELD_NAME;
 
 /**
  *
@@ -126,73 +129,59 @@ public class StorageHelper {
         try {
             top = (top == null) ? TOP_LIMIT : top;
             ResourceAccessMessage msg;
-            
+
             String pluginId = null;
-            for(ResourceInfo resourceInfo: resourceInfoList){
+            for (ResourceInfo resourceInfo : resourceInfoList) {
                 String symbioteIdTemp = resourceInfo.getSymbioteId();
-                if(symbioteIdTemp != null && !symbioteIdTemp.isEmpty())
+                if (symbioteIdTemp != null && !symbioteIdTemp.isEmpty())
                     symbioteId = symbioteIdTemp;
                 String pluginIdTemp = resourceInfo.getPluginId();
-                if(pluginIdTemp != null && !pluginIdTemp.isEmpty())
+                if (pluginIdTemp != null && !pluginIdTemp.isEmpty())
                     pluginId = pluginIdTemp;
             }
-            if(pluginId == null) {
+            if (pluginId == null) {
                 List<PlatformInfo> lst = pluginRepo.findAll();
-                if(lst == null || lst.isEmpty())
+                if (lst == null || lst.isEmpty())
                     throw new Exception("No plugin found");
-                
+
                 pluginId = lst.get(0).getPlatformId();
             }
             String routingKey;
             if (top == 1) {
                 msg = new ResourceAccessGetMessage(resourceInfoList);
-                routingKey =  pluginId + "." + ResourceAccessMessage.AccessType.GET.toString().toLowerCase();
-                
+                routingKey = pluginId + "." + ResourceAccessMessage.AccessType.GET.toString().toLowerCase();
+
             } else {
                 msg = new ResourceAccessHistoryMessage(resourceInfoList, top, filterQuery);
-                routingKey =  pluginId + "." + ResourceAccessMessage.AccessType.HISTORY.toString().toLowerCase();
+                routingKey = pluginId + "." + ResourceAccessMessage.AccessType.HISTORY.toString().toLowerCase();
             }
 
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-            String json = mapper.writeValueAsString(msg);
+            String jsonStr = mapper.writeValueAsString(msg);
 
             log.debug("Message: ");
-            log.debug(json);
-            Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+            log.debug(jsonStr);
+            Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, jsonStr);
             if (obj == null) {
                 log.error("No response from plugin");
                 throw new ODataApplicationException("No response from plugin", HttpStatusCode.GATEWAY_TIMEOUT.getStatusCode(), Locale.ROOT);
             }
-
-            if (obj instanceof byte[]) {
-                response = new String((byte[]) obj, "UTF-8");
-            } else {
-                response = obj;
-            }
-            
+            String resp = (obj instanceof byte[]) ? new String((byte[]) obj, "UTF-8") : obj.toString();
+            // checking if plugin response is a valid json
             try {
-                List<Observation> observations = mapper.readValue(response.toString(), new TypeReference<List<Observation>>() {});
-                if (observations == null || observations.isEmpty()) {
-                    log.error("No observations for resource " + symbioteId);
-                    return null;
-                }            
-
-                if (top == 1) {
-                    Observation o = observations.get(0);
-                    Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
-                    response = ob;
-                } else {
-                    List<Observation> observationsList = new ArrayList();
-                    for (Observation o : observations) {
-                        Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
-                        observationsList.add(ob);
-                    }
-                    response = observationsList;
+                JsonNode jsonObj = mapper.readTree(resp.toString());
+                if(!jsonObj.has(JSON_OBJECT_TYPE_FIELD_NAME)) {
+                    log.error("Field " + JSON_OBJECT_TYPE_FIELD_NAME + " is mandatory");
+                    throw new Exception("Field " + JSON_OBJECT_TYPE_FIELD_NAME + " is mandatory");
                 }
-            } catch (Exception e) {
+                response = jsonObj;
+            } catch (Exception ex){
+                log.error("Response from plugin is not a valid json", ex);
+                throw new ODataApplicationException("Response from plugin is not a valid json", HttpStatusCode.NOT_ACCEPTABLE.getStatusCode(), Locale.ROOT);
             }
+
             return response;
         } catch (Exception e) {
             String err = "Unable to read resource " + symbioteId;
@@ -203,7 +192,7 @@ public class StorageHelper {
     }
 
     public Object setService(ArrayList<ResourceInfo> resourceInfoList, String requestBody) throws ODataApplicationException {
-        Object obj = null;
+        Object response = null;
         try {
             ResourceAccessMessage msg;
             String pluginId = null;
@@ -232,14 +221,31 @@ public class StorageHelper {
                 json = mapper.writeValueAsString(msg);
             } catch (JsonProcessingException ex) {
                 log.error("JSon processing exception: " + ex.getMessage());
+                throw new ODataApplicationException("JSon processing exception: " + ex.getMessage(), HttpStatusCode.BAD_REQUEST.getStatusCode(), Locale.ROOT);
             }
             log.info("Message Set: " + json);
-            obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-            
+            Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+
+            String resp = (obj instanceof byte[]) ? new String((byte[]) obj, "UTF-8") : obj.toString();
+            // checking if plugin response is a valid json
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode jsonObj = mapper.readTree(resp.toString());
+                if(!jsonObj.has(JSON_OBJECT_TYPE_FIELD_NAME)) {
+                    log.error("Field " + JSON_OBJECT_TYPE_FIELD_NAME + " is mandatory");
+                //    throw new Exception("Field " + JSON_OBJECT_TYPE_FIELD_NAME + " is mandatory");
+                }
+                response = jsonObj;
+            } catch (Exception ex){
+                log.error("Response from plugin is not a valid json", ex);
+                throw new ODataApplicationException("Response from plugin is not a valid json", HttpStatusCode.NOT_ACCEPTABLE.getStatusCode(), Locale.ROOT);
+            }
+
         } catch (Exception e) {
+            log.error("Internal Error", e);
             throw new ODataApplicationException("Internal Error", HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), Locale.ROOT);
         }
-        return obj;
+        return response;
     }
     
     public static Query calculateFilter(Expression expression) throws ODataApplicationException {

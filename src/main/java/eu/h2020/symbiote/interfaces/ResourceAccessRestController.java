@@ -6,6 +6,7 @@
 package eu.h2020.symbiote.interfaces;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.JsonNode;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -37,6 +38,9 @@ import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import java.util.*;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
+
+import org.apache.olingo.commons.api.http.HttpStatusCode;
+import org.apache.olingo.server.api.ODataApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
@@ -54,6 +58,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.HandlerMapping;
+
+import static eu.h2020.symbiote.resources.RapDefinitions.JSON_OBJECT_TYPE_FIELD_NAME;
 
 
 /**
@@ -123,7 +129,8 @@ public class ResourceAccessRestController {
             log.info("Received read resource request for ID = " + resourceId);       
             
             // checking access policies
-            checkAccessPolicies(request, resourceId);
+            if(!checkAccessPolicies(request, resourceId))
+                throw new Exception("Auhtorization refused");
             
             ResourceInfo info = getResourceInfo(resourceId);
             List<ResourceInfo> infoList = new ArrayList();
@@ -143,25 +150,22 @@ public class ResourceAccessRestController {
                 pluginId = lst.get(0).getPlatformId();
             }
             String routingKey =  pluginId + "." + AccessType.GET.toString().toLowerCase();
-            
-            
-            Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);          
-            
-            response = obj;
-            if (obj instanceof byte[]) {
-                response = new String((byte[]) obj, "UTF-8");
-            }
-            if(response == null)
+            Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+            if(obj == null)
                 throw new Exception("No response from plugin");
-            
-            try{
-                List<Observation> observations = mapper.readValue(response.toString(), new TypeReference<List<Observation>>() {});
-                if(observations != null && !observations.isEmpty()){
-                    Observation o = observations.get(0);
-                    Observation ob = new Observation(resourceId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
-                    response = ob;
+
+            String resp = (obj instanceof byte[]) ? new String((byte[]) obj, "UTF-8") : obj.toString();
+            // checking if plugin response is a valid json
+            try {
+                JsonNode jsonObj = mapper.readTree(resp.toString());
+                if(!jsonObj.has(JSON_OBJECT_TYPE_FIELD_NAME)) {
+                    log.error("Field " + JSON_OBJECT_TYPE_FIELD_NAME + " is mandatory in plugin response");
+                //    throw new Exception("Field " + JSON_OBJECT_TYPE_FIELD_NAME + " is mandatory in plugin response");
                 }
-            }catch (Exception ex) {
+                response = jsonObj;
+            } catch (Exception ex){
+                log.error("Response from plugin is not a valid json", ex);
+                throw new Exception("Response from plugin is not a valid json");
             }
             sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
         
@@ -209,9 +213,10 @@ public class ResourceAccessRestController {
         //List<Observation> observationsList = null;
         Object response = null;
         try {
-            log.info("Received read resource request for ID = " + resourceId);           
-            
-            checkAccessPolicies(request, resourceId);
+            log.info("Received read resource request for ID = " + resourceId);
+
+            if(!checkAccessPolicies(request, resourceId))
+                throw new Exception("Auhtorization refused");
         
             ResourceInfo info = getResourceInfo(resourceId);
             List<ResourceInfo> infoList = new ArrayList();
@@ -232,23 +237,22 @@ public class ResourceAccessRestController {
                 pluginId = lst.get(0).getPlatformId();
             }
             String routingKey =  pluginId + "." + AccessType.HISTORY.toString().toLowerCase();
-            Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);       
-            response = obj;
-            if (obj instanceof byte[]) {
-                response = new String((byte[]) obj, "UTF-8");
-            }
-            
-            try{
-                List<Observation> observations = mapper.readValue(response.toString(), new TypeReference<List<Observation>>() {});
-                if(observations != null && !observations.isEmpty()){
-                    List<Observation> observationsList = new ArrayList();
-                    for(Observation o: observations){
-                        Observation ob = new Observation(resourceId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
-                        observationsList.add(ob);
-                    }
-                    response = observationsList;
+            Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+            if(obj== null)
+                throw new Exception("No response from plugin");
+
+            String resp = (obj instanceof byte[]) ? new String((byte[]) obj, "UTF-8") : obj.toString();
+            // checking if plugin response is a valid json
+            try {
+                JsonNode jsonObj = mapper.readTree(resp.toString());
+                if(!jsonObj.has(JSON_OBJECT_TYPE_FIELD_NAME)) {
+                    log.error("Field " + JSON_OBJECT_TYPE_FIELD_NAME + " is mandatory in plugin response");
+                    //    throw new Exception("Field " + JSON_OBJECT_TYPE_FIELD_NAME + " is mandatory in plugin response");
                 }
-            }catch (Exception ex) {
+                response = jsonObj;
+            } catch (Exception ex){
+                log.error("Response from plugin is not a valid json", ex);
+                throw new Exception("Response from plugin is not a valid json");
             }
             sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
 
@@ -293,12 +297,13 @@ public class ResourceAccessRestController {
         Exception e = null;
         String path = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
         HttpStatus httpStatus = null;
-        String response = null;
+        Object response = null;
         HttpHeaders responseHeaders = new HttpHeaders();
         try {
             log.info("Received write resource request for ID = " + resourceId + " with values " + body);
             
-            checkAccessPolicies(request, resourceId);
+            if(!checkAccessPolicies(request, resourceId))
+                throw new Exception("Auhtorization refused");
 
             ResourceInfo info = getResourceInfo(resourceId);
             List<ResourceInfo> infoList = new ArrayList();
@@ -319,12 +324,19 @@ public class ResourceAccessRestController {
             }
             String routingKey =  pluginId + "." + AccessType.SET.toString().toLowerCase();
             Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-            response = "";
             if(obj != null){
-                if (obj instanceof byte[]) {
-                    response = new String((byte[]) obj, "UTF-8");
-                } else {
-                    response = (String) obj;
+                String resp = (obj instanceof byte[]) ? new String((byte[]) obj, "UTF-8") : obj.toString();
+                // checking if plugin response is a valid json
+                try {
+                    JsonNode jsonObj = mapper.readTree(resp.toString());
+                    if(!jsonObj.has(JSON_OBJECT_TYPE_FIELD_NAME)) {
+                        log.error("Field " + JSON_OBJECT_TYPE_FIELD_NAME + " is mandatory in plugin response");
+                        //    throw new Exception("Field " + JSON_OBJECT_TYPE_FIELD_NAME + " is mandatory in plugin response");
+                    }
+                    response = jsonObj;
+                } catch (Exception ex){
+                    log.error("Response from plugin is not a valid json", ex);
+                    throw new Exception("Response from plugin is not a valid json");
                 }
             }
             sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
@@ -362,7 +374,7 @@ public class ResourceAccessRestController {
         
         return resInfo.get();
     }
-    
+
     public boolean checkAccessPolicies(HttpServletRequest request, String resourceId) throws Exception {
         Map<String, String> secHdrs = new HashMap();
         Enumeration<String> headerNames = request.getHeaderNames();
@@ -372,13 +384,13 @@ public class ResourceAccessRestController {
                 String header = headerNames.nextElement();
                 secHdrs.put(header, request.getHeader(header));
             }
-        }        
+        }
         log.info("secHeaders: " + secHdrs);
         SecurityRequest securityReq = new SecurityRequest(secHdrs);
-        
+
         AuthorizationResult result = authManager.checkResourceUrlRequest(resourceId, securityReq);
         log.info(result.getMessage());
-        
+
         return result.isValidated();
     }
     

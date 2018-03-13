@@ -72,7 +72,7 @@ public class TestODataController {
     @Autowired
     private ResourcesRepository resourcesRepository;
     
-    private static final Logger log = LoggerFactory.getLogger(TestRestController.class);
+    private static final Logger log = LoggerFactory.getLogger(TestODataController.class);
     
     @Before
     public void setUp() throws Exception {

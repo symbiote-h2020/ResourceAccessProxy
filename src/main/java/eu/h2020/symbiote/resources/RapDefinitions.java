@@ -32,4 +32,6 @@ public class RapDefinitions {
     public static final String      PLUGIN_NOTIFICATION_QUEUE = "symbIoTe.platform-queue-notification";
     public static final String      PLUGIN_NOTIFICATION_EXCHANGE_IN = "symbIoTe.rapPluginExchange-notification";
     public static final String      PLUGIN_NOTIFICATION_KEY = "symbIoTe.rapPluginExchange.plugin-notification";
+
+    public static final String      JSON_OBJECT_TYPE_FIELD_NAME = "@type";
 }
