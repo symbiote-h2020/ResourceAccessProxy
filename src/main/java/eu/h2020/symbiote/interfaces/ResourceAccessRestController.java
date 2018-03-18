@@ -54,7 +54,7 @@ import org.springframework.web.servlet.HandlerMapping;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  *
  * REST controller to receive resource access requests
  * 
@@ -104,9 +104,9 @@ public class ResourceAccessRestController {
      * 
      * 
      * @param resourceId    the id of the resource to query 
-     * @param request 
+     * @param request 		HTTP request
      * @return  the current value read from the resource
-     * @throws java.lang.Exception
+     * @throws java.lang.Exception can throw any exception
      */
     @RequestMapping(value="/rap/Sensor/{resourceId}", method=RequestMethod.GET)
     public ResponseEntity<Object> readResource(@PathVariable String resourceId, HttpServletRequest request) throws Exception {
@@ -194,8 +194,9 @@ public class ResourceAccessRestController {
      * 
      * 
      * @param resourceId    the id of the resource to query 
-     * @param request 
+     * @param request 		HTTP request
      * @return  the current value read from the resource
+     * @throws Exception		can throw exception
      */
     @RequestMapping(value="/rap/Sensor/{resourceId}/history", method=RequestMethod.GET)
     public ResponseEntity<Object> readResourceHistory(@PathVariable String resourceId, HttpServletRequest request) throws Exception {
@@ -281,9 +282,10 @@ public class ResourceAccessRestController {
      * 
      * 
      * @param resourceId    the id of the resource to query 
-     * @param body 
-     * @param request 
+     * @param body 			actuator body
+     * @param request 		HTTP request
      * @return              the http response code
+     * @throws Exception		can throw exception
      */
     @RequestMapping(value={"/rap/Actuator/{resourceId}","/rap/Service/{resourceId}"}, method=RequestMethod.POST)
     public ResponseEntity<?> writeResource(@PathVariable String resourceId, @RequestBody String body, HttpServletRequest request) throws Exception{

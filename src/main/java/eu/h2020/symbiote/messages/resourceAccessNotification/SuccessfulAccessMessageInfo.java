@@ -11,7 +11,7 @@ import java.util.List;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 public class SuccessfulAccessMessageInfo extends MessageInfo {
     public enum AccessType {

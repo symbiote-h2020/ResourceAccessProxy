@@ -44,7 +44,7 @@ import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standal
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest

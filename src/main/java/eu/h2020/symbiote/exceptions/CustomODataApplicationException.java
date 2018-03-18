@@ -11,7 +11,7 @@ import java.util.Locale;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 public class CustomODataApplicationException {//extends ODataApplicationException{
     @JsonProperty("symbioteId")

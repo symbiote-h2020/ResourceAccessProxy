@@ -33,7 +33,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 public abstract class PlatformPlugin {
     private static final Logger log = LoggerFactory.getLogger(PlatformPlugin.class);

@@ -30,7 +30,7 @@ import java.util.Optional;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 public class ResourceRegistration {
     
@@ -47,7 +47,7 @@ public class ResourceRegistration {
     
     /**
      * Receive registration messages from RabbitMQ queue 
-     * @param message 
+     * @param message	message that has resource description
      */
     public void receiveRegistrationMessage(byte[] message) {
         try {
@@ -85,7 +85,7 @@ public class ResourceRegistration {
     
     /**
      * Receive unregistration messages from RabbitMQ queue 
-     * @param message 
+     * @param message	message that has resource to unregister
      */
     public void receiveUnregistrationMessage(byte[] message) {
         try {
@@ -105,7 +105,7 @@ public class ResourceRegistration {
     
     /**
      * Receive update messages from RabbitMQ queue 
-     * @param message 
+     * @param message	message that has resource for update 
      */
     public void receiveUpdateMessage(byte[] message) {
         try {

@@ -55,7 +55,7 @@ import org.springframework.stereotype.Component;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 @Component
 public class RAPPrimitiveProcessor implements PrimitiveProcessor {

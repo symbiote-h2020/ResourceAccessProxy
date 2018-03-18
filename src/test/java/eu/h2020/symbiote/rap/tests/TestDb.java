@@ -36,7 +36,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest

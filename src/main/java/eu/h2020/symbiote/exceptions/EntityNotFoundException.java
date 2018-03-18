@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 public class EntityNotFoundException extends RuntimeException {

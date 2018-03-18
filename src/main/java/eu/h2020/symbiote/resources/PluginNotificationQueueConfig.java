@@ -23,7 +23,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 @Conditional(NBInterfaceWebSocketCondition.class)
 @Configuration

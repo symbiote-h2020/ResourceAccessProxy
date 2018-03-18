@@ -57,7 +57,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 @Conditional(NBInterfaceWebSocketCondition.class)
 @Component

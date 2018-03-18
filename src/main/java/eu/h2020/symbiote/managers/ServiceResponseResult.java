@@ -7,7 +7,7 @@ package eu.h2020.symbiote.managers;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 public final class ServiceResponseResult {
     private String serviceResponse;

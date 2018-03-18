@@ -7,7 +7,7 @@ package eu.h2020.symbiote.service;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceODataCondition;
@@ -63,7 +63,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 /*
 *
-* @author Luca Tomaselli <l.tomaselli@nextworks.it>
+* @author Luca Tomaselli
  */
 @Conditional(NBInterfaceODataCondition.class)
 @CrossOrigin(origins = "*", methods = {RequestMethod.POST, RequestMethod.OPTIONS, RequestMethod.PUT, RequestMethod.GET})
@@ -100,7 +100,7 @@ public class RAPEdmController {
      *
      * @param req the req
      * @return the response entity
-     * @throws java.lang.Exception
+     * @throws java.lang.Exception can throw exception
      */
     @CrossOrigin(origins = "*")
     @RequestMapping(value = "**")

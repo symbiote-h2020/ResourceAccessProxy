@@ -17,7 +17,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 @Document(collection="registrationInfoOData")
 public class RegistrationInfoOData {

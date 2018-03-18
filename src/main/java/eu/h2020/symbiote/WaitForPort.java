@@ -110,7 +110,7 @@ public class WaitForPort {
 	/**
 	 * Helper class that contains host and port data.
 	 * 
-	 * @author Mario Kušek <mario.kusek@fer.hr>
+	 * @author Mario Kušek
 	 *
 	 */
 	public static class HostPort {

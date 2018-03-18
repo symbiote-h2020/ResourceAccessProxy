@@ -24,7 +24,7 @@ import org.springframework.web.client.RestTemplate;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 public class ResourceAccessNotification {
     

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
 public class GenericException extends RuntimeException {

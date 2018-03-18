@@ -7,7 +7,7 @@ package eu.h2020.symbiote.service;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 public class CustomField {
     private String type;

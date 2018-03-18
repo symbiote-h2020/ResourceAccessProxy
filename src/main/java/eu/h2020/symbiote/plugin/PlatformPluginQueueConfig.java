@@ -23,7 +23,7 @@ import org.springframework.context.annotation.DependsOn;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 @Conditional(PlatformSpecificPluginCondition.class)
 @Configuration

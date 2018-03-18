@@ -19,7 +19,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 @Configuration
 public class ResourceRegistrationQueueConfig {

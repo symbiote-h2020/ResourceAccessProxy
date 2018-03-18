@@ -58,7 +58,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 
 @Component

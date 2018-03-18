@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Bean;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 @Configuration
 class AppConfig extends AbstractMongoConfiguration {

@@ -64,7 +64,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 public class StorageHelper {
     private static final Logger log = LoggerFactory.getLogger(StorageHelper.class);

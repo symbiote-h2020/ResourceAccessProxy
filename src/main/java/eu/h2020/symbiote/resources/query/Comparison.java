@@ -7,7 +7,7 @@ package eu.h2020.symbiote.resources.query;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 public class Comparison {
     public enum Cmp {

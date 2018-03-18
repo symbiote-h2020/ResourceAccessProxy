@@ -12,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  * 
  */
 public class Filter extends Query {

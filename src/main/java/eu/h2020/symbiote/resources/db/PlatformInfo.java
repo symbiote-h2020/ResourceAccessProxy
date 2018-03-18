@@ -13,7 +13,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 @Document(collection="plugins")
 public class PlatformInfo {

@@ -34,7 +34,7 @@ import org.springframework.http.MediaType;
 /**
  * Component responsible for dealing with Symbiote Tokens and checking access right for requests.
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 @Component()
 public class AuthorizationManager {
@@ -219,7 +219,7 @@ public class AuthorizationManager {
 
     /**
      * Setters and Getters
-     * @return 
+     * @return component security handler
      */
 
     public IComponentSecurityHandler getComponentSecurityHandler() {

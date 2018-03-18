@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 public class ResourceAccessHistoryMessage extends ResourceAccessMessage {
     
