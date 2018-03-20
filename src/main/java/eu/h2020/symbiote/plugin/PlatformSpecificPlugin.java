@@ -24,6 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.http.HttpStatus;
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -77,10 +79,10 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
                 json = mapper.writeValueAsString(obs);
                 return json;
             } else {
-                throw new RapPluginException(404, "Sensor not found.");
+                throw new RapPluginException(HttpStatus.NOT_FOUND.value(), "Sensor not found.");
             }
         } catch (JsonProcessingException ex) {
-            throw new RapPluginException(500, "Can not convert to JSON.", ex);
+            throw new RapPluginException(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Can not convert to JSON.", ex);
         }
     }
     
@@ -153,10 +155,10 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
                     // actuation always returns null if everything is ok
                     return null;
                 } catch (IOException e) {
-                    throw new RapPluginException(500, e.getMessage());
+                    throw new RapPluginException(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage());
                 }
             } else {
-                throw new RapPluginException(404, "Sensor not found.");
+                throw new RapPluginException(HttpStatus.NOT_FOUND.value(), "Sensor not found.");
             }
         } else {
             // invoking service
@@ -179,10 +181,10 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
                     // example
                     return "\"some json\"";
                 } catch (IOException e) {
-                    throw new RapPluginException(500, e.getMessage());
+                    throw new RapPluginException(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getMessage());
                 }
             } else {
-                throw new RapPluginException(404, "Service not found!");
+                throw new RapPluginException(HttpStatus.NOT_FOUND.value(), "Service not found!");
             }
         }
     }
@@ -224,12 +226,12 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
                 json = mapper.writeValueAsString(value);
                 return json;
             } else {
-                throw new RapPluginException(404, "Sensor not found.");
+                throw new RapPluginException(HttpStatus.NOT_FOUND.value(), "Sensor not found.");
             }
         } catch (RapPluginException e) {
             throw e;
         } catch (Exception ex) {
-            throw new RapPluginException(500, ex);
+            throw new RapPluginException(HttpStatus.INTERNAL_SERVER_ERROR.value(), ex);
         }
     }
     
