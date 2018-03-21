@@ -79,7 +79,7 @@ public class ResourceRegistration {
             }
             addCloudResourceInfoForOData(msgs);
         } catch (Exception e) {
-            log.error("Error during registration process\n" + e.getMessage());
+            log.error("Error during registration process", e);
         }
     }
     
@@ -99,7 +99,7 @@ public class ResourceRegistration {
                 deleteResource(id);                
             }
         } catch (Exception e) {
-            log.info("Error during unregistration process\n" + e.getMessage());
+            log.info("Error during unregistration process", e);
         }
     }
     
@@ -131,7 +131,7 @@ public class ResourceRegistration {
             }
             addCloudResourceInfoForOData(msgs);
         } catch (Exception e) {
-            log.error("Error during registration process\n" + e.getMessage());
+            log.error("Error during registration process", e);
         }
     }
     
@@ -157,7 +157,7 @@ public class ResourceRegistration {
                 log.error("Resource " + internalId + " not found");
             }
         } catch (Exception e) {
-            log.error("Resource with id " + internalId + " not found - Exception: " + e.getMessage());
+            log.error("Resource with id " + internalId + " not found", e);
         }
     }  
     
@@ -169,8 +169,7 @@ public class ResourceRegistration {
             
             log.info("Policy successfully added for resource " + resourceId);
         } catch (InvalidArgumentsException e) {
-            log.error("Invalid Policy definition for resource with id " + resourceId);
-            throw e;
+            throw new InvalidArgumentsException("Invalid Policy definition for resource with id " + resourceId, e);
         }
     }    
     
@@ -186,7 +185,7 @@ public class ResourceRegistration {
             log.info("Policy removed for resource " + internalId);
             
         } catch (Exception e) {
-            log.error("Resource with internalId " + internalId + " not found - Exception: " + e.getMessage());
+            log.error("Resource with internalId " + internalId + " not found", e);
         }
     }
 
@@ -195,7 +194,7 @@ public class ResourceRegistration {
             owlApiHelp.addCloudResourceList(cloudResourceList);
         }
         catch(Exception e){
-            log.error("Error add info registration for OData\n"+e.getMessage());
+            log.error("Error add info registration for OData", e);
         }
     }
 }

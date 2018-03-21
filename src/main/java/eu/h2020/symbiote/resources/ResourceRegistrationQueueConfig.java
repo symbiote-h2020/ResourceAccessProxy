@@ -25,7 +25,7 @@ import org.springframework.context.annotation.Configuration;
 public class ResourceRegistrationQueueConfig {
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN)
     DirectExchange resourceRegistrationExchangeIn() {
-        return new DirectExchange(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN, false, false);
+        return new DirectExchange(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN, true, false);
     }
     
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_QUEUE)
@@ -46,21 +46,21 @@ public class ResourceRegistrationQueueConfig {
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_QUEUE + "Bindings")
     Binding resourceRegistrationBindings(@Qualifier(RapDefinitions.RESOURCE_REGISTRATION_QUEUE) Queue queue,
                              @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN) DirectExchange exchange) {
-        return BindingBuilder.bind(queue).to(exchange).with(queue.getName());
+        return BindingBuilder.bind(queue).to(exchange).with(RapDefinitions.RESOURCE_REGISTRATION_KEY);
     }
     
     
     @Bean(name=RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE + "Bindings")
     Binding resourceUnregistrationBindings(@Qualifier(RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE) Queue queue,
                              @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN) DirectExchange exchange) {
-        return BindingBuilder.bind(queue).to(exchange).with(queue.getName());
+        return BindingBuilder.bind(queue).to(exchange).with(RapDefinitions.RESOURCE_UNREGISTRATION_KEY);
     }
     
     
     @Bean(name=RapDefinitions.RESOURCE_UPDATE_QUEUE + "Bindings")
     Binding resourceUpdatedBindings(@Qualifier(RapDefinitions.RESOURCE_UPDATE_QUEUE) Queue queue,
                              @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN) DirectExchange exchange) {
-        return BindingBuilder.bind(queue).to(exchange).with(queue.getName());
+        return BindingBuilder.bind(queue).to(exchange).with(RapDefinitions.RESOURCE_UPDATE_KEY);
     }
 
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_QUEUE + "Container")
