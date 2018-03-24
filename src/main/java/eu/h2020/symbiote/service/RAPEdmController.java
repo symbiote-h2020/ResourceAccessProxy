@@ -224,7 +224,11 @@ public class RAPEdmController {
             IOUtils.copy(httpRequest.getInputStream(), writer, StandardCharsets.UTF_8);
             String input = writer.toString();
             log.info("Input: {}", input);
-            if(odRequest.getRawODataPath().startsWith("Service(")) {
+            
+            // TODO check if service is called and body need to be JSON objs separated with comma (not array)
+            if(odRequest.getRawODataPath().toLowerCase().startsWith("service(") ||
+            		odRequest.getRawODataPath().toLowerCase().startsWith("services(")) 
+            {
                 // service - coverting input JSON to input parametres separated by comma
                 ObjectMapper mapper = new ObjectMapper();
                 List<Object> objects = mapper.readValue(input, new TypeReference<List<Object>>() { });
