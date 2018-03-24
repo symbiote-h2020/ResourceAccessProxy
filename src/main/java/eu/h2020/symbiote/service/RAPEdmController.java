@@ -138,7 +138,7 @@ public class RAPEdmController {
 
             httpStatus = HttpStatus.valueOf(response.getStatusCode());            
         } catch (IOException | ODataException e) {
-            responseStr = sendFailMessage(req, e.getMessage());
+            responseStr = sendFailMessage(req, e.getClass().getName() + ": " + e.getMessage());
             log.error(e.getMessage(), e);
             httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
         }

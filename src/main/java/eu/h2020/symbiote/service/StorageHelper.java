@@ -289,7 +289,7 @@ public class StorageHelper {
                 pluginId = lst.get(0).getPlatformId();
             }
             
-            if("Service".equals(type)) {
+            if(type.toLowerCase().startsWith("service")) {
                 requestBody = "[" + requestBody + "]";
             }
             
