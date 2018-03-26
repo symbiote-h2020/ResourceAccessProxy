@@ -16,6 +16,7 @@ import java.util.Date;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.converter.StringHttpMessageConverter;
@@ -28,6 +29,9 @@ import org.springframework.web.client.RestTemplate;
  */
 public class ResourceAccessNotification {
     
+	public static final String RAP_EXCHANGE = "symbIoTe.resourceAccessProxy";
+	public static final String ROUTING_KEY = "symbIoTe.rap.resource.access";
+	
     private static final Logger log = LoggerFactory.getLogger(ResourceAccessNotification.class);
 
     private final String notificationUrl;
@@ -90,20 +94,34 @@ public class ResourceAccessNotification {
         sendMessage(message);
     }
     
+    /**
+     * old: sending HTTP request to CRAM
+     * new: replaced with sending RabbitMQ message to monitoring
+     * @param message
+     */
     private void sendMessage(String message){
-        RestTemplate restTemplate = new RestTemplate();
-        restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
-        restTemplate.getMessageConverters().add(new StringHttpMessageConverter());
+//        RestTemplate restTemplate = new RestTemplate();
+//        restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
+//        restTemplate.getMessageConverters().add(new StringHttpMessageConverter());
+//        
+//        ServiceRequest serviceReq = authManager.getServiceRequestHeaders();
+//        if(serviceReq.isCreatedSuccessfully()) {
+//            HttpHeaders httpHeaders = serviceReq.getServiceRequestHeaders();
+//            HttpEntity<String> httpEntity = new HttpEntity(message,httpHeaders);
+//        
+//            restTemplate.postForObject(notificationUrl, httpEntity, Object.class);
+//            log.debug("Sent access notification message to CRAM");
+//        } else {
+//            log.error("Access notification message to CRAM not sent: service request was not created successfully");
+//        }
         
+        RabbitTemplate rabbitTemplate = new RabbitTemplate();
         ServiceRequest serviceReq = authManager.getServiceRequestHeaders();
         if(serviceReq.isCreatedSuccessfully()) {
-            HttpHeaders httpHeaders = serviceReq.getServiceRequestHeaders();
-            HttpEntity<String> httpEntity = new HttpEntity<>(message,httpHeaders);
-        
-            restTemplate.postForObject(notificationUrl, httpEntity, Object.class);
-            log.debug("Sent access notification message to CRAM");
+            rabbitTemplate.convertAndSend(RAP_EXCHANGE, ROUTING_KEY, message);
+            log.debug("Sent access notification message to Monitoring");
         } else {
-            log.error("Access notification message to CRAM not sent: service request was not created successfully");
+            log.error("Access notification message to Monitoring not sent: service request was not created successfully");
         }
     }
     
