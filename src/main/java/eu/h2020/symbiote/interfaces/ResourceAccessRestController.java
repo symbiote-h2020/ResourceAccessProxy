@@ -12,7 +12,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import eu.h2020.symbiote.exceptions.*;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceRESTCondition;
 import eu.h2020.symbiote.managers.AuthorizationManager;
@@ -25,14 +24,11 @@ import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
 import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
-import eu.h2020.symbiote.resources.db.AccessPolicy;
 import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
-import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
-import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import java.util.*;
 import javax.annotation.PostConstruct;
@@ -58,7 +54,7 @@ import org.springframework.web.servlet.HandlerMapping;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  *
  * REST controller to receive resource access requests
  * 
@@ -88,6 +84,7 @@ public class ResourceAccessRestController {
     @Autowired
     private AuthorizationManager authManager; 
     
+    @SuppressWarnings("unused")
     @Autowired
     private AccessPolicyRepository accessPolicyRepo;
    
@@ -107,9 +104,9 @@ public class ResourceAccessRestController {
      * 
      * 
      * @param resourceId    the id of the resource to query 
-     * @param request 
+     * @param request 		HTTP request
      * @return  the current value read from the resource
-     * @throws java.lang.Exception
+     * @throws java.lang.Exception can throw any exception
      */
     @RequestMapping(value="/rap/Sensor/{resourceId}", method=RequestMethod.GET)
     public ResponseEntity<Object> readResource(@PathVariable String resourceId, HttpServletRequest request) throws Exception {
@@ -126,7 +123,7 @@ public class ResourceAccessRestController {
             checkAccessPolicies(request, resourceId);
             
             ResourceInfo info = getResourceInfo(resourceId);
-            List<ResourceInfo> infoList = new ArrayList();
+            List<ResourceInfo> infoList = new ArrayList<>();
             infoList.add(info);
             ResourceAccessGetMessage msg = new ResourceAccessGetMessage(infoList);
             ObjectMapper mapper = new ObjectMapper();
@@ -197,8 +194,9 @@ public class ResourceAccessRestController {
      * 
      * 
      * @param resourceId    the id of the resource to query 
-     * @param request 
+     * @param request 		HTTP request
      * @return  the current value read from the resource
+     * @throws Exception		can throw exception
      */
     @RequestMapping(value="/rap/Sensor/{resourceId}/history", method=RequestMethod.GET)
     public ResponseEntity<Object> readResourceHistory(@PathVariable String resourceId, HttpServletRequest request) throws Exception {
@@ -214,7 +212,7 @@ public class ResourceAccessRestController {
             checkAccessPolicies(request, resourceId);
         
             ResourceInfo info = getResourceInfo(resourceId);
-            List<ResourceInfo> infoList = new ArrayList();
+            List<ResourceInfo> infoList = new ArrayList<>();
             infoList.add(info);
             Query q = null;
             ResourceAccessHistoryMessage msg = new ResourceAccessHistoryMessage(infoList, TOP_LIMIT, q);
@@ -241,7 +239,7 @@ public class ResourceAccessRestController {
             try{
                 List<Observation> observations = mapper.readValue(response.toString(), new TypeReference<List<Observation>>() {});
                 if(observations != null && !observations.isEmpty()){
-                    List<Observation> observationsList = new ArrayList();
+                    List<Observation> observationsList = new ArrayList<>();
                     for(Observation o: observations){
                         Observation ob = new Observation(resourceId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
                         observationsList.add(ob);
@@ -284,9 +282,10 @@ public class ResourceAccessRestController {
      * 
      * 
      * @param resourceId    the id of the resource to query 
-     * @param body 
-     * @param request 
+     * @param body 			actuator body
+     * @param request 		HTTP request
      * @return              the http response code
+     * @throws Exception		can throw exception
      */
     @RequestMapping(value={"/rap/Actuator/{resourceId}","/rap/Service/{resourceId}"}, method=RequestMethod.POST)
     public ResponseEntity<?> writeResource(@PathVariable String resourceId, @RequestBody String body, HttpServletRequest request) throws Exception{
@@ -301,7 +300,7 @@ public class ResourceAccessRestController {
             checkAccessPolicies(request, resourceId);
 
             ResourceInfo info = getResourceInfo(resourceId);
-            List<ResourceInfo> infoList = new ArrayList();
+            List<ResourceInfo> infoList = new ArrayList<>();
             infoList.add(info);
             ResourceAccessSetMessage msg = new ResourceAccessSetMessage(infoList, body);            
             ObjectMapper mapper = new ObjectMapper();
@@ -364,7 +363,7 @@ public class ResourceAccessRestController {
     }
     
     public boolean checkAccessPolicies(HttpServletRequest request, String resourceId) throws Exception {
-        Map<String, String> secHdrs = new HashMap();
+        Map<String, String> secHdrs = new HashMap<>();
         Enumeration<String> headerNames = request.getHeaderNames();
 
         if (headerNames != null) {
@@ -400,7 +399,7 @@ public class ResourceAccessRestController {
 
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
             mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-            List<Date> dateList = new ArrayList();
+            List<Date> dateList = new ArrayList<>();
             dateList.add(new Date());
             ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager, notificationUrl);
             try {
@@ -427,7 +426,7 @@ public class ResourceAccessRestController {
             map.configure(SerializationFeature.INDENT_OUTPUT, true);
             map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
 
-            List<Date> dateList = new ArrayList();
+            List<Date> dateList = new ArrayList<>();
             dateList.add(new Date());
             ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager, notificationUrl);
             try{

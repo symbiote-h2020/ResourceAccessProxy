@@ -12,7 +12,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 @Repository
 public interface ResourcesRepository extends MongoRepository<ResourceInfo, String> {

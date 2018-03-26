@@ -11,7 +11,7 @@ import org.springframework.data.annotation.Id;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 public class ParameterInfo {
     
@@ -40,10 +40,10 @@ public class ParameterInfo {
     }
     
     /**
-     *
-     * @param type
-     * @param name
-     * @param mandatory
+     *	Creates class
+     * @param type	type of parameter
+     * @param name	name of parameter
+     * @param mandatory	if this parameter is mandatory this should be true
      */
     public ParameterInfo(String type, String name, boolean mandatory) {
         this.type = type;

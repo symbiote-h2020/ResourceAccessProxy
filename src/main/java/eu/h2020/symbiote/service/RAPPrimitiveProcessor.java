@@ -13,12 +13,10 @@ import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
-import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.query.Query;
-import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import static eu.h2020.symbiote.service.RAPEntityCollectionProcessor.setErrorResponse;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -57,7 +55,7 @@ import org.springframework.stereotype.Component;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 @Component
 public class RAPPrimitiveProcessor implements PrimitiveProcessor {
@@ -106,7 +104,7 @@ public class RAPPrimitiveProcessor implements PrimitiveProcessor {
         map.configure(SerializationFeature.INDENT_OUTPUT, true);        
         CustomODataApplicationException customOdataException = null;
         
-        ArrayList<String> typeNameList = new ArrayList();
+        List<String> typeNameList = new ArrayList<>();
 
         // 1st retrieve the requested EntitySet from the uriInfo
         List<UriResource> resourceParts = uriInfo.getUriResourceParts();
@@ -149,7 +147,7 @@ public class RAPPrimitiveProcessor implements PrimitiveProcessor {
 
         List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
         String symbioteId = null;
-        ArrayList<ResourceInfo> resourceInfoList;
+        List<ResourceInfo> resourceInfoList;
         try {
             resourceInfoList = storageHelper.getResourceInfoList(typeNameList,keyPredicates);
             for(ResourceInfo resourceInfo: resourceInfoList){

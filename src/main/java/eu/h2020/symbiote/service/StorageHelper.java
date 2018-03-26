@@ -7,8 +7,6 @@ package eu.h2020.symbiote.service;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
@@ -16,6 +14,9 @@ import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
+import eu.h2020.symbiote.messages.plugin.RapPluginErrorResponse;
+import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
+import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
 import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
 import eu.h2020.symbiote.managers.AuthorizationManager;
@@ -26,28 +27,26 @@ import eu.h2020.symbiote.resources.query.Comparison;
 import eu.h2020.symbiote.resources.query.Filter;
 import eu.h2020.symbiote.resources.query.Operator;
 import eu.h2020.symbiote.resources.query.Query;
-import eu.h2020.symbiote.resources.db.AccessPolicy;
-import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
-import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
-import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
+
+import java.io.UnsupportedEncodingException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+
 import org.apache.olingo.commons.api.http.HttpStatusCode;
 import org.apache.olingo.server.api.ODataApplicationException;
 import org.apache.olingo.server.api.uri.UriParameter;
@@ -65,7 +64,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 public class StorageHelper {
     private static final Logger log = LoggerFactory.getLogger(StorageHelper.class);
@@ -113,16 +112,16 @@ public class StorageHelper {
                     }
                 }
             } catch (Exception e) {
-                int a = 0;
+                throw new RuntimeException(e);
             }
         }
 
         return resInfo;
     }
 
-    public Object getRelatedObject(ArrayList<ResourceInfo> resourceInfoList, Integer top, Query filterQuery) throws ODataApplicationException {
+    public RapPluginResponse getRelatedObject(List<ResourceInfo> resourceInfoList, Integer top, Query filterQuery) throws ODataApplicationException {
         String symbioteId = null;
-        Object response = null;
+        RapPluginResponse response = null;
         try {
             top = (top == null) ? TOP_LIMIT : top;
             ResourceAccessMessage msg;
@@ -136,18 +135,21 @@ public class StorageHelper {
                 if(pluginIdTemp != null && !pluginIdTemp.isEmpty())
                     pluginId = pluginIdTemp;
             }
+
+            // set default plugin if only one plugin registered in RAP
             if(pluginId == null) {
-                List<PlatformInfo> lst = pluginRepo.findAll();
-                if(lst == null || lst.isEmpty())
-                    throw new Exception("No plugin found");
+                if(pluginRepo.count() != 1)
+                    throw new ODataApplicationException("No plugin found for specified resource", 
+                            HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), Locale.ROOT);
                 
+                List<PlatformInfo> lst = pluginRepo.findAll();
                 pluginId = lst.get(0).getPlatformId();
-            }
+            }        
+
             String routingKey;
             if (top == 1) {
                 msg = new ResourceAccessGetMessage(resourceInfoList);
                 routingKey =  pluginId + "." + ResourceAccessMessage.AccessType.GET.toString().toLowerCase();
-                
             } else {
                 msg = new ResourceAccessHistoryMessage(resourceInfoList, top, filterQuery);
                 routingKey =  pluginId + "." + ResourceAccessMessage.AccessType.HISTORY.toString().toLowerCase();
@@ -161,39 +163,76 @@ public class StorageHelper {
             log.debug("Message: ");
             log.debug(json);
             Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-            if (obj == null) {
-                log.error("No response from plugin");
-                throw new ODataApplicationException("No response from plugin", HttpStatusCode.GATEWAY_TIMEOUT.getStatusCode(), Locale.ROOT);
-            }
+            response = extractRapPluginResponse(obj);
+            
+            if(response instanceof RapPluginOkResponse) {
+                RapPluginOkResponse okResponse = (RapPluginOkResponse) response;
+                if(okResponse.getBody() != null) {
+                    try {
+                        // need to clean up response if top 1 is used and RAP plugin does not support filtering
+                        if (top == 1) {
+                            Observation internalObservation;
+                            if(okResponse.getBody() instanceof List) {
+                                List<?> list = (List<?>) okResponse.getBody();
+                                if(list.size() != 0 && list.get(0) instanceof Observation) {
+                                    @SuppressWarnings("unchecked")
+                                    List<Observation> observations = (List<Observation>) list;
+                                    internalObservation = observations.get(0);
+                                } else {
+                                    throw new IllegalStateException("When reading one resource returned list must have exactly one Observation. Got: " + list.size() + ".");
+                                }
+                            } else if(okResponse.getBody() instanceof Observation) {
+                                internalObservation = (Observation) okResponse.getBody();
+                            } else if(okResponse.getBody() instanceof Map) {
+                                String jsonBody = mapper.writeValueAsString(okResponse.getBody());
+                                internalObservation = mapper.readValue(jsonBody, Observation.class);
+                            } else {
+                                throw new IllegalStateException("Unsupported body response form RAP plugin when reading one resource. Got " + 
+                                        okResponse.getBody().getClass().getName());
+                            }
+                            Observation observation = new Observation(symbioteId, internalObservation.getLocation(), 
+                                    internalObservation.getResultTime(), internalObservation.getSamplingTime(), 
+                                    internalObservation.getObsValues());
+                            okResponse.setBody(Arrays.asList(observation));
+                        } else { 
+                            // top is not 1
+                            if(okResponse.getBody() instanceof List) {
+                                List<?> list = (List<?>) okResponse.getBody();
+                                if(list.size() != 0 && list.get(0) instanceof Observation) {
+                                    @SuppressWarnings("unchecked")
+                                    List<Observation> internalObservations = (List<Observation>) list;
 
-            if (obj instanceof byte[]) {
-                response = new String((byte[]) obj, "UTF-8");
+                                    List<Observation> observationsList = new ArrayList<>();
+                                    int i = 0;
+                                    for (Observation o : internalObservations) {
+                                        i++;
+                                        if(i > top) {
+                                            break;
+                                        }
+                                        Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
+                                        observationsList.add(ob);
+                                    }
+                                    okResponse.setBody(observationsList);
+                                }
+                            } else {
+                                throw new IllegalStateException("Unsupported body response form RAP plugin. Expected observation list but got " + okResponse.getBody().getClass().getName());
+                            }
+                        }
+                    } catch (Exception e) {
+                        throw new ODataApplicationException("Can not parse observation list from RAP plugin.\nCause: " + e.getMessage(), 
+                                HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), 
+                                Locale.ROOT,
+                                e);
+                    }
+                }
             } else {
-                response = obj;
+                RapPluginErrorResponse errorResponse = (RapPluginErrorResponse) response;
+                throw new ODataApplicationException(errorResponse.getMessage(), errorResponse.getResponseCode(), null);
             }
             
-            try {
-                List<Observation> observations = mapper.readValue(response.toString(), new TypeReference<List<Observation>>() {});
-                if (observations == null || observations.isEmpty()) {
-                    log.error("No observations for resource " + symbioteId);
-                    return null;
-                }            
-
-                if (top == 1) {
-                    Observation o = observations.get(0);
-                    Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
-                    response = ob;
-                } else {
-                    List<Observation> observationsList = new ArrayList();
-                    for (Observation o : observations) {
-                        Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
-                        observationsList.add(ob);
-                    }
-                    response = observationsList;
-                }
-            } catch (Exception e) {
-            }
             return response;
+        } catch (ODataApplicationException ae) {
+            throw ae;
         } catch (Exception e) {
             String err = "Unable to read resource " + symbioteId;
             err += "\n Error: " + e.getMessage();
@@ -202,13 +241,43 @@ public class StorageHelper {
         }
     }
 
-    public Object setService(ArrayList<ResourceInfo> resourceInfoList, String requestBody) throws ODataApplicationException {
-        Object obj = null;
+    private RapPluginResponse extractRapPluginResponse(Object obj)
+            throws ODataApplicationException, UnsupportedEncodingException {
+        ObjectMapper mapper = new ObjectMapper();
+        if (obj == null) {
+            log.error("No response from plugin");
+            throw new ODataApplicationException("No response from plugin", HttpStatusCode.GATEWAY_TIMEOUT.getStatusCode(), Locale.ROOT);
+        }
+
+        String rawObj;
+        if (obj instanceof byte[]) {
+            rawObj = new String((byte[]) obj, "UTF-8");
+        } else if (obj instanceof String){
+            rawObj = (String) obj;
+        } else {
+            throw new ODataApplicationException("Can not parse response from RAP plugin. Expected byte[] or String but got " + obj.getClass().getName(), 
+                    HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), 
+                    Locale.ROOT);
+        }
+        
+        try {
+            return mapper.readValue(rawObj, RapPluginResponse.class);
+        } catch (Exception e) {
+            throw new ODataApplicationException("Can not parse response from RAP to JSON.\n Cause: " + e.getMessage(),
+                    HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), 
+                    Locale.ROOT,
+                    e);
+        }
+    }
+
+    public RapPluginResponse setService(List<ResourceInfo> resourceInfoList, String requestBody) throws ODataApplicationException {
+        String type = "";
         try {
             ResourceAccessMessage msg;
             String pluginId = null;
             for(ResourceInfo resourceInfo: resourceInfoList){
                 pluginId = resourceInfo.getPluginId();
+                type = resourceInfo.getType();
                 if(pluginId != null)
                     break;
             }
@@ -219,6 +288,11 @@ public class StorageHelper {
                 
                 pluginId = lst.get(0).getPlatformId();
             }
+            
+            if(type.toLowerCase().startsWith("service")) {
+                requestBody = "[" + requestBody + "]";
+            }
+            
             String routingKey = pluginId + "." + ResourceAccessMessage.AccessType.SET.toString().toLowerCase();
             
             msg = new ResourceAccessSetMessage(resourceInfoList, requestBody);
@@ -234,12 +308,18 @@ public class StorageHelper {
                 log.error("JSon processing exception: " + ex.getMessage());
             }
             log.info("Message Set: " + json);
-            obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-            
+            Object o = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+            RapPluginResponse rpResponse = extractRapPluginResponse(o);
+            if(rpResponse instanceof RapPluginErrorResponse) {
+                RapPluginErrorResponse errorResponse = (RapPluginErrorResponse) rpResponse;
+                throw new ODataApplicationException(errorResponse.getMessage(), errorResponse.getResponseCode(), null);
+            }
+            return rpResponse;
+        } catch (ODataApplicationException ae) {
+            throw ae;        
         } catch (Exception e) {
             throw new ODataApplicationException("Internal Error", HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), Locale.ROOT);
         }
-        return obj;
     }
     
     public static Query calculateFilter(Expression expression) throws ODataApplicationException {
@@ -250,7 +330,7 @@ public class StorageHelper {
             Expression right = ((Binary) expression).getRightOperand();
 
             if (left instanceof Binary && right instanceof Binary) {
-                ArrayList<Query> exprs = new ArrayList();
+                List<Query> exprs = new ArrayList<>();
                 Operator op = null;
                 try {
                     op = new Operator(operator.name());
@@ -347,9 +427,9 @@ public class StorageHelper {
         return parsedData;
     }
 
-    public ArrayList<ResourceInfo> getResourceInfoList(ArrayList<String> typeNameList, List<UriParameter> keyPredicates) throws ODataApplicationException {
+    public List<ResourceInfo> getResourceInfoList(List<String> typeNameList, List<UriParameter> keyPredicates) throws ODataApplicationException {
         Boolean noResourceFound = true;
-        ArrayList<ResourceInfo> resourceInfoList = new ArrayList();
+        List<ResourceInfo> resourceInfoList = new ArrayList<>();
         for(int i = 0; i< typeNameList.size(); i++){
             ResourceInfo resInfo = new ResourceInfo();
             resInfo.setType(typeNameList.get(i));
@@ -367,6 +447,7 @@ public class StorageHelper {
                         if (resInfoOptional.isPresent()) {
                             noResourceFound = false;
                             resInfo.setInternalId(resInfoOptional.get().getInternalId());
+                            resInfo.setPluginId(resInfoOptional.get().getPluginId());
                         }
                     }
                 } catch (Exception e) {
@@ -385,7 +466,7 @@ public class StorageHelper {
     public boolean checkAccessPolicies(ODataRequest request, String resourceId) throws Exception {
         log.debug("Checking access policies for resource " + resourceId);
         Map<String,List<String>> headers = request.getAllHeaders();
-        Map<String, String> secHdrs = new HashMap();
+        Map<String, String> secHdrs = new HashMap<>();
         for(String key : headers.keySet()) {
             secHdrs.put(key, request.getHeader(key));
         }

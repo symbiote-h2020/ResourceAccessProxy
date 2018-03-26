@@ -11,7 +11,7 @@ import java.util.Map;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 public class WebSocketMessageSecurityRequest {
     

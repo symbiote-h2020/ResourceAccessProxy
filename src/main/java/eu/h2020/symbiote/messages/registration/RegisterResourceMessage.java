@@ -12,7 +12,7 @@ import eu.h2020.symbiote.model.cim.Resource;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 public class RegisterResourceMessage extends ResourceRegistrationMessage {
     

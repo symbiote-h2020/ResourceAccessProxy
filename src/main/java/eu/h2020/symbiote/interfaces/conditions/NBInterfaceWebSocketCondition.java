@@ -13,7 +13,7 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 public class NBInterfaceWebSocketCondition implements Condition {
     

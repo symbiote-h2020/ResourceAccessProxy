@@ -15,7 +15,7 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 
 /**
  *
-* @author Luca Tomaselli <l.tomaselli@nextworks.it>
+* @author Luca Tomaselli
  */
 @Conditional(NBInterfaceWebSocketCondition.class)
 @Configuration

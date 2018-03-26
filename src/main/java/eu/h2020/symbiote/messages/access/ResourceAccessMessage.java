@@ -7,11 +7,10 @@ package eu.h2020.symbiote.messages.access;
 
 import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
-import eu.h2020.symbiote.resources.db.ResourceInfo;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  * 
  * Class modeling a message exchanged on the queue from the RAP to the plugin-RAP
  * in order to access to a resource through the platform layer

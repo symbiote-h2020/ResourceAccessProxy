@@ -7,13 +7,16 @@ package eu.h2020.symbiote.resources;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 public class RapDefinitions {
     
-    public static final String      RESOURCE_REGISTRATION_EXCHANGE_IN = "symbIoTe.rap";
+    public static final String      RESOURCE_REGISTRATION_EXCHANGE_IN = "symbIoTe.registrationHandler";
+    public static final String      RESOURCE_REGISTRATION_KEY = "symbIoTe.rh.resource.core.register";
     public static final String      RESOURCE_REGISTRATION_QUEUE = "symbIoTe.rap.registrationHandler.register_resources";
+    public static final String      RESOURCE_UNREGISTRATION_KEY = "symbIoTe.rh.resource.core.delete";
     public static final String      RESOURCE_UNREGISTRATION_QUEUE = "symbIoTe.rap.registrationHandler.unregister_resources";
+    public static final String      RESOURCE_UPDATE_KEY = "symbIoTe.rh.resource.core.update";
     public static final String      RESOURCE_UPDATE_QUEUE = "symbIoTe.rap.registrationHandler.update_resources";
 
     

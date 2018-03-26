@@ -23,7 +23,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 @Conditional(NBInterfaceWebSocketCondition.class)
 @Configuration
@@ -52,7 +52,7 @@ public class PluginNotificationQueueConfig {
     @Bean(name=RapDefinitions.PLUGIN_NOTIFICATION_QUEUE + "Bindings")
     List<Binding> pluginBindings(@Qualifier(RapDefinitions.PLUGIN_NOTIFICATION_QUEUE) Queue queue,
                                  @Qualifier(RapDefinitions.PLUGIN_NOTIFICATION_EXCHANGE_IN) TopicExchange exchange) {
-        ArrayList bindings = new ArrayList();
+        List<Binding> bindings = new ArrayList<>();
         bindings.add(BindingBuilder.bind(queue).to(exchange).with(RapDefinitions.PLUGIN_NOTIFICATION_KEY));
 
         return bindings;

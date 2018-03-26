@@ -52,7 +52,7 @@ import uk.ac.manchester.cs.owl.owlapi.OWLSubClassOfAxiomImpl;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 @Component
 public class OwlapiHelp {
@@ -68,8 +68,8 @@ public class OwlapiHelp {
     
     private HashMap<String, HashMap<String, String>> map;
     private HashMap<String, HashMap<String, String>> classes;
-    private final HashSet<String> classesStart = new HashSet();
-    private final HashSet <String> classesRead = new HashSet();
+    private final HashSet<String> classesStart = new HashSet<>();
+    private final HashSet<String> classesRead = new HashSet<>();
     private List<OWLOntologyID> allOntology;
     private URL ontologyFileURL;
     private boolean addInfoFromDB;
@@ -125,7 +125,7 @@ public class OwlapiHelp {
         classes = new HashMap<String, HashMap<String, String>>();
         //this populate this.classes
         for(String key: map.keySet()){
-            HashMap<String,String> attribute2type = fromOwlToClassesPrivate(key,map.get(key),map);
+            fromOwlToClassesPrivate(key,map.get(key),map);
         }
         return classes;
     } 
@@ -134,7 +134,7 @@ public class OwlapiHelp {
     public Boolean addCloudResourceList(List<CloudResource> cloudResourceList){
         Boolean result = false;
         try{
-            List<RegistrationInfoOData> registrationInfoOdataList = new ArrayList();
+            List<RegistrationInfoOData> registrationInfoOdataList = new ArrayList<>();
             for(CloudResource cloudResource: cloudResourceList){
                 RegistrationInfoOData registrationInfoOdata = saveCloudResourceInDb(cloudResource);
                 if(registrationInfoOdata != null)
@@ -356,7 +356,7 @@ public class OwlapiHelp {
 
     
     private HashMap<String, HashMap<String, String>> createMapClass2PropAndSuperclass() throws Exception {
-        HashMap<String, HashMap<String, String>> localMap = new HashMap();
+        HashMap<String, HashMap<String, String>> localMap = new HashMap<>();
         OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
         OWLOntology ontology;
         allOntology = new ArrayList<>();
@@ -367,15 +367,15 @@ public class OwlapiHelp {
             ontology = addOntologyImport(ontology);
 
             //ADD PROPERTY rdf:type owl:ObjectProperty ;
-            HashMap<IRI, HashMap<String, String>> property2domain_range = new HashMap();
-            HashMap<String, HashMap<String, String>> domain2property2range = new HashMap();
+            HashMap<IRI, HashMap<String, String>> property2domain_range = new HashMap<>();
+            HashMap<String, HashMap<String, String>> domain2property2range = new HashMap<>();
 
             Stream<OWLObjectPropertyDomainAxiom> owlObjectPropertyDomainStream = ontology.axioms(AxiomType.OBJECT_PROPERTY_DOMAIN);
             Iterator<OWLObjectPropertyDomainAxiom> owlObjectPropertyDomainIterator = owlObjectPropertyDomainStream.iterator();
             while (owlObjectPropertyDomainIterator.hasNext()) {
                 OWLObjectPropertyDomainAxiom op = owlObjectPropertyDomainIterator.next();
                 log.info(op);
-                HashMap<String, String> mapDomain = new HashMap();
+                HashMap<String, String> mapDomain = new HashMap<>();
                 String domainName = op.getDomain().toString();
                 if (op.getDomain().isOWLClass()) {
                     IRI iriDomain = op.getDomain().asOWLClass().getIRI();
@@ -386,7 +386,7 @@ public class OwlapiHelp {
                 mapDomain.put("Domain", domainName);
                 property2domain_range.put(op.getProperty().getNamedProperty().getIRI(), mapDomain);
 
-                HashMap<String, String> mapProperty = new HashMap();
+                HashMap<String, String> mapProperty = new HashMap<>();
                 if (domain2property2range.containsKey(domainName)) {
                     mapProperty = domain2property2range.get(domainName);
                 }
@@ -425,7 +425,7 @@ public class OwlapiHelp {
             while (classesIterator.hasNext()) {
                 OWLClass c = classesIterator.next();
                 String className = c.getIRI().toString();
-                HashMap<String, String> prop2type = new HashMap();
+                HashMap<String, String> prop2type = new HashMap<>();
                 String superclass = "";
                 
                 log.info(c.getIRI().getShortForm());

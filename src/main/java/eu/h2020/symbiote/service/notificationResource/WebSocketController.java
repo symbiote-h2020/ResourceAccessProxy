@@ -22,7 +22,6 @@ import eu.h2020.symbiote.messages.access.ResourceAccessUnSubscribeMessage;
 import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
-import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
@@ -58,7 +57,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 @Conditional(NBInterfaceWebSocketCondition.class)
 @Component
@@ -86,7 +85,7 @@ public class WebSocketController extends TextWebSocketHandler {
     @Autowired
     private AuthorizationManager authManager;
 
-    private final HashMap<String, WebSocketSession> idSession = new HashMap();
+    private final HashMap<String, WebSocketSession> idSession = new HashMap<>();
 
     @Override
     public void handleTransportError(WebSocketSession session, Throwable throwable) throws Exception {
@@ -181,7 +180,7 @@ public class WebSocketController extends TextWebSocketHandler {
     }
     
     private void Subscribe(WebSocketSession session, List<String> resourcesId) throws Exception {
-        HashMap<String, List> subscribeList = new HashMap();
+        HashMap<String, List<ResourceInfo>> subscribeList = new HashMap<>();
         for (String resId : resourcesId) {
             // adding new resource info to subscribe map, with pluginId as key
             ResourceInfo resInfo = getResourceInfo(resId);            
@@ -197,14 +196,14 @@ public class WebSocketController extends TextWebSocketHandler {
             if(subscribeList.containsKey(pluginId)) {
                 rl = subscribeList.get(pluginId);
             } else {
-                rl = new ArrayList();
+                rl = new ArrayList<>();
             }            
             rl.add(resInfo);
             subscribeList.put(pluginId, rl);
             //update DB
             List<String> sessionsIdOfRes = resInfo.getSessionId();
             if (sessionsIdOfRes == null) {
-                sessionsIdOfRes = new ArrayList();
+                sessionsIdOfRes = new ArrayList<>();
             }
             sessionsIdOfRes.add(session.getId());
             resInfo.setSessionId(sessionsIdOfRes);
@@ -228,7 +227,7 @@ public class WebSocketController extends TextWebSocketHandler {
     }
     
     private void Unsubscribe(WebSocketSession session, List<String> resourcesId) throws Exception {
-        HashMap<String, List> unsubscribeList = new HashMap();
+        HashMap<String, List<ResourceInfo>> unsubscribeList = new HashMap<>();
         for (String resId : resourcesId) {
             // adding new resource info to subscribe map, with pluginId as key
             ResourceInfo resInfo = getResourceInfo(resId);
@@ -244,7 +243,7 @@ public class WebSocketController extends TextWebSocketHandler {
             if(unsubscribeList.containsKey(pluginId)) {
                 rl = unsubscribeList.get(pluginId);
             } else {
-                rl = new ArrayList();
+                rl = new ArrayList<>();
             }            
             rl.add(resInfo);
             unsubscribeList.put(pluginId, rl);
@@ -272,7 +271,7 @@ public class WebSocketController extends TextWebSocketHandler {
     }
 
     public void SendMessage(Observation obs) {
-        Map<String,String> secResponse = new HashMap();
+        Map<String,String> secResponse = new HashMap<>();
         ServiceResponseResult serResponse = authManager.generateServiceResponse();
         if(serResponse.isCreatedSuccessfully()) {
             secResponse.put(SECURITY_RESPONSE_HEADER, serResponse.getServiceResponse());

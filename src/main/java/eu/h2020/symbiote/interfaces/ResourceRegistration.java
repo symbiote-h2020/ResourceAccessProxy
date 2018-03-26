@@ -18,18 +18,19 @@ import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import java.util.List;
+
+import eu.h2020.symbiote.security.accesspolicies.common.AccessPolicyFactory;
+import eu.h2020.symbiote.security.accesspolicies.common.IAccessPolicySpecifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenAccessPolicySpecifier;
-import eu.h2020.symbiote.security.accesspolicies.common.SingleTokenAccessPolicyFactory;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import java.util.Optional;
 
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 public class ResourceRegistration {
     
@@ -46,7 +47,7 @@ public class ResourceRegistration {
     
     /**
      * Receive registration messages from RabbitMQ queue 
-     * @param message 
+     * @param message	message that has resource description
      */
     public void receiveRegistrationMessage(byte[] message) {
         try {
@@ -73,18 +74,18 @@ public class ResourceRegistration {
                 }
                 log.debug("Registering "+ resourceClass +" with symbioteId: " + symbioteId + ", internalId: " + internalId);
                 
-                addPolicy(symbioteId, internalId, msg.getSingleTokenAccessPolicy());
+                addPolicy(symbioteId, internalId, msg.getAccessPolicy());
                 addResource(symbioteId, internalId, props, pluginId);
             }
             addCloudResourceInfoForOData(msgs);
         } catch (Exception e) {
-            log.error("Error during registration process\n" + e.getMessage());
+            log.error("Error during registration process", e);
         }
     }
     
     /**
      * Receive unregistration messages from RabbitMQ queue 
-     * @param message 
+     * @param message	message that has resource to unregister
      */
     public void receiveUnregistrationMessage(byte[] message) {
         try {
@@ -98,13 +99,13 @@ public class ResourceRegistration {
                 deleteResource(id);                
             }
         } catch (Exception e) {
-            log.info("Error during unregistration process\n" + e.getMessage());
+            log.info("Error during unregistration process", e);
         }
     }
     
     /**
      * Receive update messages from RabbitMQ queue 
-     * @param message 
+     * @param message	message that has resource for update 
      */
     public void receiveUpdateMessage(byte[] message) {
         try {
@@ -125,12 +126,12 @@ public class ResourceRegistration {
                 }                
                 log.debug("Updating resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
                 
-                addPolicy(symbioteId, internalId, msg.getSingleTokenAccessPolicy());
+                addPolicy(symbioteId, internalId, msg.getAccessPolicy());
                 addResource(symbioteId, internalId, props, pluginId);
             }
             addCloudResourceInfoForOData(msgs);
         } catch (Exception e) {
-            log.error("Error during registration process\n" + e.getMessage());
+            log.error("Error during registration process", e);
         }
     }
     
@@ -156,20 +157,19 @@ public class ResourceRegistration {
                 log.error("Resource " + internalId + " not found");
             }
         } catch (Exception e) {
-            log.error("Resource with id " + internalId + " not found - Exception: " + e.getMessage());
+            log.error("Resource with id " + internalId + " not found", e);
         }
     }  
     
-    private void addPolicy(String resourceId, String internalId, SingleTokenAccessPolicySpecifier accPolicy) throws InvalidArgumentsException {
+    private void addPolicy(String resourceId, String internalId, IAccessPolicySpecifier accPolicy) throws InvalidArgumentsException {
         try {            
-            IAccessPolicy policy = SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(accPolicy);
+            IAccessPolicy policy = AccessPolicyFactory.getAccessPolicy(accPolicy);
             AccessPolicy ap = new AccessPolicy(resourceId, internalId, policy);
             accessPolicyRepository.save(ap);            
             
             log.info("Policy successfully added for resource " + resourceId);
         } catch (InvalidArgumentsException e) {
-            log.error("Invalid Policy definition for resource with id " + resourceId);
-            throw e;
+            throw new InvalidArgumentsException("Invalid Policy definition for resource with id " + resourceId, e);
         }
     }    
     
@@ -185,7 +185,7 @@ public class ResourceRegistration {
             log.info("Policy removed for resource " + internalId);
             
         } catch (Exception e) {
-            log.error("Resource with internalId " + internalId + " not found - Exception: " + e.getMessage());
+            log.error("Resource with internalId " + internalId + " not found", e);
         }
     }
 
@@ -194,7 +194,7 @@ public class ResourceRegistration {
             owlApiHelp.addCloudResourceList(cloudResourceList);
         }
         catch(Exception e){
-            log.error("Error add info registration for OData\n"+e.getMessage());
+            log.error("Error add info registration for OData", e);
         }
     }
 }

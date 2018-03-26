@@ -7,17 +7,22 @@ package eu.h2020.symbiote.service;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceODataCondition;
+
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.input.ReaderInputStream;
 import org.apache.olingo.commons.api.ex.ODataException;
 
 import org.apache.olingo.commons.api.http.HttpHeader;
@@ -45,18 +50,20 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.managers.ServiceResponseResult;
-import java.io.InputStream;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.Date;
 import org.springframework.beans.factory.annotation.Value;
 
 /*
 *
-* @author Luca Tomaselli <l.tomaselli@nextworks.it>
+* @author Luca Tomaselli
  */
 @Conditional(NBInterfaceODataCondition.class)
 @CrossOrigin(origins = "*", methods = {RequestMethod.POST, RequestMethod.OPTIONS, RequestMethod.PUT, RequestMethod.GET})
@@ -93,7 +100,7 @@ public class RAPEdmController {
      *
      * @param req the req
      * @return the response entity
-     * @throws java.lang.Exception
+     * @throws java.lang.Exception can throw exception
      */
     @CrossOrigin(origins = "*")
     @RequestMapping(value = "**")
@@ -113,7 +120,7 @@ public class RAPEdmController {
         HttpStatus httpStatus = null;
         try {            
             OData odata = OData.newInstance();
-            ServiceMetadata edm = odata.createServiceMetadata(edmProvider, new ArrayList());
+            ServiceMetadata edm = odata.createServiceMetadata(edmProvider, new ArrayList<>());
             ODataHttpHandler handler = odata.createHandler(edm);
             handler.register(entityCollectionProcessor);
             handler.register(entityProcessor);
@@ -121,26 +128,21 @@ public class RAPEdmController {
 
             response = handler.process(createODataRequest(req, split));
             
-            
+            responseStr = StreamUtils.copyToString(response.getContent(), StandardCharsets.UTF_8);
             if(response.getStatusCode() != HttpStatus.OK.value()){
-                String errorMessage = Integer.toString(response.getStatusCode());
-                InputStream inputStream = response.getContent();
-                if(inputStream != null)
-                    errorMessage = StreamUtils.copyToString(inputStream, Charset.defaultCharset());
-                responseStr = sendFailMessage(req, errorMessage);
+                if(responseStr != null && !responseStr.isEmpty())
+                    sendFailMessage(req, responseStr);
+                else
+                    sendFailMessage(req, Integer.toString(response.getStatusCode()));
             }
-            else 
-                responseStr = StreamUtils.copyToString(
-                    response.getContent(), Charset.defaultCharset());
-
 
             httpStatus = HttpStatus.valueOf(response.getStatusCode());            
         } catch (IOException | ODataException e) {
-            responseStr = sendFailMessage(req, e.getMessage());
+            responseStr = sendFailMessage(req, e.getClass().getName() + ": " + e.getMessage());
             log.error(e.getMessage(), e);
             httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
         }
-        try{
+        try {
             headers.add("Access-Control-Allow-Origin", "*");
             headers.add("Access-Control-Allow-Credentials", "true");
             headers.add("Access-Control-Allow-Methods", "OPTIONS, GET, POST, PUT");
@@ -154,7 +156,7 @@ public class RAPEdmController {
             log.error(e.getMessage(), e);
         }
         
-        return new ResponseEntity(responseStr, headers, httpStatus);
+        return new ResponseEntity<String>(responseStr, headers, httpStatus);
     }
 
     private String sendFailMessage(HttpServletRequest request, String error) {
@@ -213,11 +215,35 @@ public class RAPEdmController {
         try {
             ODataRequest odRequest = new ODataRequest();
 
-            odRequest.setBody(httpRequest.getInputStream());
             extractHeaders(odRequest, httpRequest);
             extractMethod(odRequest, httpRequest);
             extractUri(odRequest, httpRequest, split);
 
+            // set body
+            StringWriter writer = new StringWriter();
+            IOUtils.copy(httpRequest.getInputStream(), writer, StandardCharsets.UTF_8);
+            String input = writer.toString();
+            log.info("Input: {}", input);
+            
+            // TODO check if service is called and body need to be JSON objs separated with comma (not array)
+            if(odRequest.getRawODataPath().toLowerCase().startsWith("service(") ||
+            		odRequest.getRawODataPath().toLowerCase().startsWith("services(")) 
+            {
+                // service - coverting input JSON to input parametres separated by comma
+                ObjectMapper mapper = new ObjectMapper();
+                List<Object> objects = mapper.readValue(input, new TypeReference<List<Object>>() { });
+                StringWriter sw = new StringWriter();
+                for (Iterator<Object> iter = objects.iterator(); iter.hasNext();) {
+                    Object o = iter.next();
+                    mapper.writeValue(sw, o);
+                    if(iter.hasNext())
+                        sw.append(",\n");
+                }
+                input = sw.toString();
+            }
+
+            odRequest.setBody(new ReaderInputStream(new StringReader(input), StandardCharsets.UTF_8));
+            
             return odRequest;
         } catch (final IOException e) {
             throw new SerializerException("An I/O exception occurred.", e,
@@ -343,7 +369,7 @@ public class RAPEdmController {
     private void extractHeaders(final ODataRequest odRequest, final HttpServletRequest req) {
         for (Enumeration<?> headerNames = req.getHeaderNames(); headerNames.hasMoreElements();) {
             String headerName = (String) headerNames.nextElement();
-            List<String> headerValues = new ArrayList();
+            List<String> headerValues = new ArrayList<>();
             for (Enumeration<?> headers = req.getHeaders(headerName); headers.hasMoreElements();) {
                 String value = (String) headers.nextElement();
                 headerValues.add(value);

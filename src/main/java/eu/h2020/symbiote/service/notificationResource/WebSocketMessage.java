@@ -9,7 +9,7 @@ import java.util.List;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 public class WebSocketMessage {
     

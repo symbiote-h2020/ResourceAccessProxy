@@ -11,10 +11,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
 import eu.h2020.symbiote.managers.AuthorizationManager;
+import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
+import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
-import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import static eu.h2020.symbiote.service.RAPEntityCollectionProcessor.setErrorResponse;
@@ -27,7 +28,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import org.apache.commons.io.IOUtils;
-import org.apache.olingo.commons.api.data.Entity;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
 import org.apache.olingo.commons.api.edm.EdmNavigationProperty;
@@ -53,13 +53,12 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import org.apache.olingo.server.api.deserializer.DeserializerResult;
 import org.apache.olingo.server.api.deserializer.ODataDeserializer;
 import org.springframework.beans.factory.annotation.Value;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 
 @Component
@@ -114,7 +113,7 @@ public class RAPEntityProcessor implements EntityProcessor{
 
             CustomODataApplicationException customOdataException = null;
 
-            ArrayList<String> typeNameList = new ArrayList();
+            ArrayList<String> typeNameList = new ArrayList<>();
             // 1st retrieve the requested EntitySet from the uriInfo
             List<UriResource> resourceParts = uriInfo.getUriResourceParts();
             int segmentCount = resourceParts.size();
@@ -203,13 +202,12 @@ public class RAPEntityProcessor implements EntityProcessor{
 
     @Override
     public void updateEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType requestFormat, ContentType responseFormat) throws ODataApplicationException, ODataLibraryException {
+        String symbioteId = null;
+        CustomODataApplicationException customOdataException = null;        
         try {
-            CustomODataApplicationException customOdataException = null;        
-            String responseString;
-            InputStream stream = null;
             String body = null;
 
-            ArrayList<String> typeNameList = new ArrayList();
+            ArrayList<String> typeNameList = new ArrayList<>();
 
             // 1st retrieve the requested EntitySet from the uriInfo
             List<UriResource> resourceParts = uriInfo.getUriResourceParts();
@@ -256,11 +254,9 @@ public class RAPEntityProcessor implements EntityProcessor{
                 log.error("Invalid message body", ex);
             }
             requestInputStream = new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8));
-            DeserializerResult result = deserializer.entity(requestInputStream, targetEntityType);
-            Entity requestEntity = result.getEntity();
+            deserializer.entity(requestInputStream, targetEntityType);
 
-            String symbioteId = null;
-            ArrayList<ResourceInfo> resourceInfoList;
+            List<ResourceInfo> resourceInfoList;
             try {
                 resourceInfoList = storageHelper.getResourceInfoList(typeNameList,keyPredicates);
                 for(ResourceInfo resourceInfo: resourceInfoList){
@@ -290,34 +286,41 @@ public class RAPEntityProcessor implements EntityProcessor{
                 return;
             }
 
-            Object obj = storageHelper.setService(resourceInfoList, body);        
-            responseString = "";        
-            if ((obj != null) && (obj instanceof byte[])) {
-                try {
-                    responseString = new String((byte[]) obj, "UTF-8");
-                } catch (UnsupportedEncodingException ex) {
-                    log.warn(ex.getMessage());
-                }
-            } else {
-                responseString = (String) obj;
-            }       
+            RapPluginResponse rapPluginResponse = storageHelper.setService(resourceInfoList, body);        
+//            responseString = "";        
+//            if ((obj != null) && (obj instanceof byte[])) {
+//                try {
+//                    responseString = new String((byte[]) obj, "UTF-8");
+//                } catch (UnsupportedEncodingException ex) {
+//                    log.warn(ex.getMessage());
+//                }
+//            } else {
+//                responseString = (String) obj;
+//            }       
+//
+//            try {
+//                stream = new ByteArrayInputStream(responseString.getBytes("UTF-8"));
+//            } catch(Exception e){
+//                log.error(e.getMessage());
+//            }
 
-            try {
-                stream = new ByteArrayInputStream(responseString.getBytes("UTF-8"));
-            } catch(Exception e){
-                log.error(e.getMessage());
-            }
-
-            if(customOdataException == null && stream != null)
+            if(customOdataException == null && rapPluginResponse instanceof RapPluginOkResponse)
                 storageHelper.sendSuccessfulAccessMessage(resourceInfoList.get(0).getSymbioteId(),SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
 
             // 4th: configure the response object: set the body, headers and status code
             //response.setContent(serializerResult.getContent());
-            response.setContent(stream);
-            response.setStatusCode(HttpStatusCode.OK.getStatusCode());
+            response.setContent(new ByteArrayInputStream(rapPluginResponse.getContent().getBytes(StandardCharsets.UTF_8)));
+            response.setStatusCode(rapPluginResponse.getResponseCode());
             response.addHeader("Access-Control-Allow-Origin", "*");
             response.addHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());
-         } catch (Exception ex) {
+        } catch (ODataApplicationException odataExc) {
+            log.error("Resource ID has not been served. Cause:\n" + odataExc.getMessage(), odataExc);
+            customOdataException = new CustomODataApplicationException(symbioteId, odataExc.getMessage(), 
+                    odataExc.getStatusCode(), odataExc.getLocale());
+            //throw customOdataException;
+            setErrorResponse(response, customOdataException, responseFormat);
+            return;
+        } catch (Exception ex) {
             log.error("Generic Error", ex);
             throw ex;
         }

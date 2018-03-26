@@ -6,7 +6,6 @@
 package eu.h2020.symbiote.resources.db;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -14,7 +13,7 @@ import org.springframework.stereotype.Repository;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 @Repository
 public interface RegistrationInfoODataRepository extends MongoRepository<RegistrationInfoOData, String> {

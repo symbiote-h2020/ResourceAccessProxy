@@ -11,7 +11,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.model.cim.Observation;
-import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import eu.h2020.symbiote.service.notificationResource.WebSocketController;
 import java.util.ArrayList;
 import java.util.Date;
@@ -23,7 +22,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 /**
  *
-* @author Luca Tomaselli <l.tomaselli@nextworks.it>
+* @author Luca Tomaselli
 */
 public class PluginNotification {
     private static final Logger log = LoggerFactory.getLogger(PluginNotification.class);

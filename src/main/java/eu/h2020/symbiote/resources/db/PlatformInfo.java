@@ -6,8 +6,6 @@
 package eu.h2020.symbiote.resources.db;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.springframework.data.annotation.Id;
@@ -15,7 +13,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 @Document(collection="plugins")
 public class PlatformInfo {

@@ -11,7 +11,7 @@ import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 @Document(collection="policies")
 public class AccessPolicy {

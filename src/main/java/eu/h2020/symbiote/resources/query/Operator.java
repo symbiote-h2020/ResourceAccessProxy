@@ -7,7 +7,7 @@ package eu.h2020.symbiote.resources.query;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 public class Operator {
     public enum Lop {
@@ -23,13 +23,13 @@ public class Operator {
     public Operator(String lopStr) throws Exception {
         switch(lopStr){
             case "AND":
-                this.lop = lop.AND;
+                this.lop = Lop.AND;
                 break;
             case "OR":
-                this.lop = lop.OR;
+                this.lop = Lop.OR;
                 break;
             case "NOT":
-                this.lop = lop.NOT;
+                this.lop = Lop.NOT;
                 break;
             default:
                 throw new Exception("Operator not recognize");

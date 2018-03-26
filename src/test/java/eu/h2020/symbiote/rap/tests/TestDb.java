@@ -10,9 +10,9 @@ import eu.h2020.symbiote.resources.db.RegistrationInfoODataRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
+import eu.h2020.symbiote.security.accesspolicies.common.AccessPolicyType;
 import eu.h2020.symbiote.security.accesspolicies.common.SingleTokenAccessPolicyFactory;
 import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenAccessPolicySpecifier;
-import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenAccessPolicySpecifier.SingleTokenAccessPolicyType;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -22,8 +22,6 @@ import java.util.Optional;
 import java.util.Set;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -38,15 +36,13 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 /**
  *
- * @author Luca Tomaselli <l.tomaselli@nextworks.it>
+ * @author Luca Tomaselli
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @TestConfiguration 
 @ActiveProfiles("test")
 public class TestDb {
-    private static final Logger log = LoggerFactory.getLogger(TestDb.class);
-    
     @Autowired
     private ResourcesRepository resourcesRepository;
     
@@ -132,7 +128,7 @@ public class TestDb {
         ResourceInfo resourceInfoResult = addResource(resourceId, platformResourceId, obsProperties, pluginId);
         assert(resourceInfoResult != null);
         //insert
-        SingleTokenAccessPolicyType policyType = SingleTokenAccessPolicyType.PUBLIC;
+        AccessPolicyType policyType = AccessPolicyType.PUBLIC;
         Map<String, String> requiredClaims = new HashMap<>();
         SingleTokenAccessPolicySpecifier accPolicy = new SingleTokenAccessPolicySpecifier(policyType,requiredClaims);
         AccessPolicy accessPolicy = addPolicy(resourceId,platformResourceId,accPolicy);

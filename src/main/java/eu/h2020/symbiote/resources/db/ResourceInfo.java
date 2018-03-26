@@ -15,7 +15,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 @Document(collection="resources")
 public class ResourceInfo {
@@ -108,7 +108,7 @@ public class ResourceInfo {
     @JsonIgnore
     public void addToSessionList(String sessionId) {
         if(this.sessionIdList == null)
-            this.sessionIdList = new ArrayList();
+            this.sessionIdList = new ArrayList<>();
         this.sessionIdList.add(sessionId);
     }
     

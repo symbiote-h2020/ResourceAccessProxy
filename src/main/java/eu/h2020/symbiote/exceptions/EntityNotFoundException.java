@@ -10,11 +10,12 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  *
- * @author Matteo Pardi <m.pardi@nextworks.it>
+ * @author Matteo Pardi
  */
 @ResponseStatus(HttpStatus.BAD_REQUEST)
 public class EntityNotFoundException extends RuntimeException {
-    
+    private static final long serialVersionUID = -7083406099980297962L;
+
     private String symbioteId;
     public EntityNotFoundException(String entityId) {
         super ("Could not find object with id " + entityId);
