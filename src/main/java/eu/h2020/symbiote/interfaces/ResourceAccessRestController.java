@@ -6,6 +6,8 @@
 package eu.h2020.symbiote.interfaces;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.JsonNode;
+import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -30,9 +32,15 @@ import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
+
+import java.io.UnsupportedEncodingException;
 import java.util.*;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
+
+import org.apache.http.HttpException;
+import org.apache.olingo.commons.api.http.HttpStatusCode;
+import org.apache.olingo.server.api.ODataApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
@@ -50,6 +58,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.HandlerMapping;
+import sun.net.www.content.text.Generic;
+
+import static eu.h2020.symbiote.resources.RapDefinitions.JSON_OBJECT_TYPE_FIELD_NAME;
 
 
 /**
@@ -111,11 +122,10 @@ public class ResourceAccessRestController {
     @RequestMapping(value="/rap/Sensor/{resourceId}", method=RequestMethod.GET)
     public ResponseEntity<Object> readResource(@PathVariable String resourceId, HttpServletRequest request) throws Exception {
         Exception e = null;
-        String path = "/rap/Sensor/"+resourceId;
+        String path = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
         HttpStatus httpStatus = null;
         HttpHeaders responseHeaders = new HttpHeaders();
-        //Observation ob = null;
-        Object response = null;
+        RapPluginResponse response = null;
         try {
             log.info("Received read resource request for ID = " + resourceId);       
             
@@ -143,7 +153,7 @@ public class ResourceAccessRestController {
             
             
             Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);          
-            
+            /*
             response = obj;
             if (obj instanceof byte[]) {
                 response = new String((byte[]) obj, "UTF-8");
@@ -159,25 +169,20 @@ public class ResourceAccessRestController {
                     response = ob;
                 }
             }catch (Exception ex) {
-            }
+            }*/
+            response = extractRapPluginResponse(obj);
             sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
-        
-            httpStatus = HttpStatus.OK;
-            
+            httpStatus = HttpStatus.valueOf(response.getResponseCode());
         } catch(EntityNotFoundException enf) {
             e = enf;
             log.error(e.toString(), e);
             httpStatus = HttpStatus.NOT_FOUND;
+            sendFailMessage(path, resourceId, e);
         } catch (Exception ex) {
             e = ex;
             String err = "Unable to read resource with id: " + resourceId;
             log.error(err + "\n" + e.getMessage(),e);
             httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-        }     
-        
-        if(!httpStatus.equals(HttpStatus.OK)){
-            if(e == null)
-                e = new GenericException("Generic error");
             sendFailMessage(path, resourceId, e);
         }
         
@@ -186,7 +191,7 @@ public class ResourceAccessRestController {
             responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse.getServiceResponse());
         }
         
-        return new ResponseEntity<>(response , responseHeaders, httpStatus);
+        return new ResponseEntity<>(response.getContent(), responseHeaders, httpStatus);
     }
     
     /**
@@ -201,11 +206,10 @@ public class ResourceAccessRestController {
     @RequestMapping(value="/rap/Sensor/{resourceId}/history", method=RequestMethod.GET)
     public ResponseEntity<Object> readResourceHistory(@PathVariable String resourceId, HttpServletRequest request) throws Exception {
         Exception e = null;
-        String path = "/rap/Sensor/"+resourceId+"/history";
+        String path = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
         HttpStatus httpStatus = null;
         HttpHeaders responseHeaders = new HttpHeaders();
-        //List<Observation> observationsList = null;
-        Object response = null;
+        RapPluginResponse response = null;
         try {
             log.info("Received read resource request for ID = " + resourceId);           
             
@@ -231,11 +235,12 @@ public class ResourceAccessRestController {
             }
             String routingKey =  pluginId + "." + AccessType.HISTORY.toString().toLowerCase();
             Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);       
+
+            /*
             response = obj;
             if (obj instanceof byte[]) {
                 response = new String((byte[]) obj, "UTF-8");
             }
-            
             try{
                 List<Observation> observations = mapper.readValue(response.toString(), new TypeReference<List<Observation>>() {});
                 if(observations != null && !observations.isEmpty()){
@@ -248,33 +253,30 @@ public class ResourceAccessRestController {
                 }
             }catch (Exception ex) {
             }
+            */
+            response = extractRapPluginResponse(obj);
             sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
-
-            httpStatus = HttpStatus.OK;
+            httpStatus = HttpStatus.valueOf(response.getResponseCode());
             
         } catch(EntityNotFoundException enf) {
             e = enf;
             log.error(e.toString(),e);
             httpStatus = HttpStatus.NOT_FOUND;
+            sendFailMessage(path, resourceId, e);
         } catch (Exception ex) {
             e = ex;
             String err = "Unable to read resource with id: " + resourceId;
             log.error(err + "\n" + e.getMessage(),e);
             httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-        }     
-        
-        if(!httpStatus.equals(HttpStatus.OK)){
-            if(e == null)
-                e = new GenericException("Generic error");
             sendFailMessage(path, resourceId, e);
-        }
-        
+        }     
+
         ServiceResponseResult serResponse = authManager.generateServiceResponse();
         if(serResponse.isCreatedSuccessfully()) {
             responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse.getServiceResponse());
         }
         
-        return new ResponseEntity<>(response, responseHeaders, httpStatus);
+        return new ResponseEntity<>(response.getContent(), responseHeaders, httpStatus);
     }
     
     /**
@@ -288,11 +290,11 @@ public class ResourceAccessRestController {
      * @throws Exception		can throw exception
      */
     @RequestMapping(value={"/rap/Actuator/{resourceId}","/rap/Service/{resourceId}"}, method=RequestMethod.POST)
-    public ResponseEntity<?> writeResource(@PathVariable String resourceId, @RequestBody String body, HttpServletRequest request) throws Exception{
+    public ResponseEntity<?> writeResource(@PathVariable String resourceId, @RequestBody String body, HttpServletRequest request) throws Exception {
         Exception e = null;
-        String path = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
         HttpStatus httpStatus = null;
-        String response = null;
+        String path = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+        RapPluginResponse response = null;
         HttpHeaders responseHeaders = new HttpHeaders();
         try {
             log.info("Received write resource request for ID = " + resourceId + " with values " + body);
@@ -318,42 +320,81 @@ public class ResourceAccessRestController {
             }
             String routingKey =  pluginId + "." + AccessType.SET.toString().toLowerCase();
             Object obj = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-            response = "";
+            /*response = "";
             if(obj != null){
                 if (obj instanceof byte[]) {
                     response = new String((byte[]) obj, "UTF-8");
                 } else {
                     response = (String) obj;
                 }
-            }
+            }*/
+            response = extractRapPluginResponse(obj);
             sendSuccessfulAccessMessage(resourceId, SuccessfulAccessMessageInfo.AccessType.NORMAL.name());
-            httpStatus = HttpStatus.OK;
+            httpStatus = HttpStatus.valueOf(response.getResponseCode());
             
-        } catch(EntityNotFoundException enf) {
-            e = enf;
-            log.error(e.toString(),e);
+        } catch(EntityNotFoundException ex) {
+            e = ex;
+            log.error(e.toString(), e);
             httpStatus = HttpStatus.NOT_FOUND;
+            sendFailMessage(path, resourceId, e);
+        } catch (GenericException ex) {
+            e = ex;
+            log.error(e.toString(), e);
+            httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+            sendFailMessage(path, resourceId, e);
+        } catch (TimeoutException ex) {
+            e = ex;
+            log.error(e.toString(), e);
+            httpStatus = HttpStatus.GATEWAY_TIMEOUT;
+            sendFailMessage(path, resourceId, e);
         } catch (Exception ex) {
             e = ex;
-            String err = "Unable to read resource with id: " + resourceId;
+            String err = "Unable to write resource with id: " + resourceId;
             log.error(err + "\n" + e.getMessage(),e);
             httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-        }     
-        
-        if(!httpStatus.equals(HttpStatus.OK)){
-            if(e == null)
-                e = new GenericException("Generic error");
             sendFailMessage(path, resourceId, e);
         }
-        
+
         ServiceResponseResult serResponse = authManager.generateServiceResponse();
         if(serResponse.isCreatedSuccessfully()) {
             responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse.getServiceResponse());
         }
         
-        return new ResponseEntity<>(response, responseHeaders, httpStatus);
+        return new ResponseEntity<>(response.getContent(), responseHeaders, httpStatus);
     }
-    
+
+    private RapPluginResponse extractRapPluginResponse(Object obj)
+            throws GenericException, UnsupportedEncodingException {
+        ObjectMapper mapper = new ObjectMapper();
+        if (obj == null) {
+            log.error("No response from plugin");
+            throw new TimeoutException("No response from plugin");
+        }
+
+        String rawObj;
+        if (obj instanceof byte[]) {
+            rawObj = new String((byte[]) obj, "UTF-8");
+        } else if (obj instanceof String){
+            rawObj = (String) obj;
+        } else {
+            throw new GenericException("Can not parse response from RAP plugin. Expected byte[] or String but got " + obj.getClass().getName());
+        }
+
+        try {
+            RapPluginResponse resp = mapper.readValue(rawObj, RapPluginResponse.class);
+            String content = resp.getContent();
+            if(content != null && content.length() > 0) {
+                JsonNode jsonObj = mapper.readTree(content);
+                if (!jsonObj.has(JSON_OBJECT_TYPE_FIELD_NAME)) {
+                    log.error("Field " + JSON_OBJECT_TYPE_FIELD_NAME + " is mandatory");
+                }
+            }
+            return resp;
+        } catch (Exception e) {
+            throw new GenericException("Can not parse response from RAP to JSON.\n Cause: " + e.getMessage());
+        }
+    }
+
     private ResourceInfo getResourceInfo(String resourceId) {
         Optional<ResourceInfo> resInfo = resourcesRepo.findById(resourceId);
         if(!resInfo.isPresent())
@@ -362,7 +403,7 @@ public class ResourceAccessRestController {
         return resInfo.get();
     }
     
-    public boolean checkAccessPolicies(HttpServletRequest request, String resourceId) throws Exception {
+    private boolean checkAccessPolicies(HttpServletRequest request, String resourceId) throws Exception {
         Map<String, String> secHdrs = new HashMap<>();
         Enumeration<String> headerNames = request.getHeaderNames();
 

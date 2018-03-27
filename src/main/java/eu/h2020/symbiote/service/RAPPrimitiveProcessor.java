@@ -93,6 +93,17 @@ public class RAPPrimitiveProcessor implements PrimitiveProcessor {
     }
     
     //Sensor('id')/name
+
+    /**
+     * This method is used to read an primitive in OData
+     *
+     * @param request
+     * @param response
+     * @param uriInfo
+     * @param responseFormat
+     * @throws ODataApplicationException
+     * @throws ODataLibraryException
+     */
     @Override
     public void readPrimitive(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) 
             throws ODataApplicationException, ODataLibraryException {

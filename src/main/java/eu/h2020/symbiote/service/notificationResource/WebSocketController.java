@@ -92,6 +92,12 @@ public class WebSocketController extends TextWebSocketHandler {
         log.error("error occured at sender " + session, throwable);
     }
 
+    /**
+     * This method handles the connection closed procedure
+     * @param session
+     * @param status
+     * @throws Exception
+     */
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         log.info("Session " + session.getId() + " closed with status " + status.getCode());
@@ -111,12 +117,25 @@ public class WebSocketController extends TextWebSocketHandler {
         }
     }
 
+    /**
+     * This method is called right after a client connects to the server
+     *
+     * @param session
+     * @throws Exception
+     */
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         log.info("Connected ... " + session.getId());
         idSession.put(session.getId(), session);
     }
 
+    /**
+     * This method is called whenever a message is received from the server
+     *
+     * @param session
+     * @param jsonTextMessage
+     * @throws Exception
+     */
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage jsonTextMessage) throws Exception  {
         Exception e = null;
@@ -178,7 +197,8 @@ public class WebSocketController extends TextWebSocketHandler {
             sendFailMessage(message,e);
         }
     }
-    
+
+
     private void Subscribe(WebSocketSession session, List<String> resourcesId) throws Exception {
         HashMap<String, List<ResourceInfo>> subscribeList = new HashMap<>();
         for (String resId : resourcesId) {
@@ -270,6 +290,13 @@ public class WebSocketController extends TextWebSocketHandler {
         }
     }
 
+
+    /**
+     * This method is used to send a push notification message to all the clients connected
+     * and subscribed to the resource that emits the notification itself
+     *
+     * @param obs
+     */
     public void SendMessage(Observation obs) {
         Map<String,String> secResponse = new HashMap<>();
         ServiceResponseResult serResponse = authManager.generateServiceResponse();
@@ -340,8 +367,13 @@ public class WebSocketController extends TextWebSocketHandler {
 
         return resInfo;
     }
-    
-    
+
+    /**
+     * This method is used to send a successful access message to CRAM
+     *
+     * @param symbioteIdList
+     * @param accessType
+     */
     public void sendSuccessfulAccessMessage(List<String> symbioteIdList, String accessType){
         String jsonNotificationMessage = null;
         ObjectMapper map = new ObjectMapper();
@@ -391,7 +423,15 @@ public class WebSocketController extends TextWebSocketHandler {
         }
         notificationMessage.SendFailAccessMessage(jsonNotificationMessage);
     }
-    
+
+    /**
+     * This method is used to check access policies towards Authentication Manager
+     *
+     * @param secHdrs
+     * @param resourceIdList
+     * @return
+     * @throws Exception
+     */
     public boolean checkAccessPolicies(Map<String, String> secHdrs, List<String> resourceIdList) throws Exception {
         
         log.debug("secHeaders: " + secHdrs);

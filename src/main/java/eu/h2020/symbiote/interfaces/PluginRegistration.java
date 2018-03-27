@@ -25,8 +25,12 @@ public class PluginRegistration {
 
     @Autowired
     PluginRepository pluginRepository;
-    
-    
+
+    /**
+     * This method received the registration of a new plugin to the RAP
+     *
+     * @param messageByte
+     */
     public void receiveMessage(byte[] messageByte) {
         try {
             String message = new String(messageByte, "UTF-8");
