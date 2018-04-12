@@ -28,6 +28,9 @@ public class PluginNotification {
     private static final Logger log = LoggerFactory.getLogger(PluginNotification.class);
 
     @Autowired
+    ResourceAccessNotificationService notificationService;
+    
+    @Autowired
     WebSocketController webSocketController;
     
     @Value("${symbiote.rap.cram.url}") 
@@ -53,21 +56,10 @@ public class PluginNotification {
     }
     
     public void sendSuccessfulPushMessage(String symbioteId){
-        String jsonNotificationMessage = null;
-        ObjectMapper map = new ObjectMapper();
-        map.configure(SerializationFeature.INDENT_OUTPUT, true);
-        map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-        
         List<Date> dateList = new ArrayList<Date>();
         dateList.add(new Date());
-        ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager,notificationUrl);
         
-        try{
-            notificationMessage.SetSuccessfulPushes(symbioteId, dateList);
-            jsonNotificationMessage = map.writeValueAsString(notificationMessage);
-        } catch (JsonProcessingException e) {
-            log.error(e.getMessage());
-        }
-        notificationMessage.SendSuccessfulPushMessage(jsonNotificationMessage);
+        notificationService.addSuccessfulPushes(symbioteId, dateList);
+        notificationService.sendAccessData();
     }
 }

@@ -19,6 +19,7 @@ import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
 import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
 import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
+import eu.h2020.symbiote.interfaces.ResourceAccessNotificationService;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.managers.AuthorizationResult;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
@@ -75,7 +76,6 @@ public class StorageHelper {
     private final PluginRepository pluginRepo;
     private final RabbitTemplate rabbitTemplate;
     private final TopicExchange exchange;
-    private final String notificationUrl;
     private final AuthorizationManager authManager;
 
     private static final Pattern PATTERN = Pattern.compile(
@@ -83,16 +83,18 @@ public class StorageHelper {
             + "T\\p{Digit}{1,2}:\\p{Digit}{1,2}(?::\\p{Digit}{1,2})?"
             + "(Z|([-+]\\p{Digit}{1,2}:\\p{Digit}{2}))?");
 
+	private ResourceAccessNotificationService notificationService;
+
     public StorageHelper(ResourcesRepository resourcesRepository, PluginRepository pluginRepository,
             AuthorizationManager authMan, RabbitTemplate rabbit, int rabbitReplyTimeout, 
-            TopicExchange topicExchange, String notifUrl) {
+            TopicExchange topicExchange, ResourceAccessNotificationService notificationService) {
         //initSampleData();
         resourcesRepo = resourcesRepository;
         pluginRepo = pluginRepository;
         rabbitTemplate = rabbit;
+		this.notificationService = notificationService;
         rabbitTemplate.setReplyTimeout(rabbitReplyTimeout);
         exchange = topicExchange;
-        notificationUrl = notifUrl;
         authManager = authMan;
     }
 
@@ -481,26 +483,15 @@ public class StorageHelper {
     
     public void sendSuccessfulAccessMessage(String symbioteId, String accessType){
         try{
-            String jsonNotificationMessage = null;
             if(accessType == null || accessType.isEmpty())
                 accessType = SuccessfulAccessMessageInfo.AccessType.NORMAL.name();
-            ObjectMapper map = new ObjectMapper();
-            map.configure(SerializationFeature.INDENT_OUTPUT, true);
-            map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-
             List<Date> dateList = new ArrayList<>();
             dateList.add(new Date());
-            ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager, notificationUrl);
 
-            try{
-                notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
-                jsonNotificationMessage = map.writeValueAsString(notificationMessage);
-            } catch (JsonProcessingException e) {
-                log.error(e.toString(), e);
-            }
-            notificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
+            notificationService.addSuccessfulAttempts(symbioteId, dateList, accessType);
+            notificationService.sendAccessData();
         }catch(Exception e){
-            log.error("Error to send SetSuccessfulAttempts to CRAM");
+            log.error("Error to send SetSuccessfulAttempts to Monitoring");
             log.error(e.getMessage(),e);
         }
     }

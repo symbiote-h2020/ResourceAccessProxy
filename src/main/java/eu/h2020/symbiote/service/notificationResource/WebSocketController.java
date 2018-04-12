@@ -20,6 +20,7 @@ import eu.h2020.symbiote.exceptions.EntityNotFoundException;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceWebSocketCondition;
 import eu.h2020.symbiote.messages.access.ResourceAccessUnSubscribeMessage;
 import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
+import eu.h2020.symbiote.interfaces.ResourceAccessNotificationService;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
@@ -66,6 +67,9 @@ public class WebSocketController extends TextWebSocketHandler {
 
     private static final Logger log = LoggerFactory.getLogger(WebSocketController.class);
 
+    @Autowired
+    ResourceAccessNotificationService notificationService;
+    
     @Autowired
     ResourcesRepository resourcesRepo;
     
@@ -343,29 +347,16 @@ public class WebSocketController extends TextWebSocketHandler {
     
     
     public void sendSuccessfulAccessMessage(List<String> symbioteIdList, String accessType){
-        String jsonNotificationMessage = null;
-        ObjectMapper map = new ObjectMapper();
-        map.configure(SerializationFeature.INDENT_OUTPUT, true);
-        map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-        
         List<Date> dateList = new ArrayList<Date>();
         dateList.add(new Date());
-        ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager, notificationUrl);
         
-        try{
-            notificationMessage.SetSuccessfulAttemptsList(symbioteIdList, dateList, accessType);
-            jsonNotificationMessage = map.writeValueAsString(notificationMessage);
-        } catch (JsonProcessingException e) {
-            log.error(e.getMessage());
-        }
-        notificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
+        notificationService.addSuccessfulAttemptsList(symbioteIdList, dateList, accessType);
+        notificationService.sendAccessData();
     }
     
     private void sendFailMessage(String path, Exception e) {
-        String jsonNotificationMessage = null;
         String appId = "";String issuer = ""; String validationStatus = "";
         String symbioteId = "";
-        ObjectMapper mapper = new ObjectMapper();
         
         String code = Integer.toString(HttpStatus.INTERNAL_SERVER_ERROR.value());
         String message = e.getMessage();
@@ -377,19 +368,11 @@ public class WebSocketController extends TextWebSocketHandler {
             symbioteId = ((EntityNotFoundException) e).getSymbioteId();
         }
             
-        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         List<Date> dateList = new ArrayList<Date>();
         dateList.add(new Date());
-        ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager, notificationUrl);
-        try {
-            notificationMessage.SetFailedAttempts(symbioteId, dateList, 
-            code, message, appId, issuer, validationStatus, path); 
-            jsonNotificationMessage = mapper.writeValueAsString(notificationMessage);
-        } catch (JsonProcessingException jsonEx) {
-            log.error(jsonEx.getMessage());
-        }
-        notificationMessage.SendFailAccessMessage(jsonNotificationMessage);
+        notificationService.addFailedAttempts(symbioteId, dateList, 
+            code, message, appId, issuer, validationStatus, path);
+        notificationService.sendAccessData();
     }
     
     public boolean checkAccessPolicies(Map<String, String> secHdrs, List<String> resourceIdList) throws Exception {

@@ -69,6 +69,9 @@ public class ResourceAccessRestController {
     public final String SECURITY_RESPONSE_HEADER = "x-auth-response";
     
     @Autowired
+    ResourceAccessNotificationService notificationService;
+    
+    @Autowired
     private RabbitTemplate rabbitTemplate;
     
     @Autowired
@@ -384,9 +387,7 @@ public class ResourceAccessRestController {
     private String sendFailMessage(String path, String symbioteId, Exception e) {
         String message = null;
         try{
-            String jsonNotificationMessage = null;
             String appId = "";String issuer = ""; String validationStatus = "";
-            ObjectMapper mapper = new ObjectMapper();
             message = e.getMessage();
             if(message == null)
                 message = e.toString();
@@ -397,20 +398,13 @@ public class ResourceAccessRestController {
             else
                 code = Integer.toString(HttpStatus.FORBIDDEN.value());
 
-            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-            mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
             List<Date> dateList = new ArrayList<>();
             dateList.add(new Date());
-            ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager, notificationUrl);
-            try {
-                notificationMessage.SetFailedAttempts(symbioteId, dateList,code, message, appId, issuer, validationStatus, path); 
-                jsonNotificationMessage = mapper.writeValueAsString(notificationMessage);
-            } catch (JsonProcessingException jsonEx) {
-                log.error("Error while processing json", jsonEx);
-            }
-            notificationMessage.SendFailAccessMessage(jsonNotificationMessage);
+    
+            notificationService.addFailedAttempts(symbioteId, dateList,code, message, appId, issuer, validationStatus, path); 
+            notificationService.sendAccessData();
         }catch(Exception ex){
-            log.error("Error to send FailAccessMessage to CRAM", ex);
+            log.error("Error to send FailAccessMessage to Monitoring", ex);
             log.error(ex.getMessage(),ex);
         }
         return message;    
@@ -419,25 +413,16 @@ public class ResourceAccessRestController {
     
     private void sendSuccessfulAccessMessage(String symbioteId, String accessType){
         try{
-            String jsonNotificationMessage = null;
             if(accessType == null || accessType.isEmpty())
                 accessType = SuccessfulAccessMessageInfo.AccessType.NORMAL.name();
-            ObjectMapper map = new ObjectMapper();
-            map.configure(SerializationFeature.INDENT_OUTPUT, true);
-            map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
 
             List<Date> dateList = new ArrayList<>();
             dateList.add(new Date());
-            ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager, notificationUrl);
-            try{
-                notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
-                jsonNotificationMessage = map.writeValueAsString(notificationMessage);
-            } catch (JsonProcessingException e) {
-                log.error("Error while processing json", e);
-            }
-            notificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
+          
+            notificationService.addSuccessfulAttempts(symbioteId, dateList, accessType);
+            notificationService.sendAccessData();
         }catch(Exception e){
-            log.error("Error to send SetSuccessfulAttempts to CRAM");
+            log.error("Error to send SetSuccessfulAttempts to Monitoring");
             log.error(e.getMessage(),e);
         }
     }

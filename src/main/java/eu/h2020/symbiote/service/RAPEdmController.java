@@ -54,6 +54,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
+import eu.h2020.symbiote.interfaces.ResourceAccessNotificationService;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.managers.ServiceResponseResult;
 import java.io.StringReader;
@@ -78,6 +79,9 @@ public class RAPEdmController {
     public final String SECURITY_RESPONSE_HEADER = "x-auth-response";
 
     @Autowired
+    ResourceAccessNotificationService notificationService;
+    
+    @Autowired
     private RAPEdmProvider edmProvider;
 
     @Autowired
@@ -91,9 +95,6 @@ public class RAPEdmController {
     
     @Autowired
     private AuthorizationManager authManager;
-            
-    @Value("${symbiote.rap.cram.url}") 
-    private String notificationUrl;
     
     /**
      * Process.
@@ -162,7 +163,6 @@ public class RAPEdmController {
     private String sendFailMessage(HttpServletRequest request, String error) {
         String message = "";
         try{
-            String jsonNotificationMessage = null;
             String symbioTeId = "";
             String appId = "";
             String issuer = ""; 
@@ -181,21 +181,15 @@ public class RAPEdmController {
                     symbioTeId = customOdataExc.getSymbioteId();
                 message = customOdataExc.getMessage();
             }            
-            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-            mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+
             List<Date> dateList = new ArrayList<>();
             dateList.add(new Date());
-            ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager, notificationUrl);
-            try {
-                notificationMessage.SetFailedAttempts(symbioTeId, dateList, 
-                code, message, appId, issuer, validationStatus, request.getRequestURI()); 
-                jsonNotificationMessage = mapper.writeValueAsString(notificationMessage);
-            } catch (JsonProcessingException jsonEx) {
-                log.error(jsonEx.toString(), jsonEx);
-            }
-            notificationMessage.SendFailAccessMessage(jsonNotificationMessage);
+            
+            notificationService.addFailedAttempts(symbioTeId, dateList, 
+                code, message, appId, issuer, validationStatus, request.getRequestURI());
+            notificationService.sendAccessData();
         }catch(Exception e){
-            log.error("Error to send FailAccessMessage to CRAM");
+            log.error("Error to send FailAccessMessage to Monitoring");
             log.error(e.getMessage(),e);
         }
         return message;

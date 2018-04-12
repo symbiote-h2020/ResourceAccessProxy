@@ -5,125 +5,68 @@
  */
 package eu.h2020.symbiote.interfaces;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import eu.h2020.symbiote.managers.AuthorizationManager;
-import eu.h2020.symbiote.managers.ServiceRequest;
-import eu.h2020.symbiote.messages.resourceAccessNotification.FailedAccessMessageInfo;
-import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
-import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulPushesMessageInfo;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.converter.StringHttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.web.client.RestTemplate;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import eu.h2020.symbiote.messages.resourceAccessNotification.FailedAccessMessageInfo;
+import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
+import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulPushesMessageInfo;
 
 /**
  *
- * @author Luca Tomaselli
+ * @author Luca Tomaselli, Pavle Skocir
  */
-public class ResourceAccessNotification {
-    
-	public static final String RAP_EXCHANGE = "symbIoTe.resourceAccessProxy";
-	public static final String ROUTING_KEY = "symbIoTe.rap.resource.access";
-	
-    private static final Logger log = LoggerFactory.getLogger(ResourceAccessNotification.class);
 
-    private final String notificationUrl;
-    private final AuthorizationManager authManager;
-    
+public class ResourceAccessNotification {
+	
     
     @JsonProperty("successfulAttempts")
     private List<SuccessfulAccessMessageInfo> successfulAttempts;
-    
-    @JsonProperty("successfulPushes")
+
+	@JsonProperty("successfulPushes")
     private List<SuccessfulPushesMessageInfo> successfulPushes;
     
     @JsonProperty("failedAttempts")
     private List<FailedAccessMessageInfo> failedAttempts;
-    
-    public ResourceAccessNotification(AuthorizationManager authManager, String notificationUrl) {
-        this.authManager = authManager;
-        this.notificationUrl = notificationUrl;
+
+    public ResourceAccessNotification() {
+    	successfulAttempts= new ArrayList<>();
+    	successfulPushes= new ArrayList<>();
+    	failedAttempts= new ArrayList<>();
     }
             
-    public void SetSuccessfulAttempts (String symbioTeId, List<Date> timestamp, String accessType){
+    public void addSuccessfulAttempts (String symbioTeId, List<Date> timestamp, String accessType){
         SuccessfulAccessMessageInfo succAccMess = new SuccessfulAccessMessageInfo(symbioTeId, timestamp, accessType);
-        this.successfulAttempts = new ArrayList<>();
         this.successfulAttempts.add(succAccMess);
     }
     
-    public void SetSuccessfulAttemptsList (List<String> symbioTeIdList, List<Date> timestamp, String accessType){
-        this.successfulAttempts = new ArrayList<>();
+    public void addSuccessfulAttemptsList (List<String> symbioTeIdList, List<Date> timestamp, String accessType){
         for(String symbioteId: symbioTeIdList){
             SuccessfulAccessMessageInfo succAccMess = new SuccessfulAccessMessageInfo(symbioteId, timestamp, accessType);
             this.successfulAttempts.add(succAccMess);
         }
     }
     
-    public void SetSuccessfulPushes (String symbioTeId, List<Date> timestamp){
+    public void addSuccessfulPushes (String symbioTeId, List<Date> timestamp){
         SuccessfulPushesMessageInfo succPushMess = new SuccessfulPushesMessageInfo(symbioTeId, timestamp);
-        this.successfulPushes = new ArrayList<>();
         this.successfulPushes.add(succPushMess);
     }
     
-    public void SetFailedAttempts (String symbioTeId, List<Date> timestamp, 
+    public void addFailedAttempts (String symbioTeId, List<Date> timestamp, 
             String code, String message, String appId, String issuer, 
             String validationStatus, String requestParams) {
         FailedAccessMessageInfo failMess= new FailedAccessMessageInfo(symbioTeId, timestamp, 
                 code, message, appId, issuer, validationStatus, requestParams);
-        this.failedAttempts = new ArrayList<>();
         this.failedAttempts.add(failMess);
     }
-    
-    
-    public void SendSuccessfulAttemptsMessage(String message){
-        sendMessage(message);
-    }
-    
-    public void SendFailAccessMessage(String message){
-        sendMessage(message);
-    }
-    
-    public void SendSuccessfulPushMessage(String message){
-        sendMessage(message);
-    }
-    
-    /**
-     * old: sending HTTP request to CRAM
-     * new: replaced with sending RabbitMQ message to monitoring
-     * @param message
-     */
-    private void sendMessage(String message){
-//        RestTemplate restTemplate = new RestTemplate();
-//        restTemplate.getMessageConverters().add(new MappingJackson2HttpMessageConverter());
-//        restTemplate.getMessageConverters().add(new StringHttpMessageConverter());
-//        
-//        ServiceRequest serviceReq = authManager.getServiceRequestHeaders();
-//        if(serviceReq.isCreatedSuccessfully()) {
-//            HttpHeaders httpHeaders = serviceReq.getServiceRequestHeaders();
-//            HttpEntity<String> httpEntity = new HttpEntity(message,httpHeaders);
-//        
-//            restTemplate.postForObject(notificationUrl, httpEntity, Object.class);
-//            log.debug("Sent access notification message to CRAM");
-//        } else {
-//            log.error("Access notification message to CRAM not sent: service request was not created successfully");
-//        }
-        
-        RabbitTemplate rabbitTemplate = new RabbitTemplate();
-        ServiceRequest serviceReq = authManager.getServiceRequestHeaders();
-        if(serviceReq.isCreatedSuccessfully()) {
-            rabbitTemplate.convertAndSend(RAP_EXCHANGE, ROUTING_KEY, message);
-            log.debug("Sent access notification message to Monitoring");
-        } else {
-            log.error("Access notification message to Monitoring not sent: service request was not created successfully");
-        }
-    }
-    
+
+	public void clear() {
+		successfulAttempts.clear();
+		successfulPushes.clear();
+		failedAttempts.clear();
+	}
     
 }

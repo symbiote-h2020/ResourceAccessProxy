@@ -35,4 +35,8 @@ public class RapDefinitions {
     public static final String      PLUGIN_NOTIFICATION_QUEUE = "symbIoTe.platform-queue-notification";
     public static final String      PLUGIN_NOTIFICATION_EXCHANGE_IN = "symbIoTe.rapPluginExchange-notification";
     public static final String      PLUGIN_NOTIFICATION_KEY = "symbIoTe.rapPluginExchange.plugin-notification";
+    
+    //for sending access data to Monitoring
+    public static final String 		RAP_ACCESS_EXCHANGE = "symbIoTe.resourceAccessProxy";
+	public static final String 		RAP_ACCESS_ROUTING_KEY = "symbIoTe.rap.resource.access";
 }
