@@ -16,7 +16,7 @@ import java.util.List;
 public class MessageInfo {
     @JsonProperty("symbIoTeId")
     protected String symbioTeId;
-    @JsonProperty("timestamp")
+    @JsonProperty("timestamps")
     protected List<Date> timestamp;
 
     public String getSymbioTeId() {
