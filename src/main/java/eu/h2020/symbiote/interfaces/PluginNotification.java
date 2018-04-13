@@ -5,34 +5,32 @@
  */
 package eu.h2020.symbiote.interfaces;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.netflix.discovery.converters.Auto;
-import eu.h2020.symbiote.exceptions.GenericException;
-import eu.h2020.symbiote.managers.AuthorizationManager;
-import eu.h2020.symbiote.messages.plugin.RapPluginErrorResponse;
-import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
-import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
-import eu.h2020.symbiote.model.cim.Observation;
-import eu.h2020.symbiote.resources.db.ResourceInfo;
-import eu.h2020.symbiote.resources.db.ResourcesRepository;
-import eu.h2020.symbiote.service.notificationResource.WebSocketController;
+import static eu.h2020.symbiote.resources.RapDefinitions.JSON_OBJECT_TYPE_FIELD_NAME;
 
-import java.io.UnsupportedEncodingException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import org.apache.olingo.commons.api.http.HttpStatusCode;
 import org.apache.olingo.server.api.ODataApplicationException;
-import org.apache.olingo.server.api.uri.UriParameter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
-import static eu.h2020.symbiote.resources.RapDefinitions.JSON_OBJECT_TYPE_FIELD_NAME;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
+import eu.h2020.symbiote.managers.AuthorizationManager;
+import eu.h2020.symbiote.model.cim.Observation;
+import eu.h2020.symbiote.resources.db.ResourceInfo;
+import eu.h2020.symbiote.resources.db.ResourcesRepository;
+import eu.h2020.symbiote.service.notificationResource.WebSocketController;
 
 /**
  *
