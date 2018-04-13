@@ -134,6 +134,7 @@ jar {
     
 task generateJavaDocs(type: Javadoc) {
     source = sourceSets.main.allJava
+    classpath = project.sourceSets.main.compileClasspath 
     destinationDir = reporting.file("javadocs")
 }
 

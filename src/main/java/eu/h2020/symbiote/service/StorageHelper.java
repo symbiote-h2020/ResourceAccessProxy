@@ -113,7 +113,7 @@ public class StorageHelper {
      * This method gets a ResourceInfo object form repository
      *
      * @param keyParams keys where to look for 'id'
-     * @return
+     * @return resource info
      */
     public ResourceInfo getResourceInfo(List<UriParameter> keyParams) {
         ResourceInfo resInfo = null;
@@ -145,7 +145,7 @@ public class StorageHelper {
      * @param top               the top parameter of the OData query
      * @param filterQuery       the filter parameter of the OData query
      * @return                  RapPluginResponse object
-     * @throws ODataApplicationException
+     * @throws ODataApplicationException exception in handling OData
      */
     public RapPluginResponse getRelatedObject(List<ResourceInfo> resourceInfoList, Integer top, Query filterQuery) throws ODataApplicationException {
         String symbioteId = null;
@@ -333,7 +333,7 @@ public class StorageHelper {
      * @param resourceInfoList  the list of ResourceInfo objects
      * @param requestBody       the body of the request
      * @return                  RapPluginResponse object
-     * @throws ODataApplicationException
+     * @throws ODataApplicationException exception in handling OData
      */
     public RapPluginResponse setService(List<ResourceInfo> resourceInfoList, String requestBody) throws ODataApplicationException {
         String type = "";
@@ -392,7 +392,7 @@ public class StorageHelper {
      * This method is used to execute a filter locally on RAP
      * @param expression    the filter expression
      * @return              the Query object
-     * @throws ODataApplicationException
+     * @throws ODataApplicationException exception in handling OData
      */
     public static Query calculateFilter(Expression expression) throws ODataApplicationException {
 
@@ -504,7 +504,7 @@ public class StorageHelper {
      * @param typeNameList      the type name of the list
      * @param keyPredicates     the list of key predicates
      * @return                  the List of ResourceInfo objects
-     * @throws ODataApplicationException
+     * @throws ODataApplicationException exception in handling OData
      */
     public List<ResourceInfo> getResourceInfoList(List<String> typeNameList, List<UriParameter> keyPredicates) throws ODataApplicationException {
         Boolean noResourceFound = true;
@@ -544,10 +544,10 @@ public class StorageHelper {
 
     /**
      * This method is used to check access policies towards AdministrationManager
-     * @param request
-     * @param resourceId
-     * @return
-     * @throws Exception
+     * @param request OData request
+     * @param resourceId resource id
+     * @return true if policies are OK
+     * @throws Exception security exception
      */
     public boolean checkAccessPolicies(ODataRequest request, String resourceId) throws Exception {
         log.debug("Checking access policies for resource " + resourceId);
@@ -568,8 +568,8 @@ public class StorageHelper {
 
     /**
      * This method is used to send a successful access notification to CRAM
-     * @param symbioteId
-     * @param accessType
+     * @param symbioteId symbiote id
+     * @param accessType access type from {@link eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo.AccessType SuccessfulAccessMessageInfo.AccessType}
      */
     public void sendSuccessfulAccessMessage(String symbioteId, String accessType){
         try{

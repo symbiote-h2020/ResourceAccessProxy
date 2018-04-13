@@ -29,7 +29,7 @@ public class PluginRegistration {
     /**
      * This method received the registration of a new plugin to the RAP
      *
-     * @param messageByte
+     * @param messageByte received message
      */
     public void receiveMessage(byte[] messageByte) {
         try {
