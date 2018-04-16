@@ -103,6 +103,17 @@ public class RAPEntityProcessor implements EntityProcessor{
     }
     
     //Sensor('id')
+
+    /**
+     * This method is used to read an entity in OData
+     *
+     * @param request OData request
+     * @param response OData response
+     * @param uriInfo info about OData URI
+     * @param responseFormat content type returned
+     * @throws ODataApplicationException application exception in OData
+     * @throws ODataLibraryException exception in OData library
+     */
     @Override
     public void readEntity(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat) 
             throws ODataApplicationException, ODataLibraryException{

@@ -19,11 +19,13 @@ public class RapDefinitions {
     public static final String      RESOURCE_UPDATE_KEY = "symbIoTe.rh.resource.core.update";
     public static final String      RESOURCE_UPDATE_QUEUE = "symbIoTe.rap.registrationHandler.update_resources";
 
+    /*
     public static final String      RESOURCE_ACCESS_EXCHANGE_IN = "symbIoTe.rap.accessResource";
     public static final String[]    RESOURCE_READ_KEYS  = {"symbIoTe.rap.accessResource.readResource.*"};
     public static final String      RESOURCE_READ_QUEUE = "symbiote-rap-accessResource-readResource";   
     public static final String[]    RESOURCE_WRITE_KEYS  = {"symbIoTe.rap.accessResource.writeResource.*"};
     public static final String      RESOURCE_WRITE_QUEUE = "symbIoTe-rap-accessResource-writeResource";
+    */
     
     public static final String      PLUGIN_REGISTRATION_EXCHANGE_IN = "symbIoTe.rapPluginExchange";
     public static final String      PLUGIN_REGISTRATION_KEY = "symbIoTe.rapPluginExchange.add-plugin";
@@ -34,7 +36,7 @@ public class RapDefinitions {
     public static final String      PLUGIN_NOTIFICATION_QUEUE = "symbIoTe.platform-queue-notification";
     public static final String      PLUGIN_NOTIFICATION_EXCHANGE_IN = "symbIoTe.rapPluginExchange-notification";
     public static final String      PLUGIN_NOTIFICATION_KEY = "symbIoTe.rapPluginExchange.plugin-notification";
-    
+
     //for sending access data to Monitoring
     public static final String 		RAP_ACCESS_EXCHANGE = "symbIoTe.resourceAccessProxy";
 	public static final String 		RAP_ACCESS_ROUTING_KEY = "symbIoTe.rap.resource.access";
@@ -52,4 +54,5 @@ public class RapDefinitions {
 	public static final String 		ROUTING_KEY_RH_SHARED = "symbIoTe.rh.resource.shared";
 	public static final String 		ROUTING_KEY_RH_UNSHARED = "symbIoTe.rh.resource.unshared";
 	
+    public static final String      JSON_OBJECT_TYPE_FIELD_NAME = "@type";
 }

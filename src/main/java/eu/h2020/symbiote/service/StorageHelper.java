@@ -7,6 +7,7 @@ package eu.h2020.symbiote.service;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
@@ -63,6 +64,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
+import static eu.h2020.symbiote.resources.RapDefinitions.JSON_OBJECT_TYPE_FIELD_NAME;
+
 /**
  *
  * @author Luca Tomaselli
@@ -85,6 +88,16 @@ public class StorageHelper {
 
 	private ResourceAccessNotificationService notificationService;
 
+    /**
+     * Class constructor
+     * @param resourcesRepository   repository of resources
+     * @param pluginRepository      repository of plugins
+     * @param authMan               authorization manager instance
+     * @param rabbit                rabbit template
+     * @param rabbitReplyTimeout    rabbit reply timeout constant
+     * @param topicExchange         rabbit exchange
+     * @param notifUrl              CRAM url
+     */
     public StorageHelper(ResourcesRepository resourcesRepository, PluginRepository pluginRepository,
             AuthorizationManager authMan, RabbitTemplate rabbit, int rabbitReplyTimeout, 
             TopicExchange topicExchange, ResourceAccessNotificationService notificationService) {
@@ -98,6 +111,12 @@ public class StorageHelper {
         authManager = authMan;
     }
 
+    /**
+     * This method gets a ResourceInfo object form repository
+     *
+     * @param keyParams keys where to look for 'id'
+     * @return resource info
+     */
     public ResourceInfo getResourceInfo(List<UriParameter> keyParams) {
         ResourceInfo resInfo = null;
         if(keyParams != null && !keyParams.isEmpty()){
@@ -121,6 +140,15 @@ public class StorageHelper {
         return resInfo;
     }
 
+    /**
+     * This method is used to get object from OData query
+     *
+     * @param resourceInfoList  the list of resourceInfo objects
+     * @param top               the top parameter of the OData query
+     * @param filterQuery       the filter parameter of the OData query
+     * @return                  RapPluginResponse object
+     * @throws ODataApplicationException exception in handling OData
+     */
     public RapPluginResponse getRelatedObject(List<ResourceInfo> resourceInfoList, Integer top, Query filterQuery) throws ODataApplicationException {
         String symbioteId = null;
         RapPluginResponse response = null;
@@ -180,22 +208,39 @@ public class StorageHelper {
                                     @SuppressWarnings("unchecked")
                                     List<Observation> observations = (List<Observation>) list;
                                     internalObservation = observations.get(0);
-                                } else {
+                                    Observation observation = new Observation(symbioteId, internalObservation.getLocation(),
+                                            internalObservation.getResultTime(), internalObservation.getSamplingTime(),
+                                            internalObservation.getObsValues());
+                                    okResponse.setBody(Arrays.asList(observation));
+                                }
+                                /*
+                                // THIS WOULD CUT OUT SUPPORT FOR PIMs
+                                else {
                                     throw new IllegalStateException("When reading one resource returned list must have exactly one Observation. Got: " + list.size() + ".");
                                 }
+                                */
                             } else if(okResponse.getBody() instanceof Observation) {
                                 internalObservation = (Observation) okResponse.getBody();
+                                Observation observation = new Observation(symbioteId, internalObservation.getLocation(),
+                                        internalObservation.getResultTime(), internalObservation.getSamplingTime(),
+                                        internalObservation.getObsValues());
+                                okResponse.setBody(Arrays.asList(observation));
                             } else if(okResponse.getBody() instanceof Map) {
                                 String jsonBody = mapper.writeValueAsString(okResponse.getBody());
-                                internalObservation = mapper.readValue(jsonBody, Observation.class);
-                            } else {
+                                try {
+                                    internalObservation = mapper.readValue(jsonBody, Observation.class);
+                                    Observation observation = new Observation(symbioteId, internalObservation.getLocation(),
+                                            internalObservation.getResultTime(), internalObservation.getSamplingTime(),
+                                            internalObservation.getObsValues());
+                                    okResponse.setBody(Arrays.asList(observation));
+                                } catch (Exception e) { /* do nothing*/ }
+                            } /*
+                            // THIS WOULD CUT OUT SUPPORT FOR PIMs
+                            else {
                                 throw new IllegalStateException("Unsupported body response form RAP plugin when reading one resource. Got " + 
                                         okResponse.getBody().getClass().getName());
                             }
-                            Observation observation = new Observation(symbioteId, internalObservation.getLocation(), 
-                                    internalObservation.getResultTime(), internalObservation.getSamplingTime(), 
-                                    internalObservation.getObsValues());
-                            okResponse.setBody(Arrays.asList(observation));
+                            */
                         } else { 
                             // top is not 1
                             if(okResponse.getBody() instanceof List) {
@@ -216,12 +261,16 @@ public class StorageHelper {
                                     }
                                     okResponse.setBody(observationsList);
                                 }
-                            } else {
+                            }
+                            /*
+                            // THIS WOULD CUT OUT SUPPORT FOR PIMs
+                            else {
                                 throw new IllegalStateException("Unsupported body response form RAP plugin. Expected observation list but got " + okResponse.getBody().getClass().getName());
                             }
+                            */
                         }
                     } catch (Exception e) {
-                        throw new ODataApplicationException("Can not parse observation list from RAP plugin.\nCause: " + e.getMessage(), 
+                        throw new ODataApplicationException("Can not parse returned object from RAP plugin.\nCause: " + e.getMessage(),
                                 HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), 
                                 Locale.ROOT,
                                 e);
@@ -261,9 +310,17 @@ public class StorageHelper {
                     HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), 
                     Locale.ROOT);
         }
-        
+
         try {
-            return mapper.readValue(rawObj, RapPluginResponse.class);
+            RapPluginResponse resp = mapper.readValue(rawObj, RapPluginResponse.class);
+            String content = resp.getContent();
+            if(content != null && content.length() > 0) {
+                JsonNode jsonObj = mapper.readTree(content);
+                if (!jsonObj.has(JSON_OBJECT_TYPE_FIELD_NAME)) {
+                    log.error("Field " + JSON_OBJECT_TYPE_FIELD_NAME + " is mandatory");
+                }
+            }
+            return resp;
         } catch (Exception e) {
             throw new ODataApplicationException("Can not parse response from RAP to JSON.\n Cause: " + e.getMessage(),
                     HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), 
@@ -272,6 +329,14 @@ public class StorageHelper {
         }
     }
 
+
+    /**
+     * This method set the value of an object specified in an OData request
+     * @param resourceInfoList  the list of ResourceInfo objects
+     * @param requestBody       the body of the request
+     * @return                  RapPluginResponse object
+     * @throws ODataApplicationException exception in handling OData
+     */
     public RapPluginResponse setService(List<ResourceInfo> resourceInfoList, String requestBody) throws ODataApplicationException {
         String type = "";
         try {
@@ -309,7 +374,7 @@ public class StorageHelper {
             } catch (JsonProcessingException ex) {
                 log.error("JSon processing exception: " + ex.getMessage());
             }
-            log.info("Message Set: " + json);
+            log.debug("Message Set: " + json);
             Object o = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             RapPluginResponse rpResponse = extractRapPluginResponse(o);
             if(rpResponse instanceof RapPluginErrorResponse) {
@@ -323,7 +388,14 @@ public class StorageHelper {
             throw new ODataApplicationException("Internal Error", HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), Locale.ROOT);
         }
     }
-    
+
+
+    /**
+     * This method is used to execute a filter locally on RAP
+     * @param expression    the filter expression
+     * @return              the Query object
+     * @throws ODataApplicationException exception in handling OData
+     */
     public static Query calculateFilter(Expression expression) throws ODataApplicationException {
 
         if (expression instanceof Binary) {
@@ -429,6 +501,13 @@ public class StorageHelper {
         return parsedData;
     }
 
+    /**
+     * This method is used to get the list of ResourceInfo objects related to a set of key predicates
+     * @param typeNameList      the type name of the list
+     * @param keyPredicates     the list of key predicates
+     * @return                  the List of ResourceInfo objects
+     * @throws ODataApplicationException exception in handling OData
+     */
     public List<ResourceInfo> getResourceInfoList(List<String> typeNameList, List<UriParameter> keyPredicates) throws ODataApplicationException {
         Boolean noResourceFound = true;
         List<ResourceInfo> resourceInfoList = new ArrayList<>();
@@ -464,7 +543,14 @@ public class StorageHelper {
         }
         return resourceInfoList;
     }
-    
+
+    /**
+     * This method is used to check access policies towards AdministrationManager
+     * @param request OData request
+     * @param resourceId resource id
+     * @return true if policies are OK
+     * @throws Exception security exception
+     */
     public boolean checkAccessPolicies(ODataRequest request, String resourceId) throws Exception {
         log.debug("Checking access policies for resource " + resourceId);
         Map<String,List<String>> headers = request.getAllHeaders();
@@ -480,7 +566,13 @@ public class StorageHelper {
         
         return result.isValidated();
     }
-    
+
+
+    /**
+     * This method is used to send a successful access notification to CRAM
+     * @param symbioteId symbiote id
+     * @param accessType access type from {@link eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo.AccessType SuccessfulAccessMessageInfo.AccessType}
+     */
     public void sendSuccessfulAccessMessage(String symbioteId, String accessType){
         try{
             if(accessType == null || accessType.isEmpty())

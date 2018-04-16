@@ -104,6 +104,17 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
     }
 
     //Sensor('id')/Observation
+
+    /**
+     * This method is used to read a collection of entities in OData
+     *
+     * @param request OData request
+     * @param response OData response
+     * @param uriInfo info about OData URI
+     * @param responseFormat content type of response
+     * @throws ODataApplicationException application exception in OData
+     * @throws ODataLibraryException exception in OData library
+     */
     @Override
     public void readEntityCollection(ODataRequest request, ODataResponse response, UriInfo uriInfo, ContentType responseFormat)
             throws ODataApplicationException, ODataLibraryException {
@@ -271,8 +282,14 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
             throw ex;
         }
     }
-    
-    
+
+    /**
+     * This method is used to set the error in response message
+     * @param response OData response
+     * @param customOdataException application exception
+     * @param responseFormat content type of OData response
+     * @return OData error response
+     */
     public static ODataResponse setErrorResponse(ODataResponse response, 
             CustomODataApplicationException customOdataException, ContentType responseFormat){
         InputStream stream = null;

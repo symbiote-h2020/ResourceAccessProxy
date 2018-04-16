@@ -34,7 +34,7 @@ public class TestReadBim {
     private OwlapiHelp owlApiHelp;
     
     @Test
-    public void readBim(){
+    public void readBim() {
         //map
         HashMap<String,HashMap<String,String>> owlMap = owlApiHelp.getMap();
         assert(owlMap != null);

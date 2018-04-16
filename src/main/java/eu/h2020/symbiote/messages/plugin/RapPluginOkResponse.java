@@ -42,13 +42,13 @@ public class RapPluginOkResponse extends RapPluginResponse {
 
     public void setBody(Object body) throws RapPluginException {
         if(body instanceof LinkedHashMap || body instanceof List)
-           tryToParseObservationOrListOfObsrvation(body);
+           tryToParseObservationOrListOfObservation(body);
         else 
             this.body = body;
         getContent();
     }
     
-    private void tryToParseObservationOrListOfObsrvation(Object object) {
+    private void tryToParseObservationOrListOfObservation(Object object) {
         ObjectMapper mapper = new ObjectMapper();
         try {
             body = mapper.convertValue(object, Observation.class);
