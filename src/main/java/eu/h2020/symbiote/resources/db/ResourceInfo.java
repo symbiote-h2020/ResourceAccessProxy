@@ -8,6 +8,9 @@ package eu.h2020.symbiote.resources.db;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import eu.h2020.symbiote.cloud.model.internal.FederationInfoBean;
+
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.data.annotation.Id;
@@ -29,10 +32,15 @@ public class ResourceInfo {
     private String type;
     @JsonProperty("observedProperties")
     private List<String> observedProperties;
+    @JsonProperty("federationInfo")
+    private FederationInfoBean federationInfo;
     @JsonIgnore
     private List<String> sessionIdList;
-    @JsonIgnore
+    
+
+	@JsonIgnore
     private String pluginId;
+    
     
     
     public ResourceInfo() {
@@ -42,6 +50,7 @@ public class ResourceInfo {
         this.observedProperties = null;
         this.sessionIdList = null;
         this.type = null;
+        this.federationInfo = null;
     }
     
     @JsonCreator
@@ -121,4 +130,15 @@ public class ResourceInfo {
     public void setPluginId(String pluginId) {
         this.pluginId = pluginId;
     }
+    
+    @JsonProperty("federationInfo")
+    public FederationInfoBean getFederationInfo() {
+    	return federationInfo;
+    }
+    
+    @JsonProperty("federationInfo")
+    public void setFederationInfo(FederationInfoBean federationInfo) {
+    	this.federationInfo = federationInfo;
+    }
+
 }

@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.bim.OwlapiHelp;
 import eu.h2020.symbiote.cloud.model.internal.CloudResource;
+import eu.h2020.symbiote.cloud.model.internal.FederationInfoBean;
 import eu.h2020.symbiote.model.cim.MobileSensor;
 import eu.h2020.symbiote.model.cim.Resource;
 import eu.h2020.symbiote.model.cim.StationarySensor;
@@ -62,6 +63,7 @@ public class ResourceRegistration {
                 String pluginId = msg.getPluginId();
                 String resourceClass = resource.getClass().getName();
                 String symbioteId = resource.getId();
+                FederationInfoBean federationInfo = msg.getFederationInfo();
                 List<String> props = null;
                 if(resource instanceof StationarySensor) {
                     props = ((StationarySensor)resource).getObservesProperty();
@@ -75,7 +77,7 @@ public class ResourceRegistration {
                 log.debug("Registering "+ resourceClass +" with symbioteId: " + symbioteId + ", internalId: " + internalId);
                 
                 addPolicy(symbioteId, internalId, msg.getAccessPolicy());
-                addResource(symbioteId, internalId, props, pluginId);
+                addResource(symbioteId, internalId, props, pluginId, federationInfo);
             }
             addCloudResourceInfoForOData(msgs);
         } catch (Exception e) {
@@ -118,6 +120,8 @@ public class ResourceRegistration {
                 Resource resource = msg.getResource();
                 String pluginId = msg.getPluginId();
                 String symbioteId = resource.getId();
+                FederationInfoBean federationInfo = msg.getFederationInfo();
+
                 List<String> props = null;
                 if(resource instanceof StationarySensor) {
                     props = ((StationarySensor)resource).getObservesProperty();
@@ -127,7 +131,7 @@ public class ResourceRegistration {
                 log.debug("Updating resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
                 
                 addPolicy(symbioteId, internalId, msg.getAccessPolicy());
-                addResource(symbioteId, internalId, props, pluginId);
+                addResource(symbioteId, internalId, props, pluginId, federationInfo);
             }
             addCloudResourceInfoForOData(msgs);
         } catch (Exception e) {
@@ -135,12 +139,15 @@ public class ResourceRegistration {
         }
     }
     
-    private void addResource(String resourceId, String platformResourceId, List<String> obsProperties, String pluginId) {
+    private void addResource(String resourceId, String platformResourceId, List<String> obsProperties, String pluginId, FederationInfoBean federationInfo) {
         ResourceInfo resourceInfo = new ResourceInfo(resourceId, platformResourceId);
         if(obsProperties != null)
             resourceInfo.setObservedProperties(obsProperties);
         if(pluginId != null && pluginId.length()>0)
             resourceInfo.setPluginId(pluginId);
+        if(federationInfo != null)
+            resourceInfo.setFederationInfo(federationInfo);
+        	
         
         resourcesRepository.save(resourceInfo);
         

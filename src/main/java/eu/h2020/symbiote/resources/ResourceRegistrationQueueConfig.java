@@ -42,6 +42,28 @@ public class ResourceRegistrationQueueConfig {
     Queue resourceUpdatedQueue() {
         return new Queue(RapDefinitions.RESOURCE_UPDATE_QUEUE, false);
     }
+    
+    //4 QUEUES FOR L2 RESOURCES
+    @Bean(name=RapDefinitions.RESOURCE_L2_UPDATE_QUEUE)
+    Queue resourceL2UpdateQueue() {
+        return new Queue(RapDefinitions.RESOURCE_L2_UPDATE_QUEUE, false);
+    }
+    
+    @Bean(name=RapDefinitions.RESOURCE_L2_UNREGISTRATION_QUEUE)
+    Queue resourceL2UnregistrationQueue() {
+        return new Queue(RapDefinitions.RESOURCE_L2_UNREGISTRATION_QUEUE, false);
+    }
+    
+    @Bean(name=RapDefinitions.RESOURCE_L2_SHARE_QUEUE)
+    Queue resourceL2ShareQueue() {
+        return new Queue(RapDefinitions.RESOURCE_L2_SHARE_QUEUE, false);
+    }
+    
+    @Bean(name=RapDefinitions.RESOURCE_L2_UNSHARE_QUEUE)
+    Queue resourceL2UnShareQueue() {
+        return new Queue(RapDefinitions.RESOURCE_L2_UNSHARE_QUEUE, false);
+    }
+    //end L2
 
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_QUEUE + "Bindings")
     Binding resourceRegistrationBindings(@Qualifier(RapDefinitions.RESOURCE_REGISTRATION_QUEUE) Queue queue,
@@ -62,6 +84,34 @@ public class ResourceRegistrationQueueConfig {
                              @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN) DirectExchange exchange) {
         return BindingBuilder.bind(queue).to(exchange).with(RapDefinitions.RESOURCE_UPDATE_KEY);
     }
+    
+    //4 BINDINGS FOR L2 RESOURCES
+    @Bean(name=RapDefinitions.RESOURCE_L2_UPDATE_QUEUE + "Bindings")
+    Binding resourceL2UpdatedBindings(@Qualifier(RapDefinitions.RESOURCE_L2_UPDATE_QUEUE) Queue queue,
+                             @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN) DirectExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with(RapDefinitions.ROUTING_KEY_RH_UPDATED);
+    }
+    
+    
+    @Bean(name=RapDefinitions.RESOURCE_L2_UNREGISTRATION_QUEUE + "Bindings")
+    Binding resourceL2UnregistrationBindings(@Qualifier(RapDefinitions.RESOURCE_L2_UNREGISTRATION_QUEUE) Queue queue,
+                             @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN) DirectExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with(RapDefinitions.ROUTING_KEY_RH_DELETED);
+    }
+    
+    
+    @Bean(name=RapDefinitions.RESOURCE_L2_SHARE_QUEUE + "Bindings")
+    Binding resourceL2SharedBindings(@Qualifier(RapDefinitions.RESOURCE_L2_SHARE_QUEUE) Queue queue,
+                             @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN) DirectExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with(RapDefinitions.ROUTING_KEY_RH_SHARED);
+    }
+        
+    @Bean(name=RapDefinitions.RESOURCE_L2_UNSHARE_QUEUE + "Bindings")
+    Binding resourceL2UnsharedBindings(@Qualifier(RapDefinitions.RESOURCE_L2_UNSHARE_QUEUE) Queue queue,
+                             @Qualifier(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN) DirectExchange exchange) {
+        return BindingBuilder.bind(queue).to(exchange).with(RapDefinitions.ROUTING_KEY_RH_UNSHARED);
+    }
+    //end L2
 
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_QUEUE + "Container")
     SimpleMessageListenerContainer resourceRegContainer(ConnectionFactory connectionFactory,
@@ -93,6 +143,48 @@ public class ResourceRegistrationQueueConfig {
         return container;
     }
     
+    //4 CONTAINERS FOR L2 RESOURCES
+    @Bean(name=RapDefinitions.RESOURCE_L2_UPDATE_QUEUE + "Container")
+    SimpleMessageListenerContainer resourceL2UpdContainer(ConnectionFactory connectionFactory,
+                                             @Qualifier(RapDefinitions.RESOURCE_L2_UPDATE_QUEUE + "Listener") MessageListenerAdapter listenerAdapter) {
+        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
+        container.setConnectionFactory(connectionFactory);
+        container.setQueueNames(RapDefinitions.RESOURCE_L2_UPDATE_QUEUE);
+        container.setMessageListener(listenerAdapter);
+        return container;
+    }
+    
+    @Bean(name=RapDefinitions.RESOURCE_L2_UNREGISTRATION_QUEUE + "Container")
+    SimpleMessageListenerContainer resourceL2UnregContainer(ConnectionFactory connectionFactory,
+                                             @Qualifier(RapDefinitions.RESOURCE_L2_UNREGISTRATION_QUEUE + "Listener") MessageListenerAdapter listenerAdapter) {
+        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
+        container.setConnectionFactory(connectionFactory);
+        container.setQueueNames(RapDefinitions.RESOURCE_L2_UNREGISTRATION_QUEUE);
+        container.setMessageListener(listenerAdapter);
+        return container;
+    }
+
+    @Bean(name=RapDefinitions.RESOURCE_L2_SHARE_QUEUE + "Container")
+    SimpleMessageListenerContainer resourceL2ShareContainer(ConnectionFactory connectionFactory,
+                                             @Qualifier(RapDefinitions.RESOURCE_L2_SHARE_QUEUE + "Listener") MessageListenerAdapter listenerAdapter) {
+        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
+        container.setConnectionFactory(connectionFactory);
+        container.setQueueNames(RapDefinitions.RESOURCE_L2_SHARE_QUEUE);
+        container.setMessageListener(listenerAdapter);
+        return container;
+    }
+    
+    @Bean(name=RapDefinitions.RESOURCE_L2_UNSHARE_QUEUE + "Container")
+    SimpleMessageListenerContainer resourceL2UnShareContainer(ConnectionFactory connectionFactory,
+                                             @Qualifier(RapDefinitions.RESOURCE_L2_UNSHARE_QUEUE + "Listener") MessageListenerAdapter listenerAdapter) {
+        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
+        container.setConnectionFactory(connectionFactory);
+        container.setQueueNames(RapDefinitions.RESOURCE_L2_UNSHARE_QUEUE);
+        container.setMessageListener(listenerAdapter);
+        return container;
+    }
+    //end L2
+    
     @Bean
     ResourceRegistration resourceReceiver() {
         return new ResourceRegistration();
@@ -112,4 +204,26 @@ public class ResourceRegistrationQueueConfig {
     MessageListenerAdapter resourceUpdatedListenerAdapter(ResourceRegistration receiver) {
         return new MessageListenerAdapter(receiver, "receiveUpdateMessage");
     }
+    
+    //4 LISTENERS TO THE SAME METHODS AS MENTIONED ABOVE
+    @Bean(name=RapDefinitions.RESOURCE_L2_UPDATE_QUEUE + "Listener")
+    MessageListenerAdapter resourceL2UpdateListenerAdapter(ResourceRegistration receiver) {
+        return new MessageListenerAdapter(receiver, "receiveUpdateMessage");
+    }
+    
+    @Bean(name=RapDefinitions.RESOURCE_L2_UNREGISTRATION_QUEUE + "Listener")
+    MessageListenerAdapter resourceL2UnRegistrationListenerAdapter(ResourceRegistration receiver) {
+        return new MessageListenerAdapter(receiver, "receiveUnregistrationMessage");
+    }
+    
+    @Bean(name=RapDefinitions.RESOURCE_L2_SHARE_QUEUE + "Listener")
+    MessageListenerAdapter resourceL2ShareListenerAdapter(ResourceRegistration receiver) {
+        return new MessageListenerAdapter(receiver, "receiveUpdateMessage");
+    }
+    
+    @Bean(name=RapDefinitions.RESOURCE_L2_UNSHARE_QUEUE + "Listener")
+    MessageListenerAdapter resourceL2UnShareListenerAdapter(ResourceRegistration receiver) {
+        return new MessageListenerAdapter(receiver, "receiveUpdateMessage");
+    }
+    //end L2
 }
