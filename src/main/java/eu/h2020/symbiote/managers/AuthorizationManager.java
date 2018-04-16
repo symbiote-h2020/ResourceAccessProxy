@@ -8,9 +8,11 @@ package eu.h2020.symbiote.managers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import eu.h2020.symbiote.resources.db.AccessPolicy;
 import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import eu.h2020.symbiote.resources.db.ResourceInfo;
+import eu.h2020.symbiote.resources.db.ResourcesRepository;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -23,7 +25,9 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerExcep
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -39,7 +43,7 @@ import org.springframework.http.MediaType;
 @Component()
 public class AuthorizationManager {
 
-    private static Log log = LogFactory.getLog(AuthorizationManager.class);
+    private static Logger log = LoggerFactory.getLogger(AuthorizationManager.class);
 
     private final String componentOwnerName;
     private final String componentOwnerPassword;
@@ -54,6 +58,8 @@ public class AuthorizationManager {
     @Autowired
     private AccessPolicyRepository accessPolicyRepo;
 
+    @Autowired
+    private ResourcesRepository resourceRepo;
 
     private IComponentSecurityHandler componentSecurityHandler;
 
@@ -111,12 +117,23 @@ public class AuthorizationManager {
             }
 
             Set<String> checkedPolicies;
-            try {
-                checkedPolicies = checkStoredResourcePolicies(securityRequest, resourceId);
-            } catch (Exception e) {
-                log.error(e.getMessage(), e);
-                return new AuthorizationResult(e.getMessage(), false);
-
+            if(isCoreResourceId(resourceId)) {
+	            try {
+	                checkedPolicies = checkStoredResourcePolicies(securityRequest, resourceId);
+	            } catch (Exception e) {
+	                log.error(e.getMessage(), e);
+	                return new AuthorizationResult(e.getMessage(), false);
+	
+	            }
+            } else {
+            	// federated resource id
+            	try {
+	                checkedPolicies = checkFederatedResourcePolicies(securityRequest, resourceId);
+	            } catch (Exception e) {
+	                log.error(e.getMessage(), e);
+	                return new AuthorizationResult(e.getMessage(), false);
+	
+	            }
             }
 
             if (checkedPolicies.size() == 1) {
@@ -132,7 +149,46 @@ public class AuthorizationManager {
         }
     }
     
-    public ServiceRequest getServiceRequestHeaders(){
+    private Set<String> checkFederatedResourcePolicies(SecurityRequest securityRequest, String federatedResourceId) {
+    	Optional<ResourceInfo> optionalResourceInfo = resourceRepo.findById(federatedResourceId);
+    	if(!optionalResourceInfo.isPresent()) {
+            log.error("No ResourceInfo for federatedResourceId={}.", federatedResourceId);
+            return Collections.emptySet();
+        }
+    	
+    	try {
+	    	ResourceInfo resourceInfo = optionalResourceInfo.get();
+	    	long currentTime = System.currentTimeMillis();
+	    	
+	    	Map<String, IAccessPolicy> resourceAccessPolicyMap = new HashMap<>();
+	    	resourceInfo.getFederationInfo().getSharingInformation().entrySet().stream()
+	    		.filter( entry -> entry.getValue().getSharingDate().getTime() < currentTime)
+	    		.map(entry -> entry.getKey())
+	    		.forEach(federationId -> {
+	    			// TODO create access policies for each federationId
+	    			IAccessPolicy federationAccessPolicy = null;
+	    			resourceAccessPolicyMap.put(federationId, federationAccessPolicy);  			
+	    		});
+
+            return componentSecurityHandler.getSatisfiedPoliciesIdentifiers(resourceAccessPolicyMap, securityRequest);
+        } catch (Exception e) {
+            log.error("Exception thrown during checking federation policies: " + e.getMessage(), e);
+        }
+        
+		return Collections.emptySet();
+	}
+
+    private boolean isCoreResourceId(String resourceId) {
+    	Optional<ResourceInfo> optionalResourceInfo = resourceRepo.findById(resourceId);
+    	if(!optionalResourceInfo.isPresent()) {
+            log.error("No ResourceInfo for resource");
+            return true;
+        }
+    	
+		return optionalResourceInfo.get().getFederationInfo() == null;
+	}
+
+	public ServiceRequest getServiceRequestHeaders(){
         if (securityEnabled) {
             try {
                 Map<String, String> securityRequestHeaders = null;        
@@ -200,7 +256,7 @@ public class AuthorizationManager {
             Optional<AccessPolicy> accPolicy = accessPolicyRepo.findById(resourceId);
             if(accPolicy == null) {
                 log.error("No access policies for resource");
-                return ids;
+                return Collections.emptySet();
             }
 
             accessPolicyMap.put(resourceId, accPolicy.get().getPolicy());
