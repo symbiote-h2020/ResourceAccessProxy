@@ -55,4 +55,13 @@ public class RapDefinitions {
 	public static final String 		ROUTING_KEY_RH_UNSHARED = "symbIoTe.rh.resource.unshared";
 	
     public static final String      JSON_OBJECT_TYPE_FIELD_NAME = "@type";
+    
+    //exchange and queues for federation info
+    public static final String 		FEDERATION_EXCHANGE = "symbIoTe.federation";
+    public static final String 		FEDERATION_KEY_CREATED = "symbIoTe.federation.created";
+    public static final String 		FEDERATION_QUEUE_CREATED = "symbIoTe.federation.queue.created";
+    public static final String 		FEDERATION_KEY_CHANGED = "symbIoTe.federation.changed";
+    public static final String 		FEDERATION_QUEUE_CHANGED = "symbIoTe.federation.queue.changed";
+    public static final String 		FEDERATION_KEY_DELETED = "symbIoTe.federation.deleted";
+    public static final String 		FEDERATION_QUEUE_DELETED = "symbIoTe.federation.queue.deleted";
 }

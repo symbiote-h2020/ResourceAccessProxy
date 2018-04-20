@@ -6,8 +6,12 @@
 package eu.h2020.symbiote.managers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+
+import eu.h2020.symbiote.model.mim.Federation;
+import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.resources.db.AccessPolicy;
 import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
+import eu.h2020.symbiote.resources.db.FederationRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 
@@ -20,6 +24,7 @@ import org.springframework.util.Assert;
 
 import eu.h2020.symbiote.security.ComponentSecurityHandlerFactory;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
+import eu.h2020.symbiote.security.accesspolicies.common.singletoken.FederatedResourceAccessPolicyUsingSingleHomeToken;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
@@ -28,6 +33,7 @@ import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -57,6 +63,9 @@ public class AuthorizationManager {
     
     @Autowired
     private AccessPolicyRepository accessPolicyRepo;
+    
+    @Autowired
+    private FederationRepository fedRepo;
 
     @Autowired
     private ResourcesRepository resourceRepo;
@@ -115,33 +124,42 @@ public class AuthorizationManager {
             if (securityRequest == null) {
                 return new AuthorizationResult("SecurityRequest is null", false);
             }
-
-            Set<String> checkedPolicies;
+            
+            Set<String> checkedPolicies = new HashSet<String>();
             if(isCoreResourceId(resourceId)) {
 	            try {
 	                checkedPolicies = checkStoredResourcePolicies(securityRequest, resourceId);
 	            } catch (Exception e) {
 	                log.error(e.getMessage(), e);
 	                return new AuthorizationResult(e.getMessage(), false);
-	
 	            }
+	            
+	            if (checkedPolicies.size() == 1) {
+	                return new AuthorizationResult("ok", true);
+	            } else {
+	                return new AuthorizationResult("The stored resource access policy was not satisfied",
+	                        false);
+	            }
+	            
             } else {
-            	// federated resource id
+            	// federated resource - to check both security policy and federation policy
+            	//TODO check this
             	try {
-	                checkedPolicies = checkFederatedResourcePolicies(securityRequest, resourceId);
+            		checkedPolicies.addAll(checkStoredResourcePolicies(securityRequest, resourceId));
+	                checkedPolicies.addAll(checkFederatedResourcePolicies(securityRequest, resourceId));
 	            } catch (Exception e) {
 	                log.error(e.getMessage(), e);
 	                return new AuthorizationResult(e.getMessage(), false);
-	
 	            }
+            	
+            	if (checkedPolicies.size() == 2) {
+                    return new AuthorizationResult("ok", true);
+                } else {
+                    return new AuthorizationResult("The stored resource access policy was not satisfied",
+                            false);
+                }
             }
-
-            if (checkedPolicies.size() == 1) {
-                return new AuthorizationResult("ok", true);
-            } else {
-                return new AuthorizationResult("The stored resource access policy was not satisfied",
-                        false);
-            }
+ 
         } else {
             log.debug("checkAccess: Security is disabled");
             //if security is disabled in properties
@@ -161,12 +179,24 @@ public class AuthorizationManager {
 	    	long currentTime = System.currentTimeMillis();
 	    	
 	    	Map<String, IAccessPolicy> resourceAccessPolicyMap = new HashMap<>();
+	    	
+	    	//security policy
+	    	
+	    	//creation of federation policy
 	    	resourceInfo.getFederationInfo().getSharingInformation().entrySet().stream()
 	    		.filter( entry -> entry.getValue().getSharingDate().getTime() < currentTime)
 	    		.map(entry -> entry.getKey())
 	    		.forEach(federationId -> {
-	    			// TODO create access policies for each federationId
 	    			IAccessPolicy federationAccessPolicy = null;
+	    			Set<String> federationMembers;
+					try {
+						federationMembers = getFederationMembers(federationId);
+						log.info(federationMembers.toString());
+						federationAccessPolicy = new FederatedResourceAccessPolicyUsingSingleHomeToken(federationMembers, federationId);
+					} catch (InvalidArgumentsException e) {
+						log.error("error creating federationAccessPolicy" + e.getMessage(), e);
+					}
+	    			
 	    			resourceAccessPolicyMap.put(federationId, federationAccessPolicy);  			
 	    		});
 
@@ -178,7 +208,24 @@ public class AuthorizationManager {
 		return Collections.emptySet();
 	}
 
-    private boolean isCoreResourceId(String resourceId) {
+    /**
+     * method finds the platformIds of a federation with id federationId
+     * @param federationId
+     * @return platformIds
+     */
+    private Set<String> getFederationMembers(String federationId) {
+    	Set<String> fedMembersString = new HashSet<>();
+    	
+    	Federation fed = fedRepo.findById(federationId);
+    	List<FederationMember> fedMembers = fed.getMembers();
+    	for (int i = 0; i < fedMembers.size(); i++) {
+			fedMembersString.add(fedMembers.get(i).getPlatformId());
+		}
+    	
+		return fedMembersString;
+	}
+
+	private boolean isCoreResourceId(String resourceId) {
     	Optional<ResourceInfo> optionalResourceInfo = resourceRepo.findById(resourceId);
     	if(!optionalResourceInfo.isPresent()) {
             log.error("No ResourceInfo for resource");
