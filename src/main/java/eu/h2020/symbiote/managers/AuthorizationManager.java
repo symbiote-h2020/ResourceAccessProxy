@@ -142,17 +142,14 @@ public class AuthorizationManager {
 	            }
 	            
             } else {
-            	// federated resource - to check both security policy and federation policy
-            	//TODO check this
             	try {
-            		checkedPolicies.addAll(checkStoredResourcePolicies(securityRequest, resourceId));
-	                checkedPolicies.addAll(checkFederatedResourcePolicies(securityRequest, resourceId));
+	                checkedPolicies=checkFederatedResourcePolicies(securityRequest, resourceId);
 	            } catch (Exception e) {
 	                log.error(e.getMessage(), e);
 	                return new AuthorizationResult(e.getMessage(), false);
 	            }
             	
-            	if (checkedPolicies.size() == 2) {
+            	if (checkedPolicies.size() == 1) {
                     return new AuthorizationResult("ok", true);
                 } else {
                     return new AuthorizationResult("The stored resource access policy was not satisfied",
