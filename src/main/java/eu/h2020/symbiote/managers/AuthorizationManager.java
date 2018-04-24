@@ -24,7 +24,8 @@ import org.springframework.util.Assert;
 
 import eu.h2020.symbiote.security.ComponentSecurityHandlerFactory;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
-import eu.h2020.symbiote.security.accesspolicies.common.singletoken.FederatedResourceAccessPolicyUsingSingleHomeToken;
+import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleFederatedTokenAccessPolicy;
+
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
@@ -44,7 +45,7 @@ import org.springframework.http.MediaType;
 /**
  * Component responsible for dealing with Symbiote Tokens and checking access right for requests.
  *
- * @author Matteo Pardi
+ * @author Matteo Pardi, Pavle Skocir
  */
 @Component()
 public class AuthorizationManager {
@@ -164,6 +165,12 @@ public class AuthorizationManager {
         }
     }
     
+    /**
+     * method checks if the client can access a federated resource
+     * @param securityRequest
+     * @param federatedResourceId
+     * @return
+     */
     private Set<String> checkFederatedResourcePolicies(SecurityRequest securityRequest, String federatedResourceId) {
     	Optional<ResourceInfo> optionalResourceInfo = resourceRepo.findById(federatedResourceId);
     	if(!optionalResourceInfo.isPresent()) {
@@ -187,9 +194,10 @@ public class AuthorizationManager {
 	    			IAccessPolicy federationAccessPolicy = null;
 	    			Set<String> federationMembers;
 					try {
+						Map<String, String> claims = new HashMap<>();
 						federationMembers = getFederationMembers(federationId);
 						log.info(federationMembers.toString());
-						federationAccessPolicy = new FederatedResourceAccessPolicyUsingSingleHomeToken(federationMembers, federationId);
+						federationAccessPolicy = new SingleFederatedTokenAccessPolicy(federationId, federationMembers, clientId, claims, false);
 					} catch (InvalidArgumentsException e) {
 						log.error("error creating federationAccessPolicy" + e.getMessage(), e);
 					}
