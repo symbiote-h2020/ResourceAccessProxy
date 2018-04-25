@@ -87,7 +87,7 @@ dependencies {
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
 
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:5.10.+') { }
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:5.12+') { }
 
     // Spring
     compile('org.springframework.cloud:spring-cloud-starter')
@@ -110,7 +110,10 @@ dependencies {
   
     // Websocket
     compile("org.springframework.boot:spring-boot-starter-websocket")
-    
+
+    // Others
+    compile("com.jayway.jsonpath:json-path:2.4.0")
+
     // test only
     compile("org.springframework.boot:spring-boot-starter-web")
     testCompile ("org.springframework.boot:spring-boot-starter-test")

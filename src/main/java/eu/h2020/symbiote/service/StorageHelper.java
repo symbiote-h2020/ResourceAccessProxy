@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
@@ -19,11 +20,9 @@ import eu.h2020.symbiote.messages.plugin.RapPluginErrorResponse;
 import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
 import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
 import eu.h2020.symbiote.model.cim.Observation;
-import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
 import eu.h2020.symbiote.interfaces.ResourceAccessNotificationService;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.managers.AuthorizationResult;
-import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Comparison;
 import eu.h2020.symbiote.resources.query.Filter;
@@ -96,7 +95,6 @@ public class StorageHelper {
      * @param rabbit                rabbit template
      * @param rabbitReplyTimeout    rabbit reply timeout constant
      * @param topicExchange         rabbit exchange
-     * @param notifUrl              CRAM url
      */
     public StorageHelper(ResourcesRepository resourcesRepository, PluginRepository pluginRepository,
             AuthorizationManager authMan, RabbitTemplate rabbit, int rabbitReplyTimeout, 
@@ -571,10 +569,11 @@ public class StorageHelper {
     /**
      * This method is used to send a successful access notification to CRAM
      * @param symbioteId symbiote id
-     * @param accessType access type from {@link eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo.AccessType SuccessfulAccessMessageInfo.AccessType}
+     * @param accessType access type from {@link eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo.AccessType SuccessfulAccessMessageInfo.AccessType}
      */
     public void sendSuccessfulAccessMessage(String symbioteId, String accessType){
-        try{
+        try {
+            log.debug("sendSuccessfulAccessMessage for id = " + symbioteId + " and accessType = " + accessType);
             if(accessType == null || accessType.isEmpty())
                 accessType = SuccessfulAccessMessageInfo.AccessType.NORMAL.name();
             List<Date> dateList = new ArrayList<>();
