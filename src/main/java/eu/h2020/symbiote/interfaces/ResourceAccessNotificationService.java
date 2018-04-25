@@ -5,9 +5,12 @@
  */
 package eu.h2020.symbiote.interfaces;
 
-import java.util.Date;
-import java.util.List;
-
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import eu.h2020.symbiote.core.cci.accessNotificationMessages.NotificationMessage;
+import eu.h2020.symbiote.resources.RapDefinitions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.DirectExchange;
@@ -16,12 +19,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
-import eu.h2020.symbiote.resources.RapDefinitions;
+import java.util.Date;
+import java.util.List;
 
 /**
  *
@@ -41,10 +40,10 @@ public class ResourceAccessNotificationService {
     
     private ObjectMapper mapper;
     
-    private ResourceAccessNotification notificationMessage;
+    private NotificationMessage notificationMessage;
             
     public ResourceAccessNotificationService() {
-    	notificationMessage = new ResourceAccessNotification();
+    	notificationMessage = new NotificationMessage();
     	
     	mapper = new ObjectMapper();
     	mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
@@ -76,7 +75,8 @@ public class ResourceAccessNotificationService {
 			notificationMessage.addFailedAttempts(symbioTeId, timestamp, code, message, appId, issuer, validationStatus, requestParams);
 		}
     }
-    
+
+
     
     /**
      * old: sending HTTP request to CRAM
@@ -93,7 +93,8 @@ public class ResourceAccessNotificationService {
         	String jsonMessage = null;
         	synchronized (notificationMessage) {
         		jsonMessage = mapper.writeValueAsString(notificationMessage);
-        		notificationMessage.clear();
+                log.debug("notificationMessage = " + jsonMessage);
+                notificationMessage.clear();
 			}
             sendMessage(jsonMessage);
         } catch (JsonProcessingException jsonEx) {

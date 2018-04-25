@@ -48,19 +48,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
 import eu.h2020.symbiote.interfaces.ResourceAccessNotificationService;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.managers.ServiceResponseResult;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Date;
-import org.springframework.beans.factory.annotation.Value;
 
 /*
 *

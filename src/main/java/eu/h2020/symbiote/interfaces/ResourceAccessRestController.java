@@ -7,6 +7,7 @@ package eu.h2020.symbiote.interfaces;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
+import eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
@@ -22,7 +23,6 @@ import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.messages.access.ResourceAccessMessage.AccessType;
 import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
-import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.PlatformInfo;

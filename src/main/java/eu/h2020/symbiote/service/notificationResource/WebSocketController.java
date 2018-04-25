@@ -5,11 +5,11 @@
  */
 package eu.h2020.symbiote.service.notificationResource;
 
+import eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
@@ -19,9 +19,7 @@ import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.exceptions.EntityNotFoundException;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceWebSocketCondition;
 import eu.h2020.symbiote.messages.access.ResourceAccessUnSubscribeMessage;
-import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
 import eu.h2020.symbiote.interfaces.ResourceAccessNotificationService;
-import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
