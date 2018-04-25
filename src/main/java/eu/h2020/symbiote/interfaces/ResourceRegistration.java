@@ -9,6 +9,7 @@ import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.bim.OwlapiHelp;
+import eu.h2020.symbiote.cloud.model.ResourceLocalSharingMessage;
 import eu.h2020.symbiote.cloud.model.internal.CloudResource;
 import eu.h2020.symbiote.cloud.model.internal.FederationInfoBean;
 import eu.h2020.symbiote.model.cim.MobileSensor;
@@ -19,7 +20,6 @@ import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -182,10 +182,17 @@ public class ResourceRegistration {
 			log.info("Share Update message received: \n" + new String(message) + "");
 
 			ObjectMapper mapper = new ObjectMapper();
-			Map<String, List<CloudResource>> msgs = mapper.readValue(message,
-					new TypeReference<HashMap<String, List<CloudResource>>>() {
+			
+			ResourceLocalSharingMessage rlsm = mapper.readValue(message,
+					new TypeReference<ResourceLocalSharingMessage>() {
 					});
+			
+//			Map<String, List<CloudResource>> msgs = mapper.readValue(message,
+//					new TypeReference<HashMap<String, List<CloudResource>>>() {
+//					});
 
+			Map<String, List<CloudResource>> msgs = rlsm.getSharingMap();
+			
 			for (String key : msgs.keySet()) {
 				List<CloudResource> resources = msgs.get(key);
 
