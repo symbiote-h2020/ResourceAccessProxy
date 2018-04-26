@@ -71,8 +71,7 @@ public class FederationInfoRegistration {
 
     public void receiveFederationDeletedMessage(byte[] message) {
     	try {
-	    	ObjectMapper mapper = new ObjectMapper();
-	        String id = mapper.readValue(message, new TypeReference<String>() {});
+	        String id = new String(message);
 	        log.info("Federation Unregistration message received: \n" + id + "");
 	        log.debug("Unregistering federation with Id " + id);
 	        fedRepo.delete(id);
