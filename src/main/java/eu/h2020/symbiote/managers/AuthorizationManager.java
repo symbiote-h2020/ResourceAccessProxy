@@ -153,7 +153,7 @@ public class AuthorizationManager {
             	if (checkedPolicies.size() == 1) {
                     return new AuthorizationResult("ok", true);
                 } else {
-                    return new AuthorizationResult("The stored resource access policy was not satisfied",
+                    return new AuthorizationResult("The federated resource access policy was not satisfied",
                             false);
                 }
             }
@@ -188,7 +188,7 @@ public class AuthorizationManager {
 	    	
 	    	//creation of federation policy
 	    	resourceInfo.getFederationInfo().getSharingInformation().entrySet().stream()
-	    		.filter( entry -> entry.getValue().getSharingDate().getTime() < currentTime)
+	    		.filter(entry -> entry.getValue().getSharingDate().getTime() < currentTime)
 	    		.map(entry -> entry.getKey())
 	    		.forEach(federationId -> {
 	    			IAccessPolicy federationAccessPolicy = null;

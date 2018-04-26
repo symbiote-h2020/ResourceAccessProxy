@@ -519,6 +519,9 @@ public class StorageHelper {
                 //remove quote
                 keyText = keyText.replaceAll("'", "");
 
+                log.debug("keyName = " + keyName);
+                log.debug("keyText = " + keyText);
+
                 try {
                     if (keyName.equalsIgnoreCase("id")) {
                         resInfo.setSymbioteId(keyText);
@@ -549,7 +552,7 @@ public class StorageHelper {
      * @return true if policies are OK
      * @throws Exception security exception
      */
-    public boolean checkAccessPolicies(ODataRequest request, String resourceId) throws Exception {
+    public void checkAccessPolicies(ODataRequest request, String resourceId) throws Exception {
         log.debug("Checking access policies for resource " + resourceId);
         Map<String,List<String>> headers = request.getAllHeaders();
         Map<String, String> secHdrs = new HashMap<>();
@@ -560,9 +563,10 @@ public class StorageHelper {
         SecurityRequest securityReq = new SecurityRequest(secHdrs);
 
         AuthorizationResult result = authManager.checkResourceUrlRequest(resourceId, securityReq);
-        log.info(result.getMessage());
+        log.debug("result.isValidated = " + result.isValidated());
         
-        return result.isValidated();
+        if (!result.isValidated())
+            throw new Exception("The access policies were not satisfied");
     }
 
 
