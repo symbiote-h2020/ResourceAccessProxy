@@ -30,6 +30,7 @@ import eu.h2020.symbiote.resources.query.Operator;
 import eu.h2020.symbiote.resources.query.Query;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 
 import java.io.UnsupportedEncodingException;
@@ -566,7 +567,7 @@ public class StorageHelper {
         log.debug("result.isValidated = " + result.isValidated());
         
         if (!result.isValidated())
-            throw new Exception("The access policies were not satisfied");
+            throw new ValidationException("The access policies were not satisfied for resource " + resourceId + ". MSG: " + result.getMessage());
     }
 
 

@@ -29,6 +29,7 @@ import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.query.Query;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 
 import java.io.UnsupportedEncodingException;
@@ -400,7 +401,7 @@ public class ResourceAccessRestController {
         return resInfo.get();
     }
     
-    private boolean checkAccessPolicies(HttpServletRequest request, String resourceId) throws Exception {
+    private void checkAccessPolicies(HttpServletRequest request, String resourceId) throws Exception {
         Map<String, String> secHdrs = new HashMap<>();
         Enumeration<String> headerNames = request.getHeaderNames();
 
@@ -416,7 +417,8 @@ public class ResourceAccessRestController {
         AuthorizationResult result = authManager.checkResourceUrlRequest(resourceId, securityReq);
         log.info(result.getMessage());
         
-        return result.isValidated();
+        if (!result.isValidated())
+            throw new ValidationException("The access policies were not satisfied for resource " + resourceId + ". MSG: " + result.getMessage());
     }
     
     private String sendFailMessage(String path, String symbioteId, Exception e) {

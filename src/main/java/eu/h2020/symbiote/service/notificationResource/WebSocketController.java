@@ -25,6 +25,8 @@ import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import static eu.h2020.symbiote.security.commons.SecurityConstants.SECURITY_RESPONSE_HEADER;
+
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.managers.AuthorizationResult;
@@ -188,6 +190,8 @@ public class WebSocketController extends TextWebSocketHandler {
             code = HttpStatusCode.NOT_FOUND;
             e = entityEx;
             log.error(e.getMessage());
+        } catch (ValidationException vex) {
+        	log.error(vex.getMessage());        	
         } catch (Exception ex) {
             e = ex;
             log.error("Generic IO Exception: " + e.getMessage());
@@ -410,10 +414,9 @@ public class WebSocketController extends TextWebSocketHandler {
      *
      * @param secHdrs map of security headers
      * @param resourceIdList list of resource IDs
-     * @return true if check passes
      * @throws Exception security exception
      */
-    public boolean checkAccessPolicies(Map<String, String> secHdrs, List<String> resourceIdList) throws Exception {
+    public void checkAccessPolicies(Map<String, String> secHdrs, List<String> resourceIdList) throws Exception {
         
         log.debug("secHeaders: " + secHdrs);
         SecurityRequest securityReq = new SecurityRequest(secHdrs);
@@ -423,10 +426,8 @@ public class WebSocketController extends TextWebSocketHandler {
             log.info(result.getMessage());
             if(!result.isValidated()) {
                 log.error("Resource " + resourceId + "access has been denied with message: " + result.getMessage());
-                return false;
+                throw new ValidationException("The access policies were not satisfied for resource " + resourceId + ". MSG: " + result.getMessage());
             }
-        }
-        
-        return true;
+        }        
     }
 }
