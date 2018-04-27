@@ -84,13 +84,12 @@ public class ResourceRegistration {
 
 					addPolicy(symbioteId, internalId, msg.getAccessPolicy());
 					addResource(symbioteId, internalId, props, pluginId, federationInfo);
-				} else if (federationInfo != null) {
+				} else {
 					String symbioteId = federationInfo.getSymbioteId();
 
 					log.debug("Registering " + resourceClass + " with symbioteId: " + symbioteId + ", internalId: "
 							+ internalId);
 
-					addPolicy(symbioteId, internalId, msg.getAccessPolicy());
 					addResource(symbioteId, internalId, props, pluginId, federationInfo);
 				}
 			}
@@ -156,12 +155,11 @@ public class ResourceRegistration {
 
 					addPolicy(symbioteId, internalId, msg.getAccessPolicy());
 					addResource(symbioteId, internalId, props, pluginId, federationInfo);
-				} else if (federationInfo != null) {
+				} else {
 					String symbioteId = federationInfo.getSymbioteId();
 
 					log.debug("Updating resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
 
-					addPolicy(symbioteId, internalId, msg.getAccessPolicy());
 					addResource(symbioteId, internalId, props, pluginId, federationInfo);
 				}
 			}
@@ -213,7 +211,6 @@ public class ResourceRegistration {
 
 					log.debug("Updating sharing info of resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
 
-					addPolicy(symbioteId, internalId, res.getAccessPolicy());
 					addResource(symbioteId, internalId, props, pluginId, federationInfo);
 				}
 				addCloudResourceInfoForOData(resources);
