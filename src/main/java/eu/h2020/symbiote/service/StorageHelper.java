@@ -96,6 +96,7 @@ public class StorageHelper {
      * @param rabbit                rabbit template
      * @param rabbitReplyTimeout    rabbit reply timeout constant
      * @param topicExchange         rabbit exchange
+     * @param notificationService   service to handle the notification to Monitoring
      */
     public StorageHelper(ResourcesRepository resourcesRepository, PluginRepository pluginRepository,
             AuthorizationManager authMan, RabbitTemplate rabbit, int rabbitReplyTimeout, 
@@ -550,7 +551,6 @@ public class StorageHelper {
      * This method is used to check access policies towards AdministrationManager
      * @param request OData request
      * @param resourceId resource id
-     * @return true if policies are OK
      * @throws Exception security exception
      */
     public void checkAccessPolicies(ODataRequest request, String resourceId) throws Exception {
