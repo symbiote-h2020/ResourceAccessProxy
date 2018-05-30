@@ -5,11 +5,11 @@
  */
 package eu.h2020.symbiote.service.notificationResource;
 
+import eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
@@ -19,13 +19,14 @@ import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.exceptions.EntityNotFoundException;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceWebSocketCondition;
 import eu.h2020.symbiote.messages.access.ResourceAccessUnSubscribeMessage;
-import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
-import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
+import eu.h2020.symbiote.interfaces.ResourceAccessNotificationService;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.ResourceInfo;
 import static eu.h2020.symbiote.security.commons.SecurityConstants.SECURITY_RESPONSE_HEADER;
+
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.managers.AuthorizationResult;
@@ -67,6 +68,9 @@ public class WebSocketController extends TextWebSocketHandler {
     private static final Logger log = LoggerFactory.getLogger(WebSocketController.class);
 
     @Autowired
+    ResourceAccessNotificationService notificationService;
+    
+    @Autowired
     ResourcesRepository resourcesRepo;
     
     @Autowired
@@ -92,6 +96,12 @@ public class WebSocketController extends TextWebSocketHandler {
         log.error("error occured at sender " + session, throwable);
     }
 
+    /**
+     * This method handles the connection closed procedure.
+     * @param session WebSocket session
+     * @param status close status
+     * @throws Exception exception in handling closing WebSocket
+     */
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         log.info("Session " + session.getId() + " closed with status " + status.getCode());
@@ -111,12 +121,25 @@ public class WebSocketController extends TextWebSocketHandler {
         }
     }
 
+    /**
+     * This method is called right after a client connects to the server
+     *
+     * @param session WebSocket session
+     * @throws Exception exception in handling connection
+     */
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         log.info("Connected ... " + session.getId());
         idSession.put(session.getId(), session);
     }
 
+    /**
+     * This method is called whenever a message is received from the server
+     *
+     * @param session WebSocket session
+     * @param jsonTextMessage received message
+     * @throws Exception exception in handling message
+     */
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage jsonTextMessage) throws Exception  {
         Exception e = null;
@@ -167,6 +190,8 @@ public class WebSocketController extends TextWebSocketHandler {
             code = HttpStatusCode.NOT_FOUND;
             e = entityEx;
             log.error(e.getMessage());
+        } catch (ValidationException vex) {
+        	log.error(vex.getMessage());        	
         } catch (Exception ex) {
             e = ex;
             log.error("Generic IO Exception: " + e.getMessage());
@@ -178,7 +203,8 @@ public class WebSocketController extends TextWebSocketHandler {
             sendFailMessage(message,e);
         }
     }
-    
+
+
     private void Subscribe(WebSocketSession session, List<String> resourcesId) throws Exception {
         HashMap<String, List<ResourceInfo>> subscribeList = new HashMap<>();
         for (String resId : resourcesId) {
@@ -270,6 +296,13 @@ public class WebSocketController extends TextWebSocketHandler {
         }
     }
 
+
+    /**
+     * This method is used to send a push notification message to all the clients connected
+     * and subscribed to the resource that emits the notification itself
+     *
+     * @param obs observation
+     */
     public void SendMessage(Observation obs) {
         Map<String,String> secResponse = new HashMap<>();
         ServiceResponseResult serResponse = authManager.generateServiceResponse();
@@ -340,32 +373,24 @@ public class WebSocketController extends TextWebSocketHandler {
 
         return resInfo;
     }
-    
-    
+
+    /**
+     * This method is used to send a successful access message to CRAM
+     *
+     * @param symbioteIdList list of symbiote IDs
+     * @param accessType type of access from {@link eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo.AccessType} name
+     */
     public void sendSuccessfulAccessMessage(List<String> symbioteIdList, String accessType){
-        String jsonNotificationMessage = null;
-        ObjectMapper map = new ObjectMapper();
-        map.configure(SerializationFeature.INDENT_OUTPUT, true);
-        map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-        
         List<Date> dateList = new ArrayList<Date>();
         dateList.add(new Date());
-        ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager, notificationUrl);
         
-        try{
-            notificationMessage.SetSuccessfulAttemptsList(symbioteIdList, dateList, accessType);
-            jsonNotificationMessage = map.writeValueAsString(notificationMessage);
-        } catch (JsonProcessingException e) {
-            log.error(e.getMessage());
-        }
-        notificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
+        notificationService.addSuccessfulAttemptsList(symbioteIdList, dateList, accessType);
+        notificationService.sendAccessData();
     }
     
     private void sendFailMessage(String path, Exception e) {
-        String jsonNotificationMessage = null;
         String appId = "";String issuer = ""; String validationStatus = "";
         String symbioteId = "";
-        ObjectMapper mapper = new ObjectMapper();
         
         String code = Integer.toString(HttpStatus.INTERNAL_SERVER_ERROR.value());
         String message = e.getMessage();
@@ -377,22 +402,21 @@ public class WebSocketController extends TextWebSocketHandler {
             symbioteId = ((EntityNotFoundException) e).getSymbioteId();
         }
             
-        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         List<Date> dateList = new ArrayList<Date>();
         dateList.add(new Date());
-        ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager, notificationUrl);
-        try {
-            notificationMessage.SetFailedAttempts(symbioteId, dateList, 
-            code, message, appId, issuer, validationStatus, path); 
-            jsonNotificationMessage = mapper.writeValueAsString(notificationMessage);
-        } catch (JsonProcessingException jsonEx) {
-            log.error(jsonEx.getMessage());
-        }
-        notificationMessage.SendFailAccessMessage(jsonNotificationMessage);
+        notificationService.addFailedAttempts(symbioteId, dateList, 
+            code, message, appId, issuer, validationStatus, path);
+        notificationService.sendAccessData();
     }
-    
-    public boolean checkAccessPolicies(Map<String, String> secHdrs, List<String> resourceIdList) throws Exception {
+
+    /**
+     * This method is used to check access policies towards Authentication Manager
+     *
+     * @param secHdrs map of security headers
+     * @param resourceIdList list of resource IDs
+     * @throws Exception security exception
+     */
+    public void checkAccessPolicies(Map<String, String> secHdrs, List<String> resourceIdList) throws Exception {
         
         log.debug("secHeaders: " + secHdrs);
         SecurityRequest securityReq = new SecurityRequest(secHdrs);
@@ -402,10 +426,8 @@ public class WebSocketController extends TextWebSocketHandler {
             log.info(result.getMessage());
             if(!result.isValidated()) {
                 log.error("Resource " + resourceId + "access has been denied with message: " + result.getMessage());
-                return false;
+                throw new ValidationException("The access policies were not satisfied for resource " + resourceId + ". MSG: " + result.getMessage());
             }
-        }
-        
-        return true;
+        }        
     }
 }

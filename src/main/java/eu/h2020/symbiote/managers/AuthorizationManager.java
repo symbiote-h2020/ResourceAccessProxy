@@ -6,11 +6,17 @@
 package eu.h2020.symbiote.managers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+
+import eu.h2020.symbiote.model.mim.Federation;
+import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.resources.db.AccessPolicy;
 import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import eu.h2020.symbiote.resources.db.FederationRepository;
+import eu.h2020.symbiote.resources.db.ResourceInfo;
+import eu.h2020.symbiote.resources.db.ResourcesRepository;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -18,12 +24,17 @@ import org.springframework.util.Assert;
 
 import eu.h2020.symbiote.security.ComponentSecurityHandlerFactory;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
+import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleFederatedTokenAccessPolicy;
+
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -34,12 +45,12 @@ import org.springframework.http.MediaType;
 /**
  * Component responsible for dealing with Symbiote Tokens and checking access right for requests.
  *
- * @author Matteo Pardi
+ * @author Matteo Pardi, Pavle Skocir
  */
 @Component()
 public class AuthorizationManager {
 
-    private static Log log = LogFactory.getLog(AuthorizationManager.class);
+    private static Logger log = LoggerFactory.getLogger(AuthorizationManager.class);
 
     private final String componentOwnerName;
     private final String componentOwnerPassword;
@@ -53,7 +64,12 @@ public class AuthorizationManager {
     
     @Autowired
     private AccessPolicyRepository accessPolicyRepo;
+    
+    @Autowired
+    private FederationRepository fedRepo;
 
+    @Autowired
+    private ResourcesRepository resourceRepo;
 
     private IComponentSecurityHandler componentSecurityHandler;
 
@@ -109,22 +125,39 @@ public class AuthorizationManager {
             if (securityRequest == null) {
                 return new AuthorizationResult("SecurityRequest is null", false);
             }
-
-            Set<String> checkedPolicies;
-            try {
-                checkedPolicies = checkStoredResourcePolicies(securityRequest, resourceId);
-            } catch (Exception e) {
-                log.error(e.getMessage(), e);
-                return new AuthorizationResult(e.getMessage(), false);
-
-            }
-
-            if (checkedPolicies.size() == 1) {
-                return new AuthorizationResult("ok", true);
+            
+            Set<String> checkedPolicies = new HashSet<String>();
+            if(isCoreResourceId(resourceId)) {
+	            try {
+	                checkedPolicies = checkStoredResourcePolicies(securityRequest, resourceId);
+	            } catch (Exception e) {
+	                log.error(e.getMessage(), e);
+	                return new AuthorizationResult(e.getMessage(), false);
+	            }
+	            
+	            if (checkedPolicies.size() == 1) {
+	                return new AuthorizationResult("ok", true);
+	            } else {
+	                return new AuthorizationResult("The stored resource access policy was not satisfied",
+	                        false);
+	            }
+	            
             } else {
-                return new AuthorizationResult("The stored resource access policy was not satisfied",
-                        false);
+            	try {
+	                checkedPolicies=checkFederatedResourcePolicies(securityRequest, resourceId);
+	            } catch (Exception e) {
+	                log.error(e.getMessage(), e);
+	                return new AuthorizationResult(e.getMessage(), false);
+	            }
+            	
+            	if (checkedPolicies.size() == 1) {
+                    return new AuthorizationResult("ok", true);
+                } else {
+                    return new AuthorizationResult("The federated resource access policy was not satisfied",
+                            false);
+                }
             }
+ 
         } else {
             log.debug("checkAccess: Security is disabled");
             //if security is disabled in properties
@@ -132,7 +165,82 @@ public class AuthorizationManager {
         }
     }
     
-    public ServiceRequest getServiceRequestHeaders(){
+    /**
+     * method checks if the client can access a federated resource
+     * @param securityRequest
+     * @param federatedResourceId
+     * @return
+     */
+    private Set<String> checkFederatedResourcePolicies(SecurityRequest securityRequest, String federatedResourceId) {
+    	Optional<ResourceInfo> optionalResourceInfo = resourceRepo.findById(federatedResourceId);
+    	if(!optionalResourceInfo.isPresent()) {
+            log.error("No ResourceInfo for federatedResourceId={}.", federatedResourceId);
+            return Collections.emptySet();
+        }
+    	
+    	try {
+	    	ResourceInfo resourceInfo = optionalResourceInfo.get();
+	    	long currentTime = System.currentTimeMillis();
+	    	
+	    	Map<String, IAccessPolicy> resourceAccessPolicyMap = new HashMap<>();
+	    	
+	    	//security policy
+	    	
+	    	//creation of federation policy
+	    	resourceInfo.getFederationInfo().getSharingInformation().entrySet().stream()
+	    		.filter(entry -> entry.getValue().getSharingDate().getTime() < currentTime)
+	    		.map(entry -> entry.getKey())
+	    		.forEach(federationId -> {
+	    			IAccessPolicy federationAccessPolicy = null;
+	    			Set<String> federationMembers;
+					try {
+						Map<String, String> claims = new HashMap<>();
+						federationMembers = getFederationMembers(federationId);
+						log.info(federationMembers.toString());
+						federationAccessPolicy = new SingleFederatedTokenAccessPolicy(federationId, federationMembers, clientId, claims, false);
+					} catch (InvalidArgumentsException e) {
+						log.error("error creating federationAccessPolicy" + e.getMessage(), e);
+					}
+	    			
+	    			resourceAccessPolicyMap.put(federationId, federationAccessPolicy);  			
+	    		});
+
+            return componentSecurityHandler.getSatisfiedPoliciesIdentifiers(resourceAccessPolicyMap, securityRequest);
+        } catch (Exception e) {
+            log.error("Exception thrown during checking federation policies: " + e.getMessage(), e);
+        }
+        
+		return Collections.emptySet();
+	}
+
+    /**
+     * method finds the platformIds of a federation with id federationId
+     * @param federationId
+     * @return platformIds
+     */
+    private Set<String> getFederationMembers(String federationId) {
+    	Set<String> fedMembersString = new HashSet<>();
+    	
+    	Federation fed = fedRepo.findById(federationId);
+    	List<FederationMember> fedMembers = fed.getMembers();
+    	for (int i = 0; i < fedMembers.size(); i++) {
+			fedMembersString.add(fedMembers.get(i).getPlatformId());
+		}
+    	
+		return fedMembersString;
+	}
+
+	private boolean isCoreResourceId(String resourceId) {
+    	Optional<ResourceInfo> optionalResourceInfo = resourceRepo.findById(resourceId);
+    	if(!optionalResourceInfo.isPresent()) {
+            log.error("No ResourceInfo for resource");
+            return true;
+        }
+    	
+		return optionalResourceInfo.get().getFederationInfo() == null;
+	}
+
+	public ServiceRequest getServiceRequestHeaders(){
         if (securityEnabled) {
             try {
                 Map<String, String> securityRequestHeaders = null;        
@@ -200,7 +308,7 @@ public class AuthorizationManager {
             Optional<AccessPolicy> accPolicy = accessPolicyRepo.findById(resourceId);
             if(accPolicy == null) {
                 log.error("No access policies for resource");
-                return ids;
+                return Collections.emptySet();
             }
 
             accessPolicyMap.put(resourceId, accPolicy.get().getPolicy());

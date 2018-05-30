@@ -27,6 +27,9 @@ class AppConfig extends AbstractMongoConfiguration {
     @Value("${rap.mongo.host}")
     private String mongoHost;
 
+    @Value("${spring.data.mongodb.port}")
+    private int mongoPort;
+
     @Override
     protected String getDatabaseName() {
         return databaseName;
@@ -35,7 +38,7 @@ class AppConfig extends AbstractMongoConfiguration {
     @SuppressWarnings("deprecation")
     @Override
     public Mongo mongo() throws Exception {
-        return new Mongo();
+        return new Mongo(mongoHost, mongoPort);
     }
 
     @Bean

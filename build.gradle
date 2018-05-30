@@ -12,7 +12,8 @@ if (!hasProperty('mainClass')) {
 // initial extensions to gradle
 buildscript {
     ext {
-        springBootVersion = '1.5.10.RELEASE'
+        springBootVersion = '1.5.12.RELEASE'
+        springCloudVersion = 'Dalston.SR5'
     }
     repositories {
         mavenCentral()
@@ -44,7 +45,6 @@ apply plugin: 'maven-publish'
 
 // XXX please change with your commits according to http://semver.org/
 project.group = 'eu.h2020.symbiote'
-project.version = '1.2.1'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -58,7 +58,7 @@ repositories {
 // Spring related configs
 dependencyManagement {
     imports {
-        mavenBom "org.springframework.cloud:spring-cloud-dependencies:Dalston.SR5"
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
     }
 }
 
@@ -87,7 +87,7 @@ dependencies {
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
 
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:5.10.+') { }
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:5.12+') { }
 
     // Spring
     compile('org.springframework.cloud:spring-cloud-starter')
@@ -110,7 +110,10 @@ dependencies {
   
     // Websocket
     compile("org.springframework.boot:spring-boot-starter-websocket")
-    
+
+    // Others
+    compile("com.jayway.jsonpath:json-path:2.4.0")
+
     // test only
     compile("org.springframework.boot:spring-boot-starter-web")
     testCompile ("org.springframework.boot:spring-boot-starter-test")
@@ -134,6 +137,7 @@ jar {
     
 task generateJavaDocs(type: Javadoc) {
     source = sourceSets.main.allJava
+    classpath = project.sourceSets.main.compileClasspath 
     destinationDir = reporting.file("javadocs")
 }
 

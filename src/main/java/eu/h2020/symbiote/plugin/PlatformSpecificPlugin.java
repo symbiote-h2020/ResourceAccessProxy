@@ -38,15 +38,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * @author Matteo Pardi
  */
 public class PlatformSpecificPlugin extends PlatformPlugin {
-    
+
     private static final Logger log = LoggerFactory.getLogger(PlatformSpecificPlugin.class);
-    
+
     private static final boolean PLUGIN_PLATFORM_FILTERS_FLAG = true;
     private static final boolean PLUGIN_PLATFORM_NOTIFICATIONS_FLAG = true;
 
     public static final String PLUGIN_PLATFORM_ID = "platform_01";
-    public static final String PLUGIN_RES_ACCESS_QUEUE = "rap-platform-queue_" + PLUGIN_PLATFORM_ID;   
-    
+    public static final String PLUGIN_RES_ACCESS_QUEUE = "rap-platform-queue_" + PLUGIN_PLATFORM_ID;
+
 
     public PlatformSpecificPlugin(RabbitTemplate rabbitTemplate, TopicExchange exchange) {
         super(rabbitTemplate, exchange, PLUGIN_PLATFORM_ID, PLUGIN_PLATFORM_FILTERS_FLAG, PLUGIN_PLATFORM_NOTIFICATIONS_FLAG);
@@ -54,15 +54,15 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
 
     /**
      * This is called when received request for reading resource.
-     * 
+     *
      * You need to checked if you can read sensor data with that internal id and in case
      * of problem you can throw RapPluginException
-     * 
+     *
      * @param resourceId internal id of sensor as registered
-     * 
+     *
      * @return string that contains JSON of one Observation
-     * 
-     * @throws RapPluginException can be thrown when something went wrong. It has return code 
+     *
+     * @throws RapPluginException can be thrown when something went wrong. It has return code
      * that can be returned to consumer.
      */
     @Override
@@ -85,16 +85,16 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
             throw new RapPluginException(HttpStatus.INTERNAL_SERVER_ERROR.value(), "Can not convert to JSON.", ex);
         }
     }
-    
+
     /**
      * This method is called when actuating resource or invoking service is requested.
-     * 
-     * In the case of actuation 
-     * body will be JSON Object with capabilities and parameters. 
+     *
+     * In the case of actuation
+     * body will be JSON Object with capabilities and parameters.
      * Actuation does not return value (it will be ignored).
      * Example of body:
      * <pre>
-     * { 
+     * {
      *   "SomeCapabililty" : [
      *     {
      *       "param1" : true
@@ -106,7 +106,7 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
      *   ]
      * }
      * </pre>
-     * 
+     *
      * In the case of invoking service body will be JSON Array with parameters.
      * Example of body:
      * <pre>
@@ -120,12 +120,12 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
      *   ...
      * ]
      * </pre>
-     * 
+     *
      * @param body JSON input depending on what is called (actuation or invoking service)
-     * 
+     *
      * @return returns JSON string that will be returned as response
-     * 
-     * @throws RapPluginException can be thrown when something went wrong. It has return code 
+     *
+     * @throws RapPluginException can be thrown when something went wrong. It has return code
      * that can be returned to consumer.
      */
     @Override
@@ -138,8 +138,8 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
             if("iaid1".equals(resourceId)) {
                 try {
                     // This is example of extracting data from body
-                    ObjectMapper mapper = new ObjectMapper();  
-                    HashMap<String,ArrayList<HashMap<String, Object>>> jsonObject = 
+                    ObjectMapper mapper = new ObjectMapper();
+                    HashMap<String,ArrayList<HashMap<String, Object>>> jsonObject =
                             mapper.readValue(body, new TypeReference<HashMap<String,ArrayList<HashMap<String, Object>>>>() { });
                     for(Entry<String, ArrayList<HashMap<String,Object>>> capabilityEntry: jsonObject.entrySet()) {
                         System.out.println("Found capability " + capabilityEntry.getKey());
@@ -166,8 +166,8 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
             if("isrid1".equals(resourceId)) {
                 try {
                     // extracting service parameters
-                    ObjectMapper mapper = new ObjectMapper();  
-                    ArrayList<HashMap<String, Object>> jsonObject = 
+                    ObjectMapper mapper = new ObjectMapper();
+                    ArrayList<HashMap<String, Object>> jsonObject =
                             mapper.readValue(body, new TypeReference<ArrayList<HashMap<String, Object>>>() { });
                     for(HashMap<String,Object> parameters: jsonObject) {
                         System.out.println("Found " + parameters.size() + " parameter(s).");
@@ -188,20 +188,20 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
             }
         }
     }
-    
+
     /**
      * This is called when received request for reading resource history.
-     * 
+     *
      * You need to checked if you can read sensor data with that internal id and in case
      * of problem you can throw RapPluginException.
-     * 
-     * Default is to return maximum of 100 observations. 
-     * 
+     *
+     * Default is to return maximum of 100 observations.
+     *
      * @param resourceId internal id of sensor as registered
-     * 
+     *
      * @return string that contains JSON with array of Observations (maximum 100)
-     * 
-     * @throws RapPluginException can be thrown when something went wrong. It has return code 
+     *
+     * @throws RapPluginException can be thrown when something went wrong. It has return code
      * that can be returned to consumer.
      */
     @Override
@@ -210,7 +210,7 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
         try {
             List<Observation> value = new ArrayList<>();
             //
-            // INSERT HERE: query to the platform with internal resource id and 
+            // INSERT HERE: query to the platform with internal resource id and
             // return list of observations in JSON
             //
             // Here is example
@@ -221,7 +221,7 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
                 value.add(obs1);
                 value.add(obs2);
                 value.add(obs3);
-    
+
                 ObjectMapper mapper = new ObjectMapper();
                 json = mapper.writeValueAsString(value);
                 return json;
@@ -234,21 +234,21 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
             throw new RapPluginException(HttpStatus.INTERNAL_SERVER_ERROR.value(), ex);
         }
     }
-    
+
     @Override
     public void subscribeResource(String resourceId) {
         // INSERT HERE: call to the platform to subscribe resource
     }
-    
+
     @Override
     public void unsubscribeResource(String resourceId) {
         // INSERT HERE: call to the platform to unsubscribe resource
     }
-    
-    /* 
-    *   Some sample code for creating one observation
-    */   
-    public Observation observationExampleValue () {        
+
+    /*
+     *   Some sample code for creating one observation
+     */
+    public Observation observationExampleValue () {
         String sensorId = "symbIoTeID1";
         ArrayList<String> ldescr = new ArrayList<>();
         ldescr.add("City of Zagreb");
@@ -265,14 +265,14 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
         pdescr.add("Air temperature");
         ArrayList<String> umdescr = new ArrayList<>();
         umdescr.add("Temperature in degree Celsius");
-        ObservationValue obsval = new ObservationValue("7", new Property("Temperature", "TempIRI", pdescr), 
+        ObservationValue obsval = new ObservationValue("7", new Property("Temperature", "TempIRI", pdescr),
                 new UnitOfMeasurement("C", "degree Celsius", "CelsiusIRI", umdescr));
         ArrayList<ObservationValue> obsList = new ArrayList<>();
         obsList.add(obsval);
         Observation obs = new Observation(sensorId, loc, timestamp, samplet , obsList);
-        
+
         log.debug("Observation: \n" + obs.toString());
-        
+
         return obs;
     }
 }
