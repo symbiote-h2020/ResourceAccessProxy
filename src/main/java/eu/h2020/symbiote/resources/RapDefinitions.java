@@ -37,9 +37,11 @@ public class RapDefinitions {
     public static final String      PLUGIN_NOTIFICATION_EXCHANGE_IN = "symbIoTe.rapPluginExchange-notification";
     public static final String      PLUGIN_NOTIFICATION_KEY = "symbIoTe.rapPluginExchange.plugin-notification";
 
-    //for sending access data to Monitoring
+    //for sending access data to Monitoring and B&T Manager
     public static final String 		RAP_ACCESS_EXCHANGE = "symbIoTe.resourceAccessProxy";
 	public static final String 		RAP_ACCESS_ROUTING_KEY = "symbIoTe.rap.resource.access";
+	public static final String 		RAP_BARTERING_ROUTING_KEY = "symbIoTe.rap.btm.access";
+
 	
 	//for receiving L2 registration&share messages
 	//queues

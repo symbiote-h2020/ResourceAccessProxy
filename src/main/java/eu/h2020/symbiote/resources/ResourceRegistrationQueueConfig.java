@@ -218,12 +218,12 @@ public class ResourceRegistrationQueueConfig {
     
     @Bean(name=RapDefinitions.RESOURCE_L2_SHARE_QUEUE + "Listener")
     MessageListenerAdapter resourceL2ShareListenerAdapter(ResourceRegistration receiver) {
-        return new MessageListenerAdapter(receiver, "receiveShareUnshareMessage");
+        return new MessageListenerAdapter(receiver, "receiveShareMessage");
     }
     
     @Bean(name=RapDefinitions.RESOURCE_L2_UNSHARE_QUEUE + "Listener")
     MessageListenerAdapter resourceL2UnShareListenerAdapter(ResourceRegistration receiver) {
-        return new MessageListenerAdapter(receiver, "receiveShareUnshareMessage");
+        return new MessageListenerAdapter(receiver, "receiveUnShareMessage");
     }
     //end L2
 }

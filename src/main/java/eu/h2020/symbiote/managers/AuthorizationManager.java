@@ -7,6 +7,7 @@ package eu.h2020.symbiote.managers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
+import eu.h2020.symbiote.interfaces.BarteringTradingCommunicationService;
 import eu.h2020.symbiote.model.mim.Federation;
 import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.resources.db.AccessPolicy;
@@ -28,8 +29,10 @@ import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleFedera
 
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
+import io.jsonwebtoken.Claims;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -41,6 +44,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+
+import eu.h2020.symbiote.security.commons.Coupon;
+import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.Token.Type;
 
 /**
  * Component responsible for dealing with Symbiote Tokens and checking access right for requests.
@@ -70,7 +77,10 @@ public class AuthorizationManager {
 
     @Autowired
     private ResourcesRepository resourceRepo;
-
+    
+    @Autowired
+    BarteringTradingCommunicationService barteringTradingService;
+    
     private IComponentSecurityHandler componentSecurityHandler;
 
     @Autowired
@@ -119,7 +129,8 @@ public class AuthorizationManager {
     }
 
     public AuthorizationResult checkResourceUrlRequest(String resourceId, SecurityRequest securityRequest) {
-        if (securityEnabled) {
+    	boolean bartering = false;
+    	if (securityEnabled) {
             log.debug("Received SecurityRequest of ResourceUrlsRequest to be verified: (" + securityRequest + ")");
 
             if (securityRequest == null) {
@@ -127,6 +138,7 @@ public class AuthorizationManager {
             }
             
             Set<String> checkedPolicies = new HashSet<String>();
+            
             if(isCoreResourceId(resourceId)) {
 	            try {
 	                checkedPolicies = checkStoredResourcePolicies(securityRequest, resourceId);
@@ -150,12 +162,38 @@ public class AuthorizationManager {
 	                return new AuthorizationResult(e.getMessage(), false);
 	            }
             	
-            	if (checkedPolicies.size() == 1) {
-                    return new AuthorizationResult("ok", true);
-                } else {
-                    return new AuthorizationResult("The federated resource access policy was not satisfied",
-                            false);
-                }
+            	try {
+            		if (barteredResource(resourceId))
+                		bartering = checkBartering(securityRequest, resourceId);
+            	} catch (Exception e) {
+            		log.error(e.getMessage(), e);
+	                return new AuthorizationResult(e.getMessage(), false);
+            	}
+            	
+            	//TODO check if resource is bartered or not
+            	if (barteredResource(resourceId)) {
+            		if ((checkedPolicies.size() == 1)&&(bartering)) {
+	                    return new AuthorizationResult("ok", true);
+	                    
+	                } else if (checkedPolicies.size() != 1){
+	                	return new AuthorizationResult("The federated resource access policy was not satisfied",
+	                            false);
+            		} else if (!bartering) {
+	                    return new AuthorizationResult("The bartering rights were not satisfied",
+	                            false);
+	                } else {
+	                    return new AuthorizationResult("Error in checking federation access policy or bartering rights",
+	                            false);
+	                }
+            		
+            	} else {
+            		if (checkedPolicies.size() == 1) {
+	                    return new AuthorizationResult("ok", true);
+	                } else {
+	                    return new AuthorizationResult("The federated resource access policy was not satisfied",
+	                            false);
+	                }
+            	}	
             }
  
         } else {
@@ -165,7 +203,72 @@ public class AuthorizationManager {
         }
     }
     
-    /**
+	/**
+     * checking bartering rights
+     * @param securityRequest
+     * @param federatedResourceId
+     * @return
+     */
+    private boolean checkBartering(SecurityRequest securityRequest, String federatedResourceId) {
+    	boolean result = false;
+    	Optional<ResourceInfo> optionalResourceInfo = resourceRepo.findById(federatedResourceId);
+    	    	
+    	if(!optionalResourceInfo.isPresent()) {
+            log.error("No ResourceInfo for federatedResourceId={}.", federatedResourceId);
+            return false;
+        }
+    	
+    	try {
+	    	ResourceInfo resourceInfo = optionalResourceInfo.get();
+	    	
+	    	//checking federation info - there will be only one federation info, lambda not needed??
+//	    	resourceInfo.getFederationInfo().getSharingInformation().entrySet().stream()
+//	    		.filter(entry -> entry.getValue().getSharingDate().getTime() < currentTime)
+//	    		.map(entry -> entry.getKey())
+//	    		.forEach(federationId -> {
+	    			
+	    			//if (federationId.equals(anObject))
+	    			
+//	    			clientPlatformId = securityRequest.getSecurityRequestHeaderParamsgetClass()
+	    			//
+	    	
+	    			String federationId = resourceInfo.getFederationInfo().getSharingInformation().keySet().iterator().next();
+	    	
+	    			//get client platform ID and federation id from the security request
+	    			String tokenString = securityRequest.getSecurityCredentials().iterator().next().getToken();
+	    			
+	    			Token token = null;
+					try {
+						token = new Token(tokenString);
+					} catch (ValidationException e) {
+			            log.error("Token is not valid", tokenString);
+					}
+					
+	    			Type type = token.getType();
+    				Claims claims = token.getClaims();
+    		    	String clientPlatformID = null;
+
+	    			
+	    			if (type==Type.HOME) {
+	    				clientPlatformID = claims.getIssuer();
+	    			}
+	    			else if (type == Type.FOREIGN) {
+	    				clientPlatformID = claims.getSubject();
+	    			}
+	  
+	    			barteringTradingService.addRequest(clientPlatformID, federationId, federatedResourceId, Coupon.Type.DISCRETE);
+	    			result =  barteringTradingService.sendToCheck();		
+	    			
+//	    		});
+            
+        } catch (Exception e) {
+            log.error("Exception thrown during checking bartering rights: " + e.getMessage(), e);
+        }
+    	
+		return result;		
+	}
+
+	/**
      * method checks if the client can access a federated resource
      * @param securityRequest
      * @param federatedResourceId
@@ -238,6 +341,12 @@ public class AuthorizationManager {
         }
     	
 		return optionalResourceInfo.get().getFederationInfo() == null;
+	}
+	
+	private boolean barteredResource(String resourceId) {
+		Optional<ResourceInfo> optionalResourceInfo = resourceRepo.findById(resourceId);
+		
+		return optionalResourceInfo.get().getFederationInfo().getSharingInformation().values().iterator().next().getBartering();
 	}
 
 	public ServiceRequest getServiceRequestHeaders(){
