@@ -236,6 +236,7 @@ public class AuthorizationManager {
 	    	
 	    			//get client platform ID and federation id from the security request
 	    			String tokenString = securityRequest.getSecurityCredentials().iterator().next().getToken();
+	    			log.debug(tokenString);
 	    			
 	    			Token token = null;
 					try {
@@ -245,6 +246,7 @@ public class AuthorizationManager {
 					}
 					
 	    			Type type = token.getType();
+	    			log.debug(type.toString());
     				Claims claims = token.getClaims();
     		    	String clientPlatformID = null;
 
@@ -255,6 +257,7 @@ public class AuthorizationManager {
 	    			else if (type == Type.FOREIGN) {
 	    				clientPlatformID = claims.getSubject();
 	    			}
+	    			log.debug("client platform id: " + clientPlatformID);
 	  
 	    			barteringTradingService.addRequest(clientPlatformID, federationId, federatedResourceId, Coupon.Type.DISCRETE);
 	    			result =  barteringTradingService.sendToCheck();		
