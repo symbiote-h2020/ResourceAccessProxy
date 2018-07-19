@@ -13,22 +13,24 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessGetMessage;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessHistoryMessage;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessMessage.AccessType;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessSetMessage;
+import eu.h2020.symbiote.cloud.model.rap.ResourceInfo;
 import eu.h2020.symbiote.exceptions.*;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceRESTCondition;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.managers.AuthorizationResult;
 import eu.h2020.symbiote.managers.ServiceResponseResult;
-import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
-import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
-import eu.h2020.symbiote.messages.access.ResourceAccessMessage.AccessType;
-import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
+import eu.h2020.symbiote.resources.db.DbResourceInfo;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
-import eu.h2020.symbiote.resources.db.ResourceInfo;
-import eu.h2020.symbiote.resources.query.Query;
+import eu.h2020.symbiote.cloud.model.rap.query.Query;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 
 import java.io.UnsupportedEncodingException;
@@ -390,11 +392,11 @@ public class ResourceAccessRestController {
     }
 
     private ResourceInfo getResourceInfo(String resourceId) {
-        Optional<ResourceInfo> resInfo = resourcesRepo.findById(resourceId);
+        Optional<DbResourceInfo> resInfo = resourcesRepo.findById(resourceId);
         if(!resInfo.isPresent())
             throw new EntityNotFoundException("Resource " + resourceId + " not found");
         
-        return resInfo.get();
+        return resInfo.get().toResourceInfo();
     }
     
     private boolean checkAccessPolicies(HttpServletRequest request, String resourceId) throws Exception {

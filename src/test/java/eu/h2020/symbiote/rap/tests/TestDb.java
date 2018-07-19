@@ -7,7 +7,7 @@ import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.RegistrationInfoOData;
 import eu.h2020.symbiote.resources.db.RegistrationInfoODataRepository;
-import eu.h2020.symbiote.resources.db.ResourceInfo;
+import eu.h2020.symbiote.resources.db.DbResourceInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.accesspolicies.common.AccessPolicyType;
@@ -63,14 +63,14 @@ public class TestDb {
         String platformResourceId = "pl_1";
         List<String> obsProperties = null;
         String pluginId = "plugin_1";
-        ResourceInfo resourceInfoResult = addResource(resourceId, platformResourceId, obsProperties, pluginId);
+        DbResourceInfo resourceInfoResult = addResource(resourceId, platformResourceId, obsProperties, pluginId);
         assert(resourceInfoResult != null);
         //search
-        Optional<ResourceInfo> resInfoOptional = resourcesRepository.findById(resourceId);
+        Optional<DbResourceInfo> resInfoOptional = resourcesRepository.findById(resourceId);
         assert(resInfoOptional.isPresent() == true);
         resInfoOptional = resourcesRepository.findById(resourceId+"2");
         assert(resInfoOptional.isPresent() == false);        
-        List<ResourceInfo> resourceInfoList = resourcesRepository.findByInternalId(platformResourceId+"2");
+        List<DbResourceInfo> resourceInfoList = resourcesRepository.findByInternalId(platformResourceId+"2");
         assert(resourceInfoList == null || resourceInfoList.isEmpty());
         resourceInfoList = resourcesRepository.findByInternalId(platformResourceId);
         assert(resourceInfoList != null);
@@ -81,14 +81,14 @@ public class TestDb {
         assert(resourceInfoList == null || resourceInfoList.isEmpty());
     }
     
-    private ResourceInfo addResource(String resourceId, String platformResourceId, List<String> obsProperties, String pluginId) {
-        ResourceInfo resourceInfo = new ResourceInfo(resourceId, platformResourceId);
+    private DbResourceInfo addResource(String resourceId, String platformResourceId, List<String> obsProperties, String pluginId) {
+        DbResourceInfo resourceInfo = new DbResourceInfo(resourceId, platformResourceId);
         if(obsProperties != null)
             resourceInfo.setObservedProperties(obsProperties);
         if(pluginId != null && pluginId.length()>0)
             resourceInfo.setPluginId(pluginId);
         
-        ResourceInfo resourceInfoResult = resourcesRepository.save(resourceInfo);
+        DbResourceInfo resourceInfoResult = resourcesRepository.save(resourceInfo);
         return resourceInfoResult;
     }
     
@@ -125,7 +125,7 @@ public class TestDb {
         String platformResourceId = "pl_1";
         List<String> obsProperties = null;
         String pluginId = "plugin_1";
-        ResourceInfo resourceInfoResult = addResource(resourceId, platformResourceId, obsProperties, pluginId);
+        DbResourceInfo resourceInfoResult = addResource(resourceId, platformResourceId, obsProperties, pluginId);
         assert(resourceInfoResult != null);
         //insert
         AccessPolicyType policyType = AccessPolicyType.PUBLIC;
@@ -149,7 +149,7 @@ public class TestDb {
         //delete resource
         //delete
         resourcesRepository.delete(resourceId);
-        Optional<ResourceInfo> resourceInfoOptional = resourcesRepository.findById(resourceId);
+        Optional<DbResourceInfo> resourceInfoOptional = resourcesRepository.findById(resourceId);
         assert(!resourceInfoOptional.isPresent());
     }
     

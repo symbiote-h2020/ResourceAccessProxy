@@ -15,7 +15,7 @@ import eu.h2020.symbiote.model.cim.Resource;
 import eu.h2020.symbiote.model.cim.StationarySensor;
 import eu.h2020.symbiote.resources.db.AccessPolicy;
 import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
-import eu.h2020.symbiote.resources.db.ResourceInfo;
+import eu.h2020.symbiote.resources.db.DbResourceInfo;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import java.util.List;
 
@@ -136,7 +136,7 @@ public class ResourceRegistration {
     }
     
     private void addResource(String resourceId, String platformResourceId, List<String> obsProperties, String pluginId) {
-        ResourceInfo resourceInfo = new ResourceInfo(resourceId, platformResourceId);
+        DbResourceInfo resourceInfo = new DbResourceInfo(resourceId, platformResourceId);
         if(obsProperties != null)
             resourceInfo.setObservedProperties(obsProperties);
         if(pluginId != null && pluginId.length()>0)
@@ -149,7 +149,7 @@ public class ResourceRegistration {
     
     private void deleteResource(String internalId) {
         try {
-            List<ResourceInfo> resourceList = resourcesRepository.findByInternalId(internalId);
+            List<DbResourceInfo> resourceList = resourcesRepository.findByInternalId(internalId);
             if(resourceList != null && !resourceList.isEmpty()) {
                 resourcesRepository.delete(resourceList.get(0).getSymbioteId());
                 log.info("Resource " + internalId + " unregistered");

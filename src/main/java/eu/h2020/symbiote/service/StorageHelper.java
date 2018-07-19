@@ -11,25 +11,26 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
-import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
-import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
-import eu.h2020.symbiote.messages.access.ResourceAccessMessage;
-import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
 import eu.h2020.symbiote.messages.plugin.RapPluginErrorResponse;
 import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
 import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
 import eu.h2020.symbiote.model.cim.Observation;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessGetMessage;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessHistoryMessage;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessMessage;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessSetMessage;
+import eu.h2020.symbiote.cloud.model.rap.ResourceInfo;
+import eu.h2020.symbiote.cloud.model.rap.query.Comparison;
+import eu.h2020.symbiote.cloud.model.rap.query.Filter;
+import eu.h2020.symbiote.cloud.model.rap.query.Operator;
+import eu.h2020.symbiote.cloud.model.rap.query.Query;
 import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.managers.AuthorizationResult;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
-import eu.h2020.symbiote.resources.db.ResourceInfo;
-import eu.h2020.symbiote.resources.query.Comparison;
-import eu.h2020.symbiote.resources.query.Filter;
-import eu.h2020.symbiote.resources.query.Operator;
-import eu.h2020.symbiote.resources.query.Query;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
+import eu.h2020.symbiote.resources.db.DbResourceInfo;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 
 import java.io.UnsupportedEncodingException;
@@ -115,8 +116,8 @@ public class StorageHelper {
      * @param keyParams keys where to look for 'id'
      * @return resource info
      */
-    public ResourceInfo getResourceInfo(List<UriParameter> keyParams) {
-        ResourceInfo resInfo = null;
+    public DbResourceInfo getResourceInfo(List<UriParameter> keyParams) {
+        DbResourceInfo resInfo = null;
         if(keyParams != null && !keyParams.isEmpty()){
             final UriParameter key = keyParams.get(0);
             String keyName = key.getName();
@@ -125,7 +126,7 @@ public class StorageHelper {
             keyText = keyText.replaceAll("'", "");
             try {
                 if (keyName.equalsIgnoreCase("id")) {
-                    Optional<ResourceInfo> resInfoOptional = resourcesRepo.findById(keyText);
+                    Optional<DbResourceInfo> resInfoOptional = resourcesRepo.findById(keyText);
                     if (resInfoOptional.isPresent()) {
                         resInfo = resInfoOptional.get();
                     }
@@ -445,7 +446,7 @@ public class StorageHelper {
                     throw new ODataApplicationException(ex.getMessage(), HttpStatusCode.BAD_REQUEST.getStatusCode(), Locale.ROOT);
                 }
 
-                eu.h2020.symbiote.resources.query.Expression expr = new eu.h2020.symbiote.resources.query.Expression(key, cmp.getCmp(), value);
+                eu.h2020.symbiote.cloud.model.rap.query.Expression expr = new eu.h2020.symbiote.cloud.model.rap.query.Expression(key, cmp.getCmp(), value);
 
                 return expr;
             } else {
@@ -506,11 +507,11 @@ public class StorageHelper {
      * @return                  the List of ResourceInfo objects
      * @throws ODataApplicationException exception in handling OData
      */
-    public List<ResourceInfo> getResourceInfoList(List<String> typeNameList, List<UriParameter> keyPredicates) throws ODataApplicationException {
+    public List<DbResourceInfo> getResourceInfoList(List<String> typeNameList, List<UriParameter> keyPredicates) throws ODataApplicationException {
         Boolean noResourceFound = true;
-        List<ResourceInfo> resourceInfoList = new ArrayList<>();
+        List<DbResourceInfo> resourceInfoList = new ArrayList<>();
         for(int i = 0; i< typeNameList.size(); i++){
-            ResourceInfo resInfo = new ResourceInfo();
+            DbResourceInfo resInfo = new DbResourceInfo();
             resInfo.setType(typeNameList.get(i));
             if(i < keyPredicates.size()){
                 UriParameter key = keyPredicates.get(i);
@@ -522,7 +523,7 @@ public class StorageHelper {
                 try {
                     if (keyName.equalsIgnoreCase("id")) {
                         resInfo.setSymbioteId(keyText);
-                        Optional<ResourceInfo> resInfoOptional = resourcesRepo.findById(keyText);
+                        Optional<DbResourceInfo> resInfoOptional = resourcesRepo.findById(keyText);
                         if (resInfoOptional.isPresent()) {
                             noResourceFound = false;
                             resInfo.setInternalId(resInfoOptional.get().getInternalId());

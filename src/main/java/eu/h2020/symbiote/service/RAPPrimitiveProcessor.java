@@ -14,9 +14,9 @@ import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.PluginRepository;
-import eu.h2020.symbiote.resources.db.ResourceInfo;
+import eu.h2020.symbiote.resources.db.DbResourceInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
-import eu.h2020.symbiote.resources.query.Query;
+import eu.h2020.symbiote.cloud.model.rap.query.Query;
 import static eu.h2020.symbiote.service.RAPEntityCollectionProcessor.setErrorResponse;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -158,10 +158,10 @@ public class RAPPrimitiveProcessor implements PrimitiveProcessor {
 
         List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
         String symbioteId = null;
-        List<ResourceInfo> resourceInfoList;
+        List<DbResourceInfo> resourceInfoList;
         try {
             resourceInfoList = storageHelper.getResourceInfoList(typeNameList,keyPredicates);
-            for(ResourceInfo resourceInfo: resourceInfoList){
+            for(DbResourceInfo resourceInfo: resourceInfoList){
                 String symbioteIdTemp = resourceInfo.getSymbioteId();
                 if(symbioteIdTemp != null && !symbioteIdTemp.isEmpty())
                     symbioteId = symbioteIdTemp;
@@ -176,7 +176,7 @@ public class RAPPrimitiveProcessor implements PrimitiveProcessor {
         
         // checking access policies
         try {
-            for(ResourceInfo resource : resourceInfoList) {
+            for(DbResourceInfo resource : resourceInfoList) {
                 String sid = resource.getSymbioteId();
                 if(sid != null && sid.length() > 0)
                     storageHelper.checkAccessPolicies(request, sid);
@@ -192,7 +192,7 @@ public class RAPPrimitiveProcessor implements PrimitiveProcessor {
         
         
         try{
-            obj = storageHelper.getRelatedObject(resourceInfoList, top, filterQuery);
+            obj = storageHelper.getRelatedObject(DbResourceInfo.toResourceInfos(resourceInfoList), top, filterQuery);
         }
         catch(ODataApplicationException odataExc){
             log.error(odataExc.getMessage());
