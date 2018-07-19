@@ -89,9 +89,9 @@ dependencies {
     */
 
 	// jitpack
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:5.20.+') { }
+    //compile('com.github.symbiote-h2020:SymbIoTeLibraries:5.20.+') { }
     // mavenLocal
-    //compile('eu.h2020.symbiote:SymbIoTeLibraries:5.20.0-SNAPSHOT') { }
+    compile('eu.h2020.symbiote:SymbIoTeLibraries:5.22.0-SNAPSHOT') { }
 
     // Spring
     compile('org.springframework.cloud:spring-cloud-starter')
