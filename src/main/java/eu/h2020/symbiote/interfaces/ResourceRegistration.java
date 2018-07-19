@@ -35,7 +35,7 @@ import java.util.Optional;
 
 /**
  *
- * @author Matteo Pardi
+ * @author Matteo Pardi (L1), Pavle Skocir (L2)
  */
 public class ResourceRegistration {
 
@@ -56,7 +56,7 @@ public class ResourceRegistration {
 	 * @param message
 	 *            message that has resource description
 	 */
-	public void receiveRegistrationMessage(byte[] message) {
+	public void receiveL1RegistrationMessage(byte[] message) {
 		try {
 			log.info("Resource Registration message received: \n" + new String(message) + "");
 
@@ -69,8 +69,7 @@ public class ResourceRegistration {
 				String pluginId = msg.getPluginId();
 				Resource resource = msg.getResource();
 				String resourceClass = resource.getClass().getName();
-				FederationInfoBean federationInfo = msg.getFederationInfo();
-
+				
 				List<String> props = null;
 				if (resource instanceof StationarySensor) {
 					props = ((StationarySensor) resource).getObservesProperty();
@@ -78,47 +77,28 @@ public class ResourceRegistration {
 					props = ((MobileSensor) resource).getObservesProperty();
 				}
 
-				if (federationInfo == null) {
-					String symbioteId = resource.getId();
-
-					log.debug("Registering " + resourceClass + " with symbioteId: " + symbioteId + ", internalId: "
+				
+				String symbioteId = resource.getId();
+				if (symbioteId==null)  {
+					log.error("symbioteid is set to null");
+				} else {
+					log.debug("Registering L1 resource " + resourceClass + " with symbioteId: " + symbioteId + ", internalId: "
 							+ internalId);
 
 					addPolicy(symbioteId, internalId, msg.getAccessPolicy());
-					addResource(symbioteId, internalId, props, pluginId, federationInfo);
-				} else {
-					String symbioteId = null;
-					//TODO L2-REWORK
-					//MULTIPLE RESOURCES!!!
-					
-					Map<String, ResourceSharingInformation> sharingInformationList = federationInfo.getSharingInformation();
-
-					for (Map.Entry<String, ResourceSharingInformation> sharingInformation:sharingInformationList.entrySet()) {
-						String federationid = sharingInformation.getKey();
-						ResourceSharingInformation rsi = sharingInformation.getValue();
-						
-						symbioteId = rsi.getSymbioteId();
-						
-						FederationInfoBean federationInfoReduced = new FederationInfoBean();
-						Map<String,ResourceSharingInformation> newMap = new HashMap<>();
-						newMap.put(federationid, rsi);
-						
-						federationInfoReduced.setSharingInformation(newMap);
-						
-						log.debug("Registering " + resourceClass + " with symbioteId: " + symbioteId + ", internalId: "
-								+ internalId);
-						addResource(symbioteId, internalId, props, pluginId, federationInfoReduced);
-					}
-					
-					
+					addResource(symbioteId, internalId, props, pluginId, null);
 				}
+				
+				
+				
 			}
 			addCloudResourceInfoForOData(msgs);
 		} catch (Exception e) {
 			log.error("Error during registration process", e);
 		}
 	}
-
+	
+	
 	/**
 	 * Receive unregistration messages from RabbitMQ queue
 	 * 
@@ -126,7 +106,6 @@ public class ResourceRegistration {
 	 *            message that has resource to unregister
 	 */
 	
-	//TODO REDO FOR l2 RESOURCES!!!
 	public void receiveUnregistrationMessage(byte[] message) {
 		try {
 			ObjectMapper mapper = new ObjectMapper();
@@ -134,7 +113,6 @@ public class ResourceRegistration {
 			});
 			log.info("Resource Unregistration message received: \n" + ids + "");
 			for (String id : ids) {
-				// TODO: to check if ID at this level is correct
 				log.debug("Unregistering resource with internalId " + id);
 				deletePolicy(id);
 				deleteResources(id);
@@ -150,7 +128,43 @@ public class ResourceRegistration {
 	 * @param message
 	 *            message that has resource for update
 	 */
-	public void receiveUpdateMessage(byte[] message) {
+	public void receiveL1UpdateMessage(byte[] message) {
+		try {
+			log.info("Resource Update message received: \n" + new String(message) + "");
+
+			ObjectMapper mapper = new ObjectMapper();
+			List<CloudResource> msgs = mapper.readValue(message, new TypeReference<List<CloudResource>>() {
+			});
+			for (CloudResource msg : msgs) {
+				String internalId = msg.getInternalId();
+				String pluginId = msg.getPluginId();
+				Resource resource = msg.getResource();
+				
+				List<String> props = null;
+				if (resource instanceof StationarySensor) {
+					props = ((StationarySensor) resource).getObservesProperty();
+				} else if (resource instanceof MobileSensor) {
+					props = ((MobileSensor) resource).getObservesProperty();
+				}
+
+				String symbioteId = resource.getId();
+				if (symbioteId==null)  {
+					log.error("symbioteid is set to null");
+				} else {
+					log.debug("Updating resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
+
+					addPolicy(symbioteId, internalId, msg.getAccessPolicy());
+					addResource(symbioteId, internalId, props, pluginId, null);
+				}
+
+			}
+			addCloudResourceInfoForOData(msgs);
+		} catch (Exception e) {
+			log.error("Error during registration process", e);
+		}
+	}
+	
+	public void receiveL2UpdateMessage(byte[] message) {
 		try {
 			log.info("Resource Update message received: \n" + new String(message) + "");
 
@@ -169,42 +183,27 @@ public class ResourceRegistration {
 				} else if (resource instanceof MobileSensor) {
 					props = ((MobileSensor) resource).getObservesProperty();
 				}
+				
+				String symbioteId = null;
+					
+				Map<String, ResourceSharingInformation> sharingInformationList = federationInfo.getSharingInformation();
 
-				if (federationInfo == null) {
-					String symbioteId = resource.getId();
-
+				for (Map.Entry<String, ResourceSharingInformation> sharingInformation:sharingInformationList.entrySet()) {
+					String federationid = sharingInformation.getKey();
+					ResourceSharingInformation rsi = sharingInformation.getValue();
+						
+					symbioteId = rsi.getSymbioteId();
+						
+					FederationInfoBean federationInfoReduced = new FederationInfoBean();
+					Map<String,ResourceSharingInformation> newMap = new HashMap<>();
+					newMap.put(federationid, rsi);
+						
+					federationInfoReduced.setSharingInformation(newMap);
+						
 					log.debug("Updating resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
-
-					addPolicy(symbioteId, internalId, msg.getAccessPolicy());
-					addResource(symbioteId, internalId, props, pluginId, federationInfo);
-				} else {
-					
-					String symbioteId = null;
-					//TODO L2-REWORK
-					//MULTIPLE RESOURCES!!!
-					
-					Map<String, ResourceSharingInformation> sharingInformationList = federationInfo.getSharingInformation();
-
-					for (Map.Entry<String, ResourceSharingInformation> sharingInformation:sharingInformationList.entrySet()) {
-						String federationid = sharingInformation.getKey();
-						ResourceSharingInformation rsi = sharingInformation.getValue();
-						
-						symbioteId = rsi.getSymbioteId();
-						
-						FederationInfoBean federationInfoReduced = new FederationInfoBean();
-						Map<String,ResourceSharingInformation> newMap = new HashMap<>();
-						newMap.put(federationid, rsi);
-						
-						federationInfoReduced.setSharingInformation(newMap);
-						
-						log.debug("Updating resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
-						addResource(symbioteId, internalId, props, pluginId, federationInfoReduced);
-					}
-					
-
-
-
+					addResource(symbioteId, internalId, props, pluginId, federationInfoReduced);
 				}
+			
 			}
 			addCloudResourceInfoForOData(msgs);
 		} catch (Exception e) {
@@ -251,8 +250,6 @@ public class ResourceRegistration {
 					}
 
 					String symbioteId = null;
-					//TODO L2-REWORK
-					//MULTIPLE RESOURCES!!!
 					
 					Map<String, ResourceSharingInformation> sharingInformationList = federationInfo.getSharingInformation();
 
@@ -310,8 +307,6 @@ public class ResourceRegistration {
 					FederationInfoBean federationInfo = res.getFederationInfo();
 
 					String symbioteId = null;
-					//TODO L2-REWORK
-					//MULTIPLE RESOURCES!!!
 					
 					Map<String, ResourceSharingInformation> sharingInformationList = federationInfo.getSharingInformation();
 

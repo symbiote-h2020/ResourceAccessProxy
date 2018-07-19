@@ -19,7 +19,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  *
- * @author Matteo Pardi
+ * @author Matteo Pardi, Pavle Skocir
  */
 @Configuration
 public class ResourceRegistrationQueueConfig {
@@ -192,7 +192,7 @@ public class ResourceRegistrationQueueConfig {
 
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_QUEUE + "Listener")
     MessageListenerAdapter resourceRegistrationListenerAdapter(ResourceRegistration receiver) {
-        return new MessageListenerAdapter(receiver, "receiveRegistrationMessage");
+        return new MessageListenerAdapter(receiver, "receiveL1RegistrationMessage");
     }
     
     @Bean(name=RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE + "Listener")
@@ -202,13 +202,13 @@ public class ResourceRegistrationQueueConfig {
     
     @Bean(name=RapDefinitions.RESOURCE_UPDATE_QUEUE + "Listener")
     MessageListenerAdapter resourceUpdatedListenerAdapter(ResourceRegistration receiver) {
-        return new MessageListenerAdapter(receiver, "receiveUpdateMessage");
+        return new MessageListenerAdapter(receiver, "receiveL1UpdateMessage");
     }
     
     //4 LISTENERS TO THE SAME METHODS AS MENTIONED ABOVE
     @Bean(name=RapDefinitions.RESOURCE_L2_UPDATE_QUEUE + "Listener")
     MessageListenerAdapter resourceL2UpdateListenerAdapter(ResourceRegistration receiver) {
-        return new MessageListenerAdapter(receiver, "receiveUpdateMessage");
+        return new MessageListenerAdapter(receiver, "receiveL2UpdateMessage");
     }
     
     @Bean(name=RapDefinitions.RESOURCE_L2_UNREGISTRATION_QUEUE + "Listener")
