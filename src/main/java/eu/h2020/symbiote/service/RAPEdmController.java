@@ -139,8 +139,6 @@ public class RAPEdmController {
             httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
         }
         try {
-            headers.add("Access-Control-Allow-Origin", "*");
-            headers.add("Access-Control-Allow-Credentials", "true");
             headers.add("Access-Control-Allow-Methods", "OPTIONS, GET, POST, PUT");
             headers.add("Access-Control-Allow-Headers", "Origin, Content-Type, X-Auth-Token");
             
