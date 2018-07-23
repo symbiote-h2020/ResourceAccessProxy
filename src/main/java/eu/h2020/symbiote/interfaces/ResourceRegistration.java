@@ -106,7 +106,7 @@ public class ResourceRegistration {
 	 *            message that has resource to unregister
 	 */
 	
-	public void receiveUnregistrationMessage(byte[] message) {
+	public void receiveL1UnregistrationMessage(byte[] message) {
 		try {
 			ObjectMapper mapper = new ObjectMapper();
 			List<String> ids = mapper.readValue(message, new TypeReference<List<String>>() {
@@ -115,7 +115,29 @@ public class ResourceRegistration {
 			for (String id : ids) {
 				log.debug("Unregistering resource with internalId " + id);
 				deletePolicy(id);
-				deleteResources(id);
+				deleteL1Resources(id);
+			}
+		} catch (Exception e) {
+			log.info("Error during unregistration process", e);
+		}
+	}
+	
+	/**
+	 * Receive unregistration messages from RabbitMQ queue
+	 * 
+	 * @param message
+	 *            message that has resource to unregister
+	 */
+	
+	public void receiveL2UnregistrationMessage(byte[] message) {
+		try {
+			ObjectMapper mapper = new ObjectMapper();
+			List<String> ids = mapper.readValue(message, new TypeReference<List<String>>() {
+			});
+			log.info("Resource Unregistration message received: \n" + ids + "");
+			for (String id : ids) {
+				log.debug("Unregistering resource with internalId " + id);
+				deleteL2Resources(id);
 			}
 		} catch (Exception e) {
 			log.info("Error during unregistration process", e);
@@ -343,18 +365,44 @@ public class ResourceRegistration {
 	}
 
 	/**
-	 * deleting resources with the same internalId
+	 * deleting L1 resources with the same internalId
 	 * @param internalId
 	 */
-	private void deleteResources(String internalId) {
+	private void deleteL1Resources(String internalId) {
 		try {
 			List<ResourceInfo> resourceList = resourcesRepository.findByInternalId(internalId);
 			if (resourceList == null || resourceList.isEmpty())
 				log.error("Resource " + internalId + " not found");
-			while (!resourceList.isEmpty()) {
-				resourcesRepository.delete(resourceList.get(resourceList.size()-1).getSymbioteId());
-				resourceList.remove(resourceList.size()-1);
-				log.info("Resource " + internalId + " unregistered");
+			for (int i=0; i<resourceList.size(); i++) {
+				ResourceInfo resource = resourceList.get(i);
+				if (resource.getFederationInfo()==null) {
+					resourcesRepository.delete(resource.getSymbioteId());
+					log.info("Resource " + internalId + " unregistered");
+					break;
+				}
+			}
+		} catch (Exception e) {
+			log.error("Resource with id " + internalId + " not found", e);
+		}
+	}
+	
+	/**
+	 * deleting L2 resources with the same internalId
+	 * @param internalId
+	 */
+	private void deleteL2Resources(String internalId) {
+		try {
+			List<ResourceInfo> resourceList = resourcesRepository.findByInternalId(internalId);
+			if (resourceList == null || resourceList.isEmpty())
+				log.error("Resource " + internalId + " not found");
+			for (int i=0; i<resourceList.size(); i++) {
+				ResourceInfo resource = resourceList.get(i);
+				if (resource.getFederationInfo()!=null) {
+					resourcesRepository.delete(resource.getSymbioteId());
+					resourceList.remove(resource);
+					i--;
+					log.info("Resource " + internalId + " unregistered");
+				}
 			}
 		} catch (Exception e) {
 			log.error("Resource with id " + internalId + " not found", e);

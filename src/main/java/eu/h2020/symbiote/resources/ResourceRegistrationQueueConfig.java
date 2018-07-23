@@ -197,7 +197,7 @@ public class ResourceRegistrationQueueConfig {
     
     @Bean(name=RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE + "Listener")
     MessageListenerAdapter resourceUnRegistrationListenerAdapter(ResourceRegistration receiver) {
-        return new MessageListenerAdapter(receiver, "receiveUnregistrationMessage");
+        return new MessageListenerAdapter(receiver, "receiveL1UnregistrationMessage");
     }
     
     @Bean(name=RapDefinitions.RESOURCE_UPDATE_QUEUE + "Listener")
@@ -213,7 +213,7 @@ public class ResourceRegistrationQueueConfig {
     
     @Bean(name=RapDefinitions.RESOURCE_L2_UNREGISTRATION_QUEUE + "Listener")
     MessageListenerAdapter resourceL2UnRegistrationListenerAdapter(ResourceRegistration receiver) {
-        return new MessageListenerAdapter(receiver, "receiveUnregistrationMessage");
+        return new MessageListenerAdapter(receiver, "receiveL2UnregistrationMessage");
     }
     
     @Bean(name=RapDefinitions.RESOURCE_L2_SHARE_QUEUE + "Listener")
