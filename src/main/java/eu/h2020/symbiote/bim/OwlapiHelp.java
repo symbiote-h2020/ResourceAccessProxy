@@ -21,6 +21,8 @@ import eu.h2020.symbiote.resources.db.ParameterInfo;
 import eu.h2020.symbiote.resources.db.RegistrationInfoOData;
 import eu.h2020.symbiote.resources.db.RegistrationInfoODataRepository;
 import eu.h2020.symbiote.service.CustomField;
+
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
@@ -39,6 +41,9 @@ import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.*;
 import org.semanticweb.owlapi.search.EntitySearcher;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import uk.ac.manchester.cs.owl.owlapi.OWLDataExactCardinalityImpl;
 import uk.ac.manchester.cs.owl.owlapi.OWLDataMaxCardinalityImpl;
@@ -53,6 +58,7 @@ import uk.ac.manchester.cs.owl.owlapi.OWLSubClassOfAxiomImpl;
 /**
  *
  * @author Luca Tomaselli
+ * @author Mario Kusek
  */
 @Component
 public class OwlapiHelp {
@@ -60,10 +66,14 @@ public class OwlapiHelp {
     private static final Log log = LogFactory.getLog(OwlapiHelp.class);
 
     private static final String BIM_FILE = "/bim.owl";
-    private static final String PIM_FILE = "/pim.owl";
     private static final String PIM_PARTIAL_FILE = "/pim_partial.owl";
+
+    private String pimFile;
     
-    @Autowired
+    private ApplicationContext ctx;
+    
+    private String loadedOntology;
+    
     private RegistrationInfoODataRepository infoODataRepo;
     
     private HashMap<String, HashMap<String, String>> map;
@@ -71,23 +81,62 @@ public class OwlapiHelp {
     private final HashSet<String> classesStart = new HashSet<>();
     private final HashSet<String> classesRead = new HashSet<>();
     private List<OWLOntologyID> allOntology;
-    private URL ontologyFileURL;
     private boolean addInfoFromDB;
     private boolean addInfoFromRegistration;
     
     private static final String privateUri = "http://www.symbiote-h2020.eu/ontology/pim";
 
-    public OwlapiHelp() throws Exception{
-        URL url = OwlapiHelp.class.getResource(PIM_FILE);        
-        if(url == null)
-            url = OwlapiHelp.class.getResource(BIM_FILE);            
-        if(url == null)
-            throw new Exception("Not found any pim.owl / bim.owl file");
-        
-        this.ontologyFileURL = url;
+    public OwlapiHelp(ApplicationContext ctx,    
+            @Value("${rap.pim:/pim.owl}") String pimFile,
+            RegistrationInfoODataRepository infoODataRepo
+    ) throws Exception{
+        this.ctx = ctx;
+        this.pimFile = pimFile;
         fromOwlToClasses();
         addInfoFromDB = false;
         addInfoFromRegistration = false;
+    }
+    
+    private InputStream getOnotologyStream() throws Exception {
+        if(loadedOntology != null) {
+            return inputStreamFromProperty(loadedOntology)
+                    .orElseThrow(() -> new Exception("Can not read ontology from: " + loadedOntology));
+        }
+       
+        // try to load PIM
+        Optional<InputStream> inputStreamOptional = inputStreamFromProperty(pimFile);
+        if(inputStreamOptional.isPresent()) {
+            loadedOntology = pimFile;
+            log.debug("Reading PIM ontology");
+            return inputStreamOptional.get();
+        }
+         
+        // if PIM can not be loaded then load BIM
+        inputStreamOptional = inputStreamFromProperty(BIM_FILE);
+        if(inputStreamOptional.isPresent()) {
+            loadedOntology = BIM_FILE;
+            log.debug("Reading BIM ontology");
+            return inputStreamOptional.get();
+        }
+        
+        throw new Exception("Not found any PIM:'" + pimFile + "' / BIM:'" + BIM_FILE + "' file");        
+    }
+
+    private Optional<InputStream> inputStreamFromProperty(String ontologyFile) throws IOException {
+        if(ctx.getResource(ontologyFile).exists()) {
+            log.debug("Reading ontology from URL: " + ontologyFile);
+            loadedOntology = ontologyFile;
+            return Optional.of(ctx.getResource(ontologyFile).getInputStream());
+        }
+
+        ClassPathResource pimResource = new ClassPathResource(ontologyFile);
+        if(pimResource.exists()) {
+            log.debug("Reading ontology from classpath: " + ontologyFile);
+            loadedOntology = ontologyFile;
+            return Optional.of(pimResource.getInputStream());
+        }
+        
+        return Optional.empty();
     }
     
     public boolean haveToRestart(){
@@ -361,8 +410,7 @@ public class OwlapiHelp {
         OWLOntology ontology;
         allOntology = new ArrayList<>();
         try {
-            log.debug("Reading ontology from file: " + ontologyFileURL.getFile());
-            InputStream is = ontologyFileURL.openStream();
+            InputStream is = getOnotologyStream();
             ontology = manager.loadOntologyFromOntologyDocument(is);
             ontology = addOntologyImport(ontology);
 
@@ -592,15 +640,12 @@ public class OwlapiHelp {
         }
         catch (UnloadableImportException ie){
             log.error(ie);
-            URL url = OwlapiHelp.class.getResource(PIM_PARTIAL_FILE);
-            String filePathPartial = url.getPath();
-            if(ie.getMessage().contains("<http://purl.org/dc/terms/>") && !this.ontologyFileURL.equals(filePathPartial)){
-                this.ontologyFileURL = url;
+            if(ie.getMessage().contains("<http://purl.org/dc/terms/>") && !this.loadedOntology.equals(PIM_PARTIAL_FILE)){
+                this.loadedOntology = PIM_PARTIAL_FILE;
                 localMap = createMapClass2PropAndSuperclass();
-                log.info("Load pim partial ");
+                log.info("Load PIM partial");
             }
         }
         return localMap;
     }    
-  
 }
