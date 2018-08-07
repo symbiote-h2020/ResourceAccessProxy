@@ -22,7 +22,7 @@ import eu.h2020.symbiote.security.commons.Coupon;
 import eu.h2020.symbiote.security.communication.payloads.BarteredAccessRequest;
 
 /**
- * This class handles communication between RAP and B&T Manager
+ * This class handles communication between RAP and Bartering and Trading Manager
  *
  * @author Pavle Skocir
  */
