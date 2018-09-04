@@ -16,6 +16,8 @@ import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import eu.h2020.symbiote.security.commons.Coupon;
@@ -37,6 +39,12 @@ public class BarteringTradingCommunicationService {
     @Autowired
     @Qualifier(RapDefinitions.RAP_ACCESS_EXCHANGE)
     DirectExchange exchange;
+
+    @Value("${rabbit.exchange.bartered.access}")
+    private String barteringExchangeName;
+
+    @Value("${rabbit.routingKey.bartered.access}")
+    private String barteringAccessKey;
     
     private ObjectMapper mapper;
     
@@ -60,9 +68,9 @@ public class BarteringTradingCommunicationService {
      * @param message
      */
     private boolean sendMessage(String message){
-    	String response = (String) rabbitTemplate.convertSendAndReceive(exchange.getName(), RapDefinitions.RAP_BARTERING_ROUTING_KEY, message);
-        log.info("Sent message to check access rights to B&T manager");
-        if (response.equals("success")) {
+    	String response = (String) rabbitTemplate.convertSendAndReceive(barteringExchangeName, barteringAccessKey, message);
+        log.info("Sent message to check access rights to B&T manager and received: " + response);
+        if (response.equals(HttpStatus.OK.toString())) {
         	log.info("Success");
         	return true;
         }
