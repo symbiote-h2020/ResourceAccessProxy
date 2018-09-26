@@ -5,7 +5,6 @@
  */
 package eu.h2020.symbiote.interfaces;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
