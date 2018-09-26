@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.managers.AuthorizationResult;
+import eu.h2020.symbiote.managers.ServiceRequest;
 import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.plugin.PlatformSpecificPlugin;
 import eu.h2020.symbiote.resources.db.DbResourceInfo;
@@ -33,9 +34,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -97,7 +100,7 @@ public class TestODataController {
                 //.andExpect(content().string("Honda Civic"));
                 
             //insert
-            String platformResourceId = "pl_1";
+            String platformResourceId = "isen1";
             List<String> obsProperties = null;
             String pluginId = PlatformSpecificPlugin.PLUGIN_PLATFORM_ID;
             DbResourceInfo resourceInfoResult = addResource(resourceId, platformResourceId, obsProperties, pluginId);
@@ -112,16 +115,14 @@ public class TestODataController {
                 ObjectMapper mapper = new ObjectMapper();
                 mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
                 mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-                Observation observation = mapper.readValue(content, Observation.class);
-                assert(observation != null);
+                Observation[] observations = mapper.readValue(content, Observation[].class);
+                assert(observations != null);
+                assert(observations.length > 0);
             }
             else{
                 res.andExpect(status().isInternalServerError());
             }
-            //test security
-            res = mockMvc.perform(get("/rap/Sensor('"+resourceId+"')/Observation?$top="+top)
-                .headers(getHeader()));
-            res.andExpect(status().isInternalServerError());
+            
             //delete
             resourcesRepository.delete(resourceId);
             List<DbResourceInfo> resourceInfoList = resourcesRepository.findByInternalId(platformResourceId);
@@ -135,7 +136,7 @@ public class TestODataController {
     @Test
     public void testHistory() throws Exception{
         try{
-            String resourceId = "1";
+            String resourceId = "2";
             //delete
             resourcesRepository.delete(resourceId);
             int top = 10;
@@ -150,7 +151,7 @@ public class TestODataController {
                 //.andExpect(content().string("Honda Civic"));
                 
             //insert
-            String platformResourceId = "pl_1";
+            String platformResourceId = "isen1";
             List<String> obsProperties = null;
             String pluginId = PlatformSpecificPlugin.PLUGIN_PLATFORM_ID;
             DbResourceInfo resourceInfoResult = addResource(resourceId, platformResourceId, obsProperties, pluginId);
@@ -172,10 +173,8 @@ public class TestODataController {
             else{
                 res.andExpect(status().isInternalServerError());
             }
-            //test security
-            res = mockMvc.perform(get("/rap/Sensor('"+resourceId+"')/Observation?$top="+top)
-                .headers(getHeader()));
-            res.andExpect(status().isInternalServerError());
+            
+            
             //delete
             resourcesRepository.delete(resourceId);
             List<DbResourceInfo> resourceInfoList = resourcesRepository.findByInternalId(platformResourceId);
@@ -189,7 +188,8 @@ public class TestODataController {
     @Test
     public void testSet() throws Exception{
         try{
-            String resourceId = "1";
+            String contentEnableSpecificPlugin = "null";
+            String resourceId = "3";
             //delete
             resourcesRepository.delete(resourceId);
             
@@ -207,65 +207,130 @@ public class TestODataController {
                 //.andExpect(content().string("Honda Civic"));
                 
             //insert
-            String platformResourceId = "pl_1";
+            String platformResourceId = "iaid1";
             List<String> obsProperties = null;
             String pluginId = PlatformSpecificPlugin.PLUGIN_PLATFORM_ID;
             DbResourceInfo resourceInfoResult = addResource(resourceId, platformResourceId, obsProperties, pluginId);
             assert(resourceInfoResult != null);
-            //actuate RGBLight
-            ResultActions res = mockMvc.perform(put("/rap/Light('"+resourceId+"')")
+            
+
+            //actuate
+            ResultActions res = mockMvc.perform(put("/rap/Actuator('"+resourceId+"')")
                 .headers(getHeader())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"RGBCapability\": [{\"r\":0,\"g\":0,\"b\":0}]}"));
-            res.andExpect(status().isOk());
+                .content("{\"OnOffCapability\": [{\"on\":true}]}"));
+            MvcResult mvcResult = res.andReturn();
+            int status = mvcResult.getResponse().getStatus(); 
+            assert(status == 204 || status == 200);
             String content = res.andReturn().getResponse().getContentAsString();
             if(enableSpecificPlugin){           
-                assert(content.equals(pluginId));
+                assert(content.equals(contentEnableSpecificPlugin));
             }
-            else{
-                content = res.andReturn().getResponse().getContentAsString();
-                assert(content.equals(""));
+
+
+            //actuate RGBLight
+            res = mockMvc.perform(put("/rap/Light('"+resourceId+"')")
+                .headers(getHeader())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"RGBCapability\": [{\"r\":0,\"g\":0,\"b\":0}]}")); 
+            mvcResult = res.andReturn();
+            status = mvcResult.getResponse().getStatus(); 
+            assert(status == 204 || status == 200);
+            content = res.andReturn().getResponse().getContentAsString();
+            if(enableSpecificPlugin){           
+                assert(content.equals(contentEnableSpecificPlugin));
             }
+            
             //actuate Dimmer
             res = mockMvc.perform(put("/rap/Light('"+resourceId+"')")
                 .headers(getHeader())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"DimmerCapability\": [{\"level\":0}]}"));
-            res.andExpect(status().isOk());
+            mvcResult = res.andReturn();
+            status = mvcResult.getResponse().getStatus(); 
+            assert(status == 204 || status == 200);
             content = res.andReturn().getResponse().getContentAsString();
             if(enableSpecificPlugin){           
-                assert(content.equals(pluginId));
+                assert(content.equals(contentEnableSpecificPlugin));
             }
-            else{
-                content = res.andReturn().getResponse().getContentAsString();
-                assert(content.equals(""));
-            }
+            
             //actuate Curtain
             res = mockMvc.perform(put("/rap/Curtain('"+resourceId+"')")
                 .headers(getHeader())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"SetPositionCapability\": [{\"position\":0}]}"));
-            res.andExpect(status().isOk());
+            mvcResult = res.andReturn();
+            status = mvcResult.getResponse().getStatus(); 
+            assert(status == 204 || status == 200);
             content = res.andReturn().getResponse().getContentAsString();
             if(enableSpecificPlugin){           
-                assert(content.equals(pluginId));
+                assert(content.equals(contentEnableSpecificPlugin));
             }
-            else{
-                content = res.andReturn().getResponse().getContentAsString();
-                assert(content.equals(""));
-            }
+            
+            
             //wrong actuation
             res = mockMvc.perform(put("/rap/Actuator('"+resourceId+"')")
                 .headers(getHeader())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"RGBCapability\": [{\"wrongContent\":0}]}"));
+            
             res.andExpect(status().isBadRequest());
-            //test security
-            res = mockMvc.perform(put("/rap/Curtain('"+resourceId+"')")
+            
+            
+            //delete
+            resourcesRepository.delete(resourceId);
+            List<DbResourceInfo> resourceInfoList = resourcesRepository.findByInternalId(platformResourceId);
+            assert(resourceInfoList == null || resourceInfoList.isEmpty());
+        }catch(Exception e){
+            log.error(e.getMessage(), e);
+        }
+    }
+    
+    @Test
+    public void testSetService() throws Exception{
+        try{
+            String contentEnableSpecificPlugin = "\"some json\"";
+            String resourceId = "4";
+            //delete
+            resourcesRepository.delete(resourceId);
+            
+            //actuate not found
+            ResultActions res = mockMvc.perform(put("/rap/Service('"+resourceId+"')")
                 .headers(getHeader())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"SetPositionCapability\": [{\"position\":0}]}"));
-            res.andExpect(status().isInternalServerError());            
+                //.content("{\"Parameter\": [{\"param\":true}]}")
+                .content("[{}]")
+                .accept(
+                        new MediaType(MediaType.APPLICATION_JSON.getType(),
+                                MediaType.APPLICATION_JSON.getSubtype(),
+                                Charset.forName("utf8") )
+                ));
+            MvcResult mvcResult = res.andReturn();
+            int status = mvcResult.getResponse().getStatus();
+            res.andExpect(status().isNotFound());
+            
+            //insert
+            String platformResourceId = "isrid1";
+            List<String> obsProperties = null;
+            String pluginId = PlatformSpecificPlugin.PLUGIN_PLATFORM_ID;
+            DbResourceInfo resourceInfoResult = addResource(resourceId, platformResourceId, obsProperties, pluginId);
+            assert(resourceInfoResult != null);
+            
+
+            //actuate
+            res = mockMvc.perform(put("/rap/Service('"+resourceId+"')")
+                .headers(getHeader())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("[{}]"));
+            mvcResult = res.andReturn();
+            status = mvcResult.getResponse().getStatus(); 
+            assert(status == 204 || status == 200);
+            String content = res.andReturn().getResponse().getContentAsString();
+            if(enableSpecificPlugin){           
+                assert(content.equals(contentEnableSpecificPlugin));
+            }
+
+            
             //delete
             resourcesRepository.delete(resourceId);
             List<DbResourceInfo> resourceInfoList = resourcesRepository.findByInternalId(platformResourceId);
@@ -278,7 +343,19 @@ public class TestODataController {
     
     
     private HttpHeaders getHeader(){
-        return authorizationManager.getServiceRequestHeaders().getServiceRequestHeaders();
+        //return authorizationManager.getServiceRequestHeaders().getServiceRequestHeaders();
+        ServiceRequest serviceRequest = authorizationManager.getServiceRequestHeaders();
+        HttpHeaders httpHeader = null;
+        if(serviceRequest != null){
+            httpHeader = serviceRequest.getServiceRequestHeaders();
+        }
+        else{
+            httpHeader = new HttpHeaders();
+            httpHeader.add("x-auth-timestamp", "10523456");
+            httpHeader.add("x-auth-size", "1");
+            httpHeader.add("x-auth-1", "{\"token\":\"eyJhbGciOiJFUzI1NiJ9.eyJ0dHlwIjoiR1VFU1QiLCJzdWIiOiJndWVzdCIsImlwayI6Ik1Ga3dFd1lIS29aSXpqMENBUVlJS29aSXpqMERBUWNEUWdBRXBBbXRpbTd2TUNHbkNEb0FUL3NSM0toSHRheEtENU9FeU1uTmV2RnFRTDYzRy91UlZqYy9Bck9sS2tkclF2dE0reDJXdERIOGlPNHNxMGNteko0ZldBPT0iLCJpc3MiOiJTU1BfTmF2aWdvIiwiZXhwIjoxNTM1OTc5MTcxLCJpYXQiOjE1MzU5NzczNzEsImp0aSI6IjE5NTcyMjI1NjciLCJzcGsiOiJNRmt3RXdZSEtvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRFFnQUVzbnhzWWIrNVVLMFRYZHpqL0NicDU1dHhhUEV4L1FYMUtyWVVOWVRrSE8rNmc3OC81dnZGa2ZIaXZjODN1UDRXd1dnN1ByUDVUbFFYb1d0cHZ4alhCQT09In0.-3MHNUGmCYrup0doL-1xxTV4wKgq4Y4hkpv1Uqa2ZXGbPzOLVuOWlmw5_AtXH1E5ZkA-x1MU6-hHml4bZONimA\", \"authenticationChallenge\":\"\", \"clientCertificate\":\"\", \"clientCertificateSigningAAMCertificate\":\"\",\"foreignTokenIssuingAAMCertificate\":\"\" }");
+        }
+        return httpHeader;
     }
     
     private DbResourceInfo addResource(String resourceId, String platformResourceId, List<String> obsProperties, String pluginId) {

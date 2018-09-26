@@ -12,7 +12,7 @@ if (!hasProperty('mainClass')) {
 // initial extensions to gradle
 buildscript {
     ext {
-        springBootVersion = '1.5.12.RELEASE'
+        springBootVersion = '1.5.14.RELEASE'
         springCloudVersion = 'Dalston.SR5'
     }
     repositories {
@@ -88,11 +88,8 @@ dependencies {
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
 
-	// jitpack
-    //compile('com.github.symbiote-h2020:SymbIoTeLibraries:5.20.+') { }
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:filter_support-SNAPSHOT') { }
-    // mavenLocal
-    //compile('eu.h2020.symbiote:SymbIoTeLibraries:5.22.0-SNAPSHOT') { }
+    //compile('com.github.symbiote-h2020:SymbIoTeLibraries:5.27+') { }
+    compile('eu.h2020.symbiote:SymbIoTeLibraries:5.29.0-SNAPSHOT')
 
     // Spring
     compile('org.springframework.cloud:spring-cloud-starter')
@@ -115,7 +112,10 @@ dependencies {
   
     // Websocket
     compile("org.springframework.boot:spring-boot-starter-websocket")
-    
+
+    // Others
+    compile("com.jayway.jsonpath:json-path:2.4.0")
+
     // test only
     compile("org.springframework.boot:spring-boot-starter-web")
     testCompile ("org.springframework.boot:spring-boot-starter-test")

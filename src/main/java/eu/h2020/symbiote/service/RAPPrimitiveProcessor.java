@@ -9,9 +9,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
+import eu.h2020.symbiote.interfaces.ResourceAccessNotificationService;
 import eu.h2020.symbiote.managers.AuthorizationManager;
-import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.DbResourceInfo;
@@ -63,6 +64,9 @@ public class RAPPrimitiveProcessor implements PrimitiveProcessor {
     private static final Logger log = LoggerFactory.getLogger(RAPPrimitiveProcessor.class);
     
     @Autowired
+    ResourceAccessNotificationService notificationService;
+    
+    @Autowired
     private ResourcesRepository resourcesRepo;
     
     @Autowired
@@ -78,9 +82,6 @@ public class RAPPrimitiveProcessor implements PrimitiveProcessor {
     @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
     TopicExchange exchange;
     
-    @Value("${symbiote.rap.cram.url}") 
-    private String notificationUrl;
-        
     @Value("${rabbit.replyTimeout}")
     private int rabbitReplyTimeout;
 
@@ -89,7 +90,7 @@ public class RAPPrimitiveProcessor implements PrimitiveProcessor {
     @Override
     public void init(OData odata, ServiceMetadata sm) {
         storageHelper = new StorageHelper(resourcesRepo, pluginRepo, authManager,
-                rabbitTemplate, rabbitReplyTimeout, exchange,notificationUrl);
+                rabbitTemplate, rabbitReplyTimeout, exchange, notificationService);
     }
     
     //Sensor('id')/name

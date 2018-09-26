@@ -9,11 +9,12 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
+import eu.h2020.symbiote.interfaces.ResourceAccessNotificationService;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
 import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
-import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.PluginRepository;
@@ -69,6 +70,9 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
     private static final Logger log = LoggerFactory.getLogger(RAPEntityCollectionProcessor.class);
     
     @Autowired
+    private ResourceAccessNotificationService notificationService;
+    
+    @Autowired
     private ResourcesRepository resourcesRepo;
     
     @Autowired
@@ -84,8 +88,6 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
     @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
     TopicExchange exchange;
     
-    @Value("${symbiote.rap.cram.url}") 
-    private String notificationUrl;
     
     @Value("${rabbit.replyTimeout}")
     private int rabbitReplyTimeout;
@@ -97,7 +99,7 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
     //    this.odata = odata;
     //    this.serviceMetadata = sm;
         storageHelper = new StorageHelper(resourcesRepo, pluginRepo, authManager, 
-                rabbitTemplate, rabbitReplyTimeout, exchange,notificationUrl);
+                rabbitTemplate, rabbitReplyTimeout, exchange, notificationService);
     }
 
     //Sensor('id')/Observation

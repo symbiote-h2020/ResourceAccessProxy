@@ -7,10 +7,10 @@ package eu.h2020.symbiote.interfaces;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
+import eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
@@ -24,13 +24,13 @@ import eu.h2020.symbiote.interfaces.conditions.NBInterfaceRESTCondition;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.managers.AuthorizationResult;
 import eu.h2020.symbiote.managers.ServiceResponseResult;
-import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
 import eu.h2020.symbiote.resources.db.DbResourceInfo;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.cloud.model.rap.query.Query;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 
 import java.io.UnsupportedEncodingException;
@@ -74,6 +74,9 @@ public class ResourceAccessRestController {
 
     private final int TOP_LIMIT = 100;
     public final String SECURITY_RESPONSE_HEADER = "x-auth-response";
+    
+    @Autowired
+    ResourceAccessNotificationService notificationService;
     
     @Autowired
     private RabbitTemplate rabbitTemplate;
@@ -399,7 +402,7 @@ public class ResourceAccessRestController {
         return resInfo.get().toResourceInfo();
     }
     
-    private boolean checkAccessPolicies(HttpServletRequest request, String resourceId) throws Exception {
+    private void checkAccessPolicies(HttpServletRequest request, String resourceId) throws Exception {
         Map<String, String> secHdrs = new HashMap<>();
         Enumeration<String> headerNames = request.getHeaderNames();
 
@@ -415,15 +418,14 @@ public class ResourceAccessRestController {
         AuthorizationResult result = authManager.checkResourceUrlRequest(resourceId, securityReq);
         log.info(result.getMessage());
         
-        return result.isValidated();
+        if (!result.isValidated())
+            throw new ValidationException("The access policies were not satisfied for resource " + resourceId + ". MSG: " + result.getMessage());
     }
     
     private String sendFailMessage(String path, String symbioteId, Exception e) {
         String message = null;
         try{
-            String jsonNotificationMessage = null;
             String appId = "";String issuer = ""; String validationStatus = "";
-            ObjectMapper mapper = new ObjectMapper();
             message = e.getMessage();
             if(message == null)
                 message = e.toString();
@@ -434,20 +436,13 @@ public class ResourceAccessRestController {
             else
                 code = Integer.toString(HttpStatus.FORBIDDEN.value());
 
-            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-            mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
             List<Date> dateList = new ArrayList<>();
             dateList.add(new Date());
-            ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager, notificationUrl);
-            try {
-                notificationMessage.SetFailedAttempts(symbioteId, dateList,code, message, appId, issuer, validationStatus, path); 
-                jsonNotificationMessage = mapper.writeValueAsString(notificationMessage);
-            } catch (JsonProcessingException jsonEx) {
-                log.error("Error while processing json", jsonEx);
-            }
-            notificationMessage.SendFailAccessMessage(jsonNotificationMessage);
+    
+            notificationService.addFailedAttempts(symbioteId, dateList,code, message, appId, issuer, validationStatus, path); 
+            notificationService.sendAccessData();
         }catch(Exception ex){
-            log.error("Error to send FailAccessMessage to CRAM", ex);
+            log.error("Error to send FailAccessMessage to Monitoring", ex);
             log.error(ex.getMessage(),ex);
         }
         return message;    
@@ -456,25 +451,16 @@ public class ResourceAccessRestController {
     
     private void sendSuccessfulAccessMessage(String symbioteId, String accessType){
         try{
-            String jsonNotificationMessage = null;
             if(accessType == null || accessType.isEmpty())
                 accessType = SuccessfulAccessMessageInfo.AccessType.NORMAL.name();
-            ObjectMapper map = new ObjectMapper();
-            map.configure(SerializationFeature.INDENT_OUTPUT, true);
-            map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
 
             List<Date> dateList = new ArrayList<>();
             dateList.add(new Date());
-            ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager, notificationUrl);
-            try{
-                notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
-                jsonNotificationMessage = map.writeValueAsString(notificationMessage);
-            } catch (JsonProcessingException e) {
-                log.error("Error while processing json", e);
-            }
-            notificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
+          
+            notificationService.addSuccessfulAttempts(symbioteId, dateList, accessType);
+            notificationService.sendAccessData();
         }catch(Exception e){
-            log.error("Error to send SetSuccessfulAttempts to CRAM");
+            log.error("Error to send SetSuccessfulAttempts to Monitoring");
             log.error(e.getMessage(),e);
         }
     }

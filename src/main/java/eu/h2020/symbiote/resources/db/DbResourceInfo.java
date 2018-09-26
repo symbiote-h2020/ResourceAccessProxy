@@ -5,15 +5,18 @@
  */
 package eu.h2020.symbiote.resources.db;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import eu.h2020.symbiote.cloud.model.internal.FederationInfoBean;
+import eu.h2020.symbiote.cloud.model.rap.ResourceInfo;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
-
-import eu.h2020.symbiote.cloud.model.rap.ResourceInfo;
 
 /**
  *
@@ -27,8 +30,16 @@ public class DbResourceInfo {
     private String internalId;
     private String type;
     private List<String> observedProperties;
+    @JsonProperty("federationInfo")
+    private FederationInfoBean federationInfo;
+    @JsonIgnore
     private List<String> sessionIdList;
+    
+
+	@JsonIgnore
     private String pluginId;
+    
+    
     
     public DbResourceInfo() {
         this.id = "";
@@ -37,6 +48,7 @@ public class DbResourceInfo {
         this.observedProperties = null;
         this.sessionIdList = null;
         this.type = null;
+        this.federationInfo = null;
     }
     
     public DbResourceInfo(String resourceId, String platformResourceId) {
@@ -100,6 +112,16 @@ public class DbResourceInfo {
     
     public void setPluginId(String pluginId) {
         this.pluginId = pluginId;
+    }
+    
+    @JsonProperty("federationInfo")
+    public FederationInfoBean getFederationInfo() {
+        return federationInfo;
+    }
+    
+    @JsonProperty("federationInfo")
+    public void setFederationInfo(FederationInfoBean federationInfo) {
+        this.federationInfo = federationInfo;
     }
 
     public ResourceInfo toResourceInfo() {

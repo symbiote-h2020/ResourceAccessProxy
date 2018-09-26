@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.messages.plugin.RapPluginErrorResponse;
 import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
@@ -24,13 +25,13 @@ import eu.h2020.symbiote.cloud.model.rap.query.Comparison;
 import eu.h2020.symbiote.cloud.model.rap.query.Filter;
 import eu.h2020.symbiote.cloud.model.rap.query.Operator;
 import eu.h2020.symbiote.cloud.model.rap.query.Query;
-import eu.h2020.symbiote.interfaces.ResourceAccessNotification;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.managers.AuthorizationResult;
-import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
 import eu.h2020.symbiote.resources.db.DbResourceInfo;
+import eu.h2020.symbiote.interfaces.ResourceAccessNotificationService;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 
 import java.io.UnsupportedEncodingException;
@@ -79,13 +80,14 @@ public class StorageHelper {
     private final PluginRepository pluginRepo;
     private final RabbitTemplate rabbitTemplate;
     private final TopicExchange exchange;
-    private final String notificationUrl;
     private final AuthorizationManager authManager;
 
     private static final Pattern PATTERN = Pattern.compile(
             "\\p{Digit}{1,4}-\\p{Digit}{1,2}-\\p{Digit}{1,2}"
             + "T\\p{Digit}{1,2}:\\p{Digit}{1,2}(?::\\p{Digit}{1,2})?"
             + "(Z|([-+]\\p{Digit}{1,2}:\\p{Digit}{2}))?");
+
+	private ResourceAccessNotificationService notificationService;
 
     /**
      * Class constructor
@@ -95,18 +97,18 @@ public class StorageHelper {
      * @param rabbit                rabbit template
      * @param rabbitReplyTimeout    rabbit reply timeout constant
      * @param topicExchange         rabbit exchange
-     * @param notifUrl              CRAM url
+     * @param notificationService   service to handle the notification to Monitoring
      */
     public StorageHelper(ResourcesRepository resourcesRepository, PluginRepository pluginRepository,
             AuthorizationManager authMan, RabbitTemplate rabbit, int rabbitReplyTimeout, 
-            TopicExchange topicExchange, String notifUrl) {
+            TopicExchange topicExchange, ResourceAccessNotificationService notificationService) {
         //initSampleData();
         resourcesRepo = resourcesRepository;
         pluginRepo = pluginRepository;
         rabbitTemplate = rabbit;
+		this.notificationService = notificationService;
         rabbitTemplate.setReplyTimeout(rabbitReplyTimeout);
         exchange = topicExchange;
-        notificationUrl = notifUrl;
         authManager = authMan;
     }
 
@@ -520,6 +522,9 @@ public class StorageHelper {
                 //remove quote
                 keyText = keyText.replaceAll("'", "");
 
+                log.debug("keyName = " + keyName);
+                log.debug("keyText = " + keyText);
+
                 try {
                     if (keyName.equalsIgnoreCase("id")) {
                         resInfo.setSymbioteId(keyText);
@@ -547,10 +552,9 @@ public class StorageHelper {
      * This method is used to check access policies towards AdministrationManager
      * @param request OData request
      * @param resourceId resource id
-     * @return true if policies are OK
      * @throws Exception security exception
      */
-    public boolean checkAccessPolicies(ODataRequest request, String resourceId) throws Exception {
+    public void checkAccessPolicies(ODataRequest request, String resourceId) throws Exception {
         log.debug("Checking access policies for resource " + resourceId);
         Map<String,List<String>> headers = request.getAllHeaders();
         Map<String, String> secHdrs = new HashMap<>();
@@ -561,39 +565,30 @@ public class StorageHelper {
         SecurityRequest securityReq = new SecurityRequest(secHdrs);
 
         AuthorizationResult result = authManager.checkResourceUrlRequest(resourceId, securityReq);
-        log.info(result.getMessage());
+        log.debug("result.isValidated = " + result.isValidated());
         
-        return result.isValidated();
+        if (!result.isValidated())
+            throw new ValidationException("The access policies were not satisfied for resource " + resourceId + ". MSG: " + result.getMessage());
     }
 
 
     /**
      * This method is used to send a successful access notification to CRAM
      * @param symbioteId symbiote id
-     * @param accessType access type from {@link eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo.AccessType SuccessfulAccessMessageInfo.AccessType}
+     * @param accessType access type from {@link eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo.AccessType SuccessfulAccessMessageInfo.AccessType}
      */
     public void sendSuccessfulAccessMessage(String symbioteId, String accessType){
-        try{
-            String jsonNotificationMessage = null;
+        try {
+            log.debug("sendSuccessfulAccessMessage for id = " + symbioteId + " and accessType = " + accessType);
             if(accessType == null || accessType.isEmpty())
                 accessType = SuccessfulAccessMessageInfo.AccessType.NORMAL.name();
-            ObjectMapper map = new ObjectMapper();
-            map.configure(SerializationFeature.INDENT_OUTPUT, true);
-            map.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-
             List<Date> dateList = new ArrayList<>();
             dateList.add(new Date());
-            ResourceAccessNotification notificationMessage = new ResourceAccessNotification(authManager, notificationUrl);
 
-            try{
-                notificationMessage.SetSuccessfulAttempts(symbioteId, dateList, accessType);
-                jsonNotificationMessage = map.writeValueAsString(notificationMessage);
-            } catch (JsonProcessingException e) {
-                log.error(e.toString(), e);
-            }
-            notificationMessage.SendSuccessfulAttemptsMessage(jsonNotificationMessage);
+            notificationService.addSuccessfulAttempts(symbioteId, dateList, accessType);
+            notificationService.sendAccessData();
         }catch(Exception e){
-            log.error("Error to send SetSuccessfulAttempts to CRAM");
+            log.error("Error to send SetSuccessfulAttempts to Monitoring");
             log.error(e.getMessage(),e);
         }
     }

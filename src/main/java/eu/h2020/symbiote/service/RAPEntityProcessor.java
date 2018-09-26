@@ -9,11 +9,12 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
+import eu.h2020.symbiote.interfaces.ResourceAccessNotificationService;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
 import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
-import eu.h2020.symbiote.messages.resourceAccessNotification.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.PluginRepository;
@@ -67,6 +68,9 @@ public class RAPEntityProcessor implements EntityProcessor{
     private static final Logger log = LoggerFactory.getLogger(RAPEntityProcessor.class);
     
     @Autowired
+    ResourceAccessNotificationService notificationService;
+    
+    @Autowired
     private ResourcesRepository resourcesRepo;
     
     @Autowired
@@ -82,9 +86,6 @@ public class RAPEntityProcessor implements EntityProcessor{
     @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
     private TopicExchange exchange;
     
-    @Value("${symbiote.rap.cram.url}") 
-    private String notificationUrl;
-    
     private OData odata;
     
     private StorageHelper storageHelper;
@@ -97,7 +98,7 @@ public class RAPEntityProcessor implements EntityProcessor{
         this.odata = odata;   
     //    this.serviceMetadata = sm;
         storageHelper = new StorageHelper(resourcesRepo, pluginRepo, authManager, 
-                rabbitTemplate, rabbitReplyTimeout, exchange,notificationUrl);
+                rabbitTemplate, rabbitReplyTimeout, exchange, notificationService);
     }
     
     //Sensor('id')
