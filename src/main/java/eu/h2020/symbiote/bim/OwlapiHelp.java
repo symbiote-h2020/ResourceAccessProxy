@@ -92,6 +92,7 @@ public class OwlapiHelp {
     ) throws Exception{
         this.ctx = ctx;
         this.pimFile = pimFile;
+        this.infoODataRepo = infoODataRepo;
         fromOwlToClasses();
         addInfoFromDB = false;
         addInfoFromRegistration = false;
