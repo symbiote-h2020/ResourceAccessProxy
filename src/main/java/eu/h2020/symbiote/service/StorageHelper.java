@@ -588,8 +588,7 @@ public class StorageHelper {
             notificationService.addSuccessfulAttempts(symbioteId, dateList, accessType);
             notificationService.sendAccessData();
         }catch(Exception e){
-            log.error("Error to send SetSuccessfulAttempts to Monitoring");
-            log.error(e.getMessage(),e);
+            log.error("Error to send SetSuccessfulAttempts to Monitoring", e);
         }
     }
 }

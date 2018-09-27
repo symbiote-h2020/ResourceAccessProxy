@@ -442,7 +442,6 @@ public class ResourceAccessRestController {
             notificationService.sendAccessData();
         }catch(Exception ex){
             log.error("Error to send FailAccessMessage to Monitoring", ex);
-            log.error(ex.getMessage(),ex);
         }
         return message;    
         
@@ -459,8 +458,7 @@ public class ResourceAccessRestController {
             notificationService.addSuccessfulAttempts(symbioteId, dateList, accessType);
             notificationService.sendAccessData();
         }catch(Exception e){
-            log.error("Error to send SetSuccessfulAttempts to Monitoring");
-            log.error(e.getMessage(),e);
+            log.error("Error to send SetSuccessfulAttempts to Monitoring", e);
         }
     }
 }

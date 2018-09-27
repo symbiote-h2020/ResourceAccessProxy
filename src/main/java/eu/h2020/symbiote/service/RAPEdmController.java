@@ -182,8 +182,7 @@ public class RAPEdmController {
                 code, message, appId, issuer, validationStatus, request.getRequestURI());
             notificationService.sendAccessData();
         }catch(Exception e){
-            log.error("Error to send FailAccessMessage to Monitoring");
-            log.error(e.getMessage(),e);
+            log.error("Error to send FailAccessMessage to Monitoring", e);
         }
         return message;
     }

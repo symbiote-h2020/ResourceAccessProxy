@@ -184,20 +184,20 @@ public class WebSocketController extends TextWebSocketHandler {
         }catch (JsonParseException jsonEx){
             code = HttpStatusCode.BAD_REQUEST;
             e = jsonEx;
-            log.error(e.getMessage());
+            log.error("Can not parse request", e);
         } catch (IOException ioEx) {
             code = HttpStatusCode.BAD_REQUEST;
             e = ioEx;
-            log.error(e.getMessage());
+            log.error("Some IOException", e);
         } catch (EntityNotFoundException entityEx){
             code = HttpStatusCode.NOT_FOUND;
             e = entityEx;
-            log.error(e.getMessage());
+            log.error("Can not find entity", e);
         } catch (ValidationException vex) {
         	log.error(vex.getMessage());        	
         } catch (Exception ex) {
             e = ex;
-            log.error("Generic IO Exception: " + e.getMessage());
+            log.error("Generic IO Exception: " + e.getMessage(), e);
         }
         
         if(e != null){
