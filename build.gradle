@@ -88,8 +88,9 @@ dependencies {
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
 
-    //compile('com.github.symbiote-h2020:SymbIoTeLibraries:5.27+') { }
-    compile('eu.h2020.symbiote:SymbIoTeLibraries:5.29.0-SNAPSHOT')
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:5.31+') { }
+    // localMaven
+    //compile('eu.h2020.symbiote:SymbIoTeLibraries:5.29.0-SNAPSHOT')
 
     // Spring
     compile('org.springframework.cloud:spring-cloud-starter')
