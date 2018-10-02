@@ -18,7 +18,7 @@ import eu.h2020.symbiote.model.cim.Resource;
 import eu.h2020.symbiote.model.cim.StationarySensor;
 import eu.h2020.symbiote.resources.db.AccessPolicy;
 import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
-import eu.h2020.symbiote.resources.db.ResourceInfo;
+import eu.h2020.symbiote.resources.db.DbResourceInfo;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 
 import java.util.HashMap;
@@ -39,7 +39,7 @@ import java.util.Optional;
  */
 public class ResourceRegistration {
 
-	private static final Logger log = LoggerFactory.getLogger(ResourceRegistration.class);
+    private static final Logger log = LoggerFactory.getLogger(ResourceRegistration.class);
 
 	@Autowired
 	ResourcesRepository resourcesRepository;
@@ -351,7 +351,7 @@ public class ResourceRegistration {
 
 	private void addResource(String resourceId, String platformResourceId, List<String> obsProperties, String pluginId,
 			FederationInfoBean federationInfo) {
-		ResourceInfo resourceInfo = new ResourceInfo(resourceId, platformResourceId);
+		DbResourceInfo resourceInfo = new DbResourceInfo(resourceId, platformResourceId);
 		if (obsProperties != null)
 			resourceInfo.setObservedProperties(obsProperties);
 		if (pluginId != null && pluginId.length() > 0)
@@ -370,11 +370,11 @@ public class ResourceRegistration {
 	 */
 	private void deleteL1Resources(String internalId) {
 		try {
-			List<ResourceInfo> resourceList = resourcesRepository.findByInternalId(internalId);
+			List<DbResourceInfo> resourceList = resourcesRepository.findByInternalId(internalId);
 			if (resourceList == null || resourceList.isEmpty())
 				log.error("Resource " + internalId + " not found");
 			for (int i=0; i<resourceList.size(); i++) {
-				ResourceInfo resource = resourceList.get(i);
+				DbResourceInfo resource = resourceList.get(i);
 				if (resource.getFederationInfo()==null) {
 					resourcesRepository.delete(resource.getSymbioteId());
 					log.info("Resource " + internalId + " unregistered");
@@ -392,11 +392,11 @@ public class ResourceRegistration {
 	 */
 	private void deleteL2Resources(String internalId) {
 		try {
-			List<ResourceInfo> resourceList = resourcesRepository.findByInternalId(internalId);
+			List<DbResourceInfo> resourceList = resourcesRepository.findByInternalId(internalId);
 			if (resourceList == null || resourceList.isEmpty())
 				log.error("Resource " + internalId + " not found");
 			for (int i=0; i<resourceList.size(); i++) {
-				ResourceInfo resource = resourceList.get(i);
+				DbResourceInfo resource = resourceList.get(i);
 				if (resource.getFederationInfo()!=null) {
 					resourcesRepository.delete(resource.getSymbioteId());
 					resourceList.remove(resource);
@@ -415,7 +415,7 @@ public class ResourceRegistration {
 	 */
 	private void deleteResource(String symbioteId) {
 		try {
-			Optional<ResourceInfo> resource = resourcesRepository.findById(symbioteId);;
+			Optional<DbResourceInfo> resource = resourcesRepository.findById(symbioteId);;
 			if (resource.isPresent()) {
 				resourcesRepository.delete(symbioteId);;
 			}

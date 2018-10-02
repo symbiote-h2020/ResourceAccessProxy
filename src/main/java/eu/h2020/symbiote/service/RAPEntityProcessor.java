@@ -18,7 +18,7 @@ import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.PluginRepository;
-import eu.h2020.symbiote.resources.db.ResourceInfo;
+import eu.h2020.symbiote.resources.db.DbResourceInfo;
 import static eu.h2020.symbiote.service.RAPEntityCollectionProcessor.setErrorResponse;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -159,7 +159,7 @@ public class RAPEntityProcessor implements EntityProcessor{
             }
 
             List<UriParameter> keyPredicates = uriResourceEntitySet.getKeyPredicates();
-            ResourceInfo resource = storageHelper.getResourceInfo(keyPredicates);
+            DbResourceInfo resource = storageHelper.getResourceInfo(keyPredicates);
             if (resource == null) {
                 customOdataException = new CustomODataApplicationException(null, "Resource ID has not been found.", 
                                                                         HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
@@ -268,10 +268,10 @@ public class RAPEntityProcessor implements EntityProcessor{
             requestInputStream = new ByteArrayInputStream(body.getBytes(StandardCharsets.UTF_8));
             deserializer.entity(requestInputStream, targetEntityType);
 
-            List<ResourceInfo> resourceInfoList;
+            List<DbResourceInfo> resourceInfoList;
             try {
                 resourceInfoList = storageHelper.getResourceInfoList(typeNameList,keyPredicates);
-                for(ResourceInfo resourceInfo: resourceInfoList){
+                for(DbResourceInfo resourceInfo: resourceInfoList){
                     String symbioteIdTemp = resourceInfo.getSymbioteId();
                     if(symbioteIdTemp != null && !symbioteIdTemp.isEmpty())
                         symbioteId = symbioteIdTemp;
@@ -285,7 +285,7 @@ public class RAPEntityProcessor implements EntityProcessor{
 
             // checking access policies
             try {
-                for(ResourceInfo resource : resourceInfoList) {
+                for(DbResourceInfo resource : resourceInfoList) {
                     String sid = resource.getSymbioteId();
                     if(sid != null && sid.length() > 0)
                         storageHelper.checkAccessPolicies(request, sid);
@@ -298,7 +298,7 @@ public class RAPEntityProcessor implements EntityProcessor{
                 return;
             }
 
-            RapPluginResponse rapPluginResponse = storageHelper.setService(resourceInfoList, body);        
+            RapPluginResponse rapPluginResponse = storageHelper.setService(DbResourceInfo.toResourceInfos(resourceInfoList), body);        
 //            responseString = "";        
 //            if ((obj != null) && (obj instanceof byte[])) {
 //                try {

@@ -9,7 +9,7 @@ import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.managers.AuthorizationResult;
 import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.plugin.PlatformSpecificPlugin;
-import eu.h2020.symbiote.resources.db.ResourceInfo;
+import eu.h2020.symbiote.resources.db.DbResourceInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import java.nio.charset.Charset;
 import java.util.List;
@@ -100,7 +100,7 @@ public class TestRestController {
             String platformResourceId = "pl_1";
             List<String> obsProperties = null;
             String pluginId = PlatformSpecificPlugin.PLUGIN_PLATFORM_ID;
-            ResourceInfo resourceInfoResult = addResource(resourceId, platformResourceId, obsProperties, pluginId);
+            DbResourceInfo resourceInfoResult = addResource(resourceId, platformResourceId, obsProperties, pluginId);
             assert(resourceInfoResult != null);
             //test get
             ResultActions res = mockMvc.perform(get("/rap/Sensor/"+resourceId)
@@ -125,7 +125,7 @@ public class TestRestController {
             
             //delete
             resourcesRepository.delete(resourceId);
-            List<ResourceInfo> resourceInfoList = resourcesRepository.findByInternalId(platformResourceId);
+            List<DbResourceInfo> resourceInfoList = resourcesRepository.findByInternalId(platformResourceId);
             assert(resourceInfoList == null || resourceInfoList.isEmpty());
         }catch(Exception e){
             log.error(e.getMessage(), e);
@@ -153,7 +153,7 @@ public class TestRestController {
             String platformResourceId = "pl_1";
             List<String> obsProperties = null;
             String pluginId = PlatformSpecificPlugin.PLUGIN_PLATFORM_ID;
-            ResourceInfo resourceInfoResult = addResource(resourceId, platformResourceId, obsProperties, pluginId);
+            DbResourceInfo resourceInfoResult = addResource(resourceId, platformResourceId, obsProperties, pluginId);
             assert(resourceInfoResult != null);
             //test history
             ResultActions res = mockMvc.perform(get("/rap/Sensor/"+resourceId+"/history")
@@ -179,7 +179,7 @@ public class TestRestController {
 
             //delete
             resourcesRepository.delete(resourceId);
-            List<ResourceInfo> resourceInfoList = resourcesRepository.findByInternalId(platformResourceId);
+            List<DbResourceInfo> resourceInfoList = resourcesRepository.findByInternalId(platformResourceId);
             assert(resourceInfoList == null || resourceInfoList.isEmpty());
         }catch(Exception e){
             log.error(e.getMessage(), e);
@@ -209,7 +209,7 @@ public class TestRestController {
             String platformResourceId = "pl_1";
             List<String> obsProperties = null;
             String pluginId = PlatformSpecificPlugin.PLUGIN_PLATFORM_ID;
-            ResourceInfo resourceInfoResult = addResource(resourceId, platformResourceId, obsProperties, pluginId);
+            DbResourceInfo resourceInfoResult = addResource(resourceId, platformResourceId, obsProperties, pluginId);
             assert(resourceInfoResult != null);
             //test set
             ResultActions res = mockMvc.perform(post("/rap/Actuator/"+resourceId)
@@ -233,7 +233,7 @@ public class TestRestController {
             
             //delete
             resourcesRepository.delete(resourceId);
-            List<ResourceInfo> resourceInfoList = resourcesRepository.findByInternalId(platformResourceId);
+            List<DbResourceInfo> resourceInfoList = resourcesRepository.findByInternalId(platformResourceId);
             assert(resourceInfoList == null || resourceInfoList.isEmpty());
         }catch(Exception e){
             log.error(e.getMessage(), e);
@@ -244,14 +244,14 @@ public class TestRestController {
         return authorizationManager.getServiceRequestHeaders().getServiceRequestHeaders();
     }
     
-    private ResourceInfo addResource(String resourceId, String platformResourceId, List<String> obsProperties, String pluginId) {
-        ResourceInfo resourceInfo = new ResourceInfo(resourceId, platformResourceId);
+    private DbResourceInfo addResource(String resourceId, String platformResourceId, List<String> obsProperties, String pluginId) {
+        DbResourceInfo resourceInfo = new DbResourceInfo(resourceId, platformResourceId);
         if(obsProperties != null)
             resourceInfo.setObservedProperties(obsProperties);
         if(pluginId != null && pluginId.length()>0)
             resourceInfo.setPluginId(pluginId);
         
-        ResourceInfo resourceInfoResult = resourcesRepository.save(resourceInfo);
+        DbResourceInfo resourceInfoResult = resourcesRepository.save(resourceInfo);
         return resourceInfoResult;
     }
 }

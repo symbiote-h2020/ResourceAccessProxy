@@ -9,7 +9,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.model.cim.Observation;
-import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.service.notificationResource.WebSocketController;
 import org.apache.olingo.commons.api.http.HttpStatusCode;
@@ -21,6 +20,7 @@ import org.springframework.beans.factory.annotation.Value;
 
 import java.util.*;
 
+import eu.h2020.symbiote.resources.db.DbResourceInfo;
 import static eu.h2020.symbiote.resources.RapDefinitions.JSON_OBJECT_TYPE_FIELD_NAME;
 
 /**
@@ -68,11 +68,11 @@ public class PluginNotification {
         }
     }
 
-    private ResourceInfo getResourceInfo(String internalId) {
-        ResourceInfo resInfo = null;
-        List<ResourceInfo> resInfoList = resourcesRepo.findByInternalId(internalId);
+    private DbResourceInfo getResourceInfo(String internalId) {
+        DbResourceInfo resInfo = null;
+        List<DbResourceInfo> resInfoList = resourcesRepo.findByInternalId(internalId);
 
-        for (ResourceInfo rInfo : resInfoList) {
+        for (DbResourceInfo rInfo : resInfoList) {
             List<String> sessionList = rInfo.getSessionId();
             if(!sessionList.isEmpty()) {
                 resInfo=rInfo;
@@ -124,7 +124,7 @@ public class PluginNotification {
             internalObservation = mapper.readValue(jsonBody, Observation.class);
 
         }
-        ResourceInfo resInfo = getResourceInfo(internalObservation.getResourceId());
+        DbResourceInfo resInfo = getResourceInfo(internalObservation.getResourceId());
 
         return new Observation(resInfo.getSymbioteId(), internalObservation.getLocation(),
                 internalObservation.getResultTime(), internalObservation.getSamplingTime(),

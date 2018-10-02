@@ -15,7 +15,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
  * @author Matteo Pardi
  */
 @Repository
-public interface ResourcesRepository extends MongoRepository<ResourceInfo, String> {
+public interface ResourcesRepository extends MongoRepository<DbResourceInfo, String> {
     
     /**
      * This method will find a Resource instance in the database by 
@@ -24,7 +24,7 @@ public interface ResourcesRepository extends MongoRepository<ResourceInfo, Strin
      * @param resourceId    the id of the resource
      * @return              the Resource instance
      */
-    public Optional<ResourceInfo> findById(String resourceId);
+    public Optional<DbResourceInfo> findById(String resourceId);
     
     /**
      * This method will find (a) Resource instance(s) in the database by 
@@ -33,8 +33,8 @@ public interface ResourcesRepository extends MongoRepository<ResourceInfo, Strin
      * @param internalId            the id of the resource in the platform
      * @return                      the Resource instance(s)
      */
-    public List<ResourceInfo> findByInternalId(String internalId);
+    public List<DbResourceInfo> findByInternalId(String internalId);
     
     @Override
-    public List<ResourceInfo> findAll();
+    public List<DbResourceInfo> findAll();
 }

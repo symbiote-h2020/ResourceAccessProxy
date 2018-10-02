@@ -11,7 +11,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.cloud.model.internal.CloudResource;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.managers.AuthorizationResult;
-import eu.h2020.symbiote.managers.ServiceRequest;
 import eu.h2020.symbiote.model.cim.FeatureOfInterest;
 import eu.h2020.symbiote.model.cim.Location;
 import eu.h2020.symbiote.model.cim.Resource;
@@ -19,14 +18,12 @@ import eu.h2020.symbiote.model.cim.StationarySensor;
 import eu.h2020.symbiote.model.cim.WGS84Location;
 import eu.h2020.symbiote.plugin.PlatformSpecificPlugin;
 import eu.h2020.symbiote.resources.RapDefinitions;
-import eu.h2020.symbiote.resources.db.ResourceInfo;
+import eu.h2020.symbiote.resources.db.DbResourceInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.security.accesspolicies.common.AccessPolicyType;
-import eu.h2020.symbiote.security.accesspolicies.common.IAccessPolicySpecifier;
 import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenAccessPolicySpecifier;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.service.RAPEdmController;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,18 +42,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import static org.springframework.http.converter.json.Jackson2ObjectMapperBuilder.json;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
 /**
@@ -103,7 +93,7 @@ public class TestRegisterResources {
     
     @Test
     public void TestRegisterStationarySensor(){
-        Optional<ResourceInfo> resInfoOptional = resourcesRepository.findById(GetStationarySensorId());
+        Optional<DbResourceInfo> resInfoOptional = resourcesRepository.findById(GetStationarySensorId());
         assert(resInfoOptional.isPresent() == false);
         //StationarySensor
         String json = GetStationarySensor();
@@ -118,7 +108,7 @@ public class TestRegisterResources {
     
     @Test
     public void TestUnregisterStationarySensor(){
-        Optional<ResourceInfo> resInfoOptional = resourcesRepository.findById(GetStationarySensorId());
+        Optional<DbResourceInfo> resInfoOptional = resourcesRepository.findById(GetStationarySensorId());
         assert(resInfoOptional.isPresent() == true);
         
         String json = "";

@@ -12,8 +12,8 @@ import eu.h2020.symbiote.model.mim.Federation;
 import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.resources.db.AccessPolicy;
 import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
+import eu.h2020.symbiote.resources.db.DbResourceInfo;
 import eu.h2020.symbiote.resources.db.FederationRepository;
-import eu.h2020.symbiote.resources.db.ResourceInfo;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 
 import org.slf4j.Logger;
@@ -211,7 +211,7 @@ public class AuthorizationManager {
      */
     private boolean checkBartering(SecurityRequest securityRequest, String federatedResourceId) {
     	boolean result = false;
-    	Optional<ResourceInfo> optionalResourceInfo = resourceRepo.findById(federatedResourceId);
+    	Optional<DbResourceInfo> optionalResourceInfo = resourceRepo.findById(federatedResourceId);
     	    	
     	if(!optionalResourceInfo.isPresent()) {
             log.error("No ResourceInfo for federatedResourceId={}.", federatedResourceId);
@@ -219,7 +219,7 @@ public class AuthorizationManager {
         }
     	
     	try {
-	    	ResourceInfo resourceInfo = optionalResourceInfo.get();
+	    	DbResourceInfo resourceInfo = optionalResourceInfo.get();
 	    	
 	    	//checking federation info - there will be only one federation info, lambda not needed??
 //	    	resourceInfo.getFederationInfo().getSharingInformation().entrySet().stream()
@@ -278,14 +278,14 @@ public class AuthorizationManager {
      * @return
      */
     private Set<String> checkFederatedResourcePolicies(SecurityRequest securityRequest, String federatedResourceId) {
-    	Optional<ResourceInfo> optionalResourceInfo = resourceRepo.findById(federatedResourceId);
+    	Optional<DbResourceInfo> optionalResourceInfo = resourceRepo.findById(federatedResourceId);
     	if(!optionalResourceInfo.isPresent()) {
             log.error("No ResourceInfo for federatedResourceId={}.", federatedResourceId);
             return Collections.emptySet();
         }
     	
     	try {
-	    	ResourceInfo resourceInfo = optionalResourceInfo.get();
+	    	DbResourceInfo resourceInfo = optionalResourceInfo.get();
 	    	long currentTime = System.currentTimeMillis();
 	    	
 	    	Map<String, IAccessPolicy> resourceAccessPolicyMap = new HashMap<>();
@@ -337,7 +337,7 @@ public class AuthorizationManager {
 	}
 
 	private boolean isCoreResourceId(String resourceId) {
-    	Optional<ResourceInfo> optionalResourceInfo = resourceRepo.findById(resourceId);
+    	Optional<DbResourceInfo> optionalResourceInfo = resourceRepo.findById(resourceId);
     	if(!optionalResourceInfo.isPresent()) {
             log.error("No ResourceInfo for resource");
             return true;
@@ -347,7 +347,7 @@ public class AuthorizationManager {
 	}
 	
 	private boolean barteredResource(String resourceId) {
-		Optional<ResourceInfo> optionalResourceInfo = resourceRepo.findById(resourceId);
+		Optional<DbResourceInfo> optionalResourceInfo = resourceRepo.findById(resourceId);
 		
 		return optionalResourceInfo.get().getFederationInfo().getSharingInformation().values().iterator().next().getBartering();
 	}

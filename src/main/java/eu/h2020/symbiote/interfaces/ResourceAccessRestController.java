@@ -5,30 +5,30 @@
  */
 package eu.h2020.symbiote.interfaces;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo;
 import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessGetMessage;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessHistoryMessage;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessMessage.AccessType;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessSetMessage;
+import eu.h2020.symbiote.cloud.model.rap.ResourceInfo;
 import eu.h2020.symbiote.exceptions.*;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceRESTCondition;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.managers.AuthorizationResult;
 import eu.h2020.symbiote.managers.ServiceResponseResult;
-import eu.h2020.symbiote.messages.access.ResourceAccessGetMessage;
-import eu.h2020.symbiote.messages.access.ResourceAccessHistoryMessage;
-import eu.h2020.symbiote.messages.access.ResourceAccessMessage.AccessType;
-import eu.h2020.symbiote.messages.access.ResourceAccessSetMessage;
 import eu.h2020.symbiote.resources.RapDefinitions;
 import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
+import eu.h2020.symbiote.resources.db.DbResourceInfo;
 import eu.h2020.symbiote.resources.db.PlatformInfo;
 import eu.h2020.symbiote.resources.db.PluginRepository;
-import eu.h2020.symbiote.resources.db.ResourceInfo;
-import eu.h2020.symbiote.resources.query.Query;
+import eu.h2020.symbiote.cloud.model.rap.query.Query;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 
@@ -394,11 +394,11 @@ public class ResourceAccessRestController {
     }
 
     private ResourceInfo getResourceInfo(String resourceId) {
-        Optional<ResourceInfo> resInfo = resourcesRepo.findById(resourceId);
+        Optional<DbResourceInfo> resInfo = resourcesRepo.findById(resourceId);
         if(!resInfo.isPresent())
             throw new EntityNotFoundException("Resource " + resourceId + " not found");
         
-        return resInfo.get();
+        return resInfo.get().toResourceInfo();
     }
     
     private void checkAccessPolicies(HttpServletRequest request, String resourceId) throws Exception {
@@ -442,7 +442,6 @@ public class ResourceAccessRestController {
             notificationService.sendAccessData();
         }catch(Exception ex){
             log.error("Error to send FailAccessMessage to Monitoring", ex);
-            log.error(ex.getMessage(),ex);
         }
         return message;    
         
@@ -459,8 +458,7 @@ public class ResourceAccessRestController {
             notificationService.addSuccessfulAttempts(symbioteId, dateList, accessType);
             notificationService.sendAccessData();
         }catch(Exception e){
-            log.error("Error to send SetSuccessfulAttempts to Monitoring");
-            log.error(e.getMessage(),e);
+            log.error("Error to send SetSuccessfulAttempts to Monitoring", e);
         }
     }
 }
