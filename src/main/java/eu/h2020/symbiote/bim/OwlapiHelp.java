@@ -22,6 +22,8 @@ import eu.h2020.symbiote.resources.db.RegistrationInfoOData;
 import eu.h2020.symbiote.resources.db.RegistrationInfoODataRepository;
 import eu.h2020.symbiote.service.CustomField;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -96,6 +98,10 @@ public class OwlapiHelp {
         addInfoFromRegistration = false;
     }
     
+    public String getLoadedOntology() {
+        return loadedOntology;
+    }
+
     private InputStream getOnotologyStream() throws Exception {
         if(loadedOntology != null) {
             return inputStreamFromProperty(loadedOntology)
@@ -133,6 +139,13 @@ public class OwlapiHelp {
             log.debug("Reading ontology from classpath: " + ontologyFile);
             loadedOntology = ontologyFile;
             return Optional.of(pimResource.getInputStream());
+        }
+        
+        File file = new File(ontologyFile); 
+        if(file.exists()) {
+            log.debug("Reading ontology from path: " + file.getAbsolutePath());
+            loadedOntology = ontologyFile;
+            return Optional.of(new FileInputStream(file));            
         }
         
         return Optional.empty();
