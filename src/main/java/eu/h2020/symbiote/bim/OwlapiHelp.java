@@ -222,6 +222,9 @@ public class OwlapiHelp {
             } else if (datatype.getClass().equals(PrimitiveDatatype.class)) {
                 type = ((PrimitiveDatatype) datatype).getBaseDatatype();
             }
+            if(datatype.isArray() && type != null){
+                type += "[]";
+            }
             ParameterInfo parameterInfo = new ParameterInfo(type, p.getName(), p.isMandatory());
             parameterInfoList.add(parameterInfo);
         }
