@@ -54,6 +54,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.HandlerMapping;
+import springfox.documentation.annotations.ApiIgnore;
 
 import static eu.h2020.symbiote.resources.RapDefinitions.JSON_OBJECT_TYPE_FIELD_NAME;
 
@@ -65,6 +66,7 @@ import static eu.h2020.symbiote.resources.RapDefinitions.JSON_OBJECT_TYPE_FIELD_
  * REST controller to receive resource access requests
  * 
  */
+@ApiIgnore(value="Deprecated REST endpoint")
 @Conditional(NBInterfaceRESTCondition.class)
 @RestController
 public class ResourceAccessRestController {

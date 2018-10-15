@@ -9,6 +9,8 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
 import java.util.Optional;
+
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.semanticweb.owlapi.model.IRI;
@@ -36,7 +38,8 @@ public class TestReadPim {
     
     @Autowired
     private OwlapiHelp owlApiHelp;
-    
+
+    @Ignore
     @Test
     public void readPimFromClasspath() {
         //map

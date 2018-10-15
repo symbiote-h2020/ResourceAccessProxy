@@ -5,6 +5,8 @@ import eu.h2020.symbiote.bim.OwlapiHelp;
 import eu.h2020.symbiote.service.CustomField;
 import java.util.HashMap;
 import java.util.Optional;
+
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.semanticweb.owlapi.model.IRI;
@@ -32,7 +34,8 @@ public class TestReadBim {
     
     @Autowired
     private OwlapiHelp owlApiHelp;
-    
+
+    @Ignore
     @Test
     public void readBim() {
         //map

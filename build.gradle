@@ -14,15 +14,26 @@ buildscript {
     ext {
         springBootVersion = '1.5.14.RELEASE'
         springCloudVersion = 'Dalston.SR5'
+        asciiDocOutputDir = file("${buildDir}/asciidoc/generated")
+        swaggerOutputDir = file("${buildDir}/swagger")
+        snippetsOutputDir = file("${buildDir}/asciidoc/snippets")
+        springfoxVersion = '2.8.0'
+        swaggerAnnotationsVersion = '1.5.21'
     }
     repositories {
         mavenCentral()
+        jcenter()
+        maven { url 'http://oss.jfrog.org/artifactory/oss-snapshot-local/' }
     }
     dependencies {
-        classpath "io.spring.gradle:dependency-management-plugin:1.0.0.RELEASE"
+        classpath("io.spring.gradle:dependency-management-plugin:1.0.0.RELEASE")
         classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-        classpath group: 'com.cinnober.gradle', name: 'semver-git', version: '2.2.1'
-        classpath 'org.owasp:dependency-check-gradle:1.4.5.1'
+        classpath("com.cinnober.gradle:semver-git:2.2.1")
+        classpath("org.owasp:dependency-check-gradle:1.4.5.1")
+        classpath("org.asciidoctor:asciidoctor-gradle-plugin:1.5.3")
+        classpath("org.asciidoctor:asciidoctorj-pdf:1.5.0-alpha.10.1")
+        classpath("io.github.swagger2markup:swagger2markup-spring-restdocs-ext:1.2.0")
+        classpath("io.github.swagger2markup:swagger2markup-gradle-plugin:1.2.0")
     }
 }
 
@@ -42,6 +53,10 @@ apply plugin: 'idea'
 // publishing
 apply plugin: 'com.cinnober.gradle.semver-git'
 apply plugin: 'maven-publish'
+
+// documentation
+apply plugin: 'org.asciidoctor.convert'
+apply plugin: 'io.github.swagger2markup'
 
 // XXX please change with your commits according to http://semver.org/
 project.group = 'eu.h2020.symbiote'
@@ -110,7 +125,11 @@ dependencies {
     
     compile("org.apache.olingo:odata-server-api:${'4.3.0'}")
     compile("org.apache.olingo:odata-server-core:${'4.3.0'}")
-  
+
+    // Swagger annotations for documentation
+    compile("io.swagger:swagger-annotations:${swaggerAnnotationsVersion}")
+    compile("io.springfox:springfox-swagger2:${springfoxVersion}")
+
     // Websocket
     compile("org.springframework.boot:spring-boot-starter-websocket")
 
@@ -120,7 +139,8 @@ dependencies {
     // test only
     compile("org.springframework.boot:spring-boot-starter-web")
     testCompile ("org.springframework.boot:spring-boot-starter-test")
-    
+    testCompile("io.springfox:springfox-bean-validators:${springfoxVersion}")
+    testCompile('org.springframework.restdocs:spring-restdocs-mockmvc')
     
     //Owlapi
     //compile('net.sourceforge.owlapi:owlapi-distribution:5.1.1')
@@ -195,3 +215,35 @@ dependencyCheck {
 
 // including code quality extensions into the build
 check.dependsOn(jacocoTestReport) //, 'dependencyCheck')
+
+test {
+    systemProperty 'io.springfox.staticdocs.outputDir', swaggerOutputDir
+    systemProperty 'io.springfox.staticdocs.snippetsOutputDir', snippetsOutputDir
+}
+
+convertSwagger2markup {
+    dependsOn test
+    swaggerInput "${swaggerOutputDir}/swagger.json"
+    outputDir asciiDocOutputDir
+    config = [
+            'swagger2markup.pathsGroupedBy' : 'TAGS',
+            'swagger2markup.extensions.springRestDocs.snippetBaseUri': snippetsOutputDir.getAbsolutePath()]
+}
+
+asciidoctor {
+    dependsOn convertSwagger2markup
+    sources {
+        include 'index.adoc'
+    }
+    backends = ['html5', 'pdf']
+    attributes = [
+            doctype: 'book',
+            toc: 'left',
+            toclevels: '3',
+            numbered: '',
+            sectlinks: '',
+            sectanchors: '',
+            hardbreaks: '',
+            generated: asciiDocOutputDir
+    ]
+}

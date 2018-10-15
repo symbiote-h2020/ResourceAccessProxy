@@ -9,6 +9,7 @@ package eu.h2020.symbiote.service;
  *
  * @author Luca Tomaselli
  */
+import eu.h2020.symbiote.cloud.model.internal.CloudResource;
 import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceODataCondition;
 
@@ -21,6 +22,12 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
+import eu.h2020.symbiote.model.cim.Observation;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.ReaderInputStream;
 import org.apache.olingo.commons.api.ex.ODataException;
@@ -43,16 +50,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StreamUtils;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.*;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.interfaces.ResourceAccessNotificationService;
 import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.managers.ServiceResponseResult;
+import springfox.documentation.annotations.ApiIgnore;
+
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Date;
@@ -98,14 +104,61 @@ public class RAPEdmController {
      * @return the response entity
      * @throws java.lang.Exception can throw exception
      */
+    @ApiIgnore
     @CrossOrigin(origins = "*")
     @RequestMapping(value = "**")
     public ResponseEntity<String> process(HttpServletRequest req) throws Exception {
         return processRequestPrivate(req);
     }
 
+    @ApiIgnore
     @RequestMapping(value = "*('{resourceId}')/*")
     public ResponseEntity<String> processResources(HttpServletRequest req) throws Exception {
+        return processRequestPrivate(req);
+    }
+
+    @ApiOperation(value = "Get observations" ,
+            notes = "This is the endpoint for getting observations from the sensors. The form of the endpoint follows" +
+                    " an ODATA-like format (e.g. /rap/Sensor('symbIoTeId')/Observations), which can be obtained from the symbIoTe core, as described " +
+                    "<a href=\"https://github.com/symbiote-h2020/SymbioteCloud/wiki/3.3-Obtaining-resource-access-URL\">here</a> " +
+                    "and <a href=\"https://symbiote-h2020.github.io/SymbioteCore/coreInterface/#_getresourceurlsusingget\">here</a>. " +
+                    "You can find examples on how to get observations " +
+                    "<a href=\"https://github.com/symbiote-h2020/SymbioteCloud/wiki/3.4-Accessing-the-resource-and-actuating-and-invoking-service-for-default-(dummy)-resources\">here</a> " +
+                    "and you examples using java clients " +
+                    "<a href=\"https://github.com/symbiote-h2020/ExampleClient/blob/master/src/main/java/eu/h2020/symbiote/client/example/L1ClientWithGuestToken.java\">here</a>.",
+            response = Observation.class, responseContainer = "List")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "An array of observations", response = String.class, responseContainer = "List"),
+            @ApiResponse(code = 401, message = "Not authorized")})
+    @GetMapping(value = "*('{resourceId}')/*")
+    public ResponseEntity<String> processResourcesGet(@ApiParam(value = "timestamp of the request", required = true) @RequestHeader(SecurityConstants.SECURITY_CREDENTIALS_TIMESTAMP_HEADER) String timestamp,
+                                                      @ApiParam(value = "securityCredentials set size header", required = true) @RequestHeader(SecurityConstants.SECURITY_CREDENTIALS_SIZE_HEADER) String size,
+                                                      @ApiParam(value = "each SecurityCredentials entry header, they are numbered 1..size", required = true) @RequestHeader(SecurityConstants.SECURITY_CREDENTIALS_HEADER_PREFIX + "*") String credentials,
+                                                      @ApiParam(value = "the symbIoTe id of the resource as obtained from the symbIoTe core", required = true) @RequestParam String resourceId,
+                                                      HttpServletRequest req) throws Exception {
+        return processRequestPrivate(req);
+    }
+
+    @ApiOperation(value = "Actuate" ,
+            notes = "This is the endpoint for actuating both on actuators and services. The form of the endpoint follows" +
+                    " an ODATA-like format (e.g. /rap/Service('symbIoTeId')), which can be obtained from the symbIoTe core, as described " +
+                    "<a href=\"https://github.com/symbiote-h2020/SymbioteCloud/wiki/3.3-Obtaining-resource-access-URL\">here</a> " +
+                    "and <a href=\"https://symbiote-h2020.github.io/SymbioteCore/coreInterface/#_getresourceurlsusingget\">here</a>. " +
+                    "You can find examples on how to get observations " +
+                    "<a href=\"https://github.com/symbiote-h2020/SymbioteCloud/wiki/3.4-Accessing-the-resource-and-actuating-and-invoking-service-for-default-(dummy)-resources\">here</a> " +
+                    "and you examples using java clients " +
+                    "<a href=\"https://github.com/symbiote-h2020/ExampleClient/blob/master/src/main/java/eu/h2020/symbiote/client/example/L1ClientWithGuestToken.java\">here</a>.",
+            response = String.class)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "The service response", response = String.class),
+            @ApiResponse(code = 204, message = "Actuators return NO CONTENT"),
+            @ApiResponse(code = 401, message = "Not authorized")})
+    @PutMapping(value = "*('{resourceId}')/*")
+    public ResponseEntity<String> processResourcesPut(@ApiParam(value = "timestamp of the request", required = true) @RequestHeader(SecurityConstants.SECURITY_CREDENTIALS_TIMESTAMP_HEADER) String timestamp,
+                                                      @ApiParam(value = "securityCredentials set size header", required = true) @RequestHeader(SecurityConstants.SECURITY_CREDENTIALS_SIZE_HEADER) String size,
+                                                      @ApiParam(value = "each SecurityCredentials entry header, they are numbered 1..size", required = true) @RequestHeader(SecurityConstants.SECURITY_CREDENTIALS_HEADER_PREFIX + "*") String credentials,
+                                                      @ApiParam(value = "the symbIoTe id of the resource as obtained from the symbIoTe core", required = true) @RequestParam String resourceId,
+                                                      HttpServletRequest req) throws Exception {
         return processRequestPrivate(req);
     }
 

@@ -20,6 +20,7 @@ import eu.h2020.symbiote.service.RAPEdmController;
 import java.nio.charset.Charset;
 import java.util.List;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -80,7 +81,8 @@ public class TestODataController {
         doReturn(new AuthorizationResult("Validated", true)).when(authorizationManager)
                 .checkResourceUrlRequest(any(), any());
     }
-    
+
+    @Ignore
     @Test
     public void testGet() throws Exception{
         try{
@@ -130,8 +132,8 @@ public class TestODataController {
             log.error(e.getMessage(), e);
         }
     }
-    
-    
+
+    @Ignore
     @Test
     public void testHistory() throws Exception{
         try{
@@ -182,8 +184,8 @@ public class TestODataController {
             log.error(e.getMessage(), e);
         }
     }
-    
-    
+
+    @Ignore
     @Test
     public void testSet() throws Exception{
         try{
@@ -284,7 +286,8 @@ public class TestODataController {
             log.error(e.getMessage(), e);
         }
     }
-    
+
+    @Ignore
     @Test
     public void testSetService() throws Exception{
         try{
