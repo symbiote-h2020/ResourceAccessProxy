@@ -6,6 +6,10 @@
 package eu.h2020.symbiote.plugin;
 
 import eu.h2020.symbiote.resources.RapDefinitions;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
@@ -16,6 +20,7 @@ import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
@@ -32,6 +37,9 @@ public class PlatformPluginQueueConfig {
     @Autowired
     private RabbitTemplate rabbitTemplate;
     
+    @Value("${rabbit.replyTimeout}")
+    private int messageExpirationDelta;
+    
     @Autowired
     @Qualifier(RapDefinitions.PLUGIN_REGISTRATION_EXCHANGE_IN)    
     TopicExchange exchange;
@@ -39,7 +47,9 @@ public class PlatformPluginQueueConfig {
     
     @Bean(name=PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE)
     Queue specificPluginQueue() {
-        return new Queue(PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE, false);
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("x-message-ttl", messageExpirationDelta);
+        return new Queue(PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE, false, false, false, arguments);
     }
 
     @Bean(name=PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE + "Bindings")
@@ -56,6 +66,7 @@ public class PlatformPluginQueueConfig {
         container.setConnectionFactory(connectionFactory);
         container.setQueueNames(PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE);
         container.setMessageListener(listenerAdapter);
+        container.setDefaultRequeueRejected(false);
         return container;
     }
 
