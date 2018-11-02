@@ -37,6 +37,7 @@ import java.util.*;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 
+import org.omg.PortableServer.RequestProcessingPolicyOperations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
@@ -176,6 +177,10 @@ public class ResourceAccessRestController {
             log.error(e.toString(), e);
             httpStatus = HttpStatus.NOT_FOUND;
             sendFailMessage(path, resourceId, e);
+        } catch (SecurityException se) {
+            log.debug(se.getMessage(), se);
+            httpStatus = HttpStatus.FORBIDDEN;
+            sendFailMessage(path, resourceId, se);
         } catch (Exception ex) {
             e = ex;
             String err = "Unable to read resource with id: " + resourceId;
@@ -188,7 +193,10 @@ public class ResourceAccessRestController {
         if(serResponse.isCreatedSuccessfully()) {
             responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse.getServiceResponse());
         }
-        
+
+        if(e != null)
+            return new ResponseEntity<>(e.getMessage(), responseHeaders, httpStatus);
+
         return new ResponseEntity<>(response.getContent(), responseHeaders, httpStatus);
     }
     
@@ -261,6 +269,10 @@ public class ResourceAccessRestController {
             log.error(e.toString(),e);
             httpStatus = HttpStatus.NOT_FOUND;
             sendFailMessage(path, resourceId, e);
+        } catch (SecurityException se) {
+            log.warn(se.getMessage(), se);
+            httpStatus = HttpStatus.FORBIDDEN;
+            sendFailMessage(path, resourceId, se);
         } catch (Exception ex) {
             e = ex;
             String err = "Unable to read resource with id: " + resourceId;
@@ -274,6 +286,9 @@ public class ResourceAccessRestController {
             responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse.getServiceResponse());
         }
         
+        if(e != null)
+            return new ResponseEntity<>(e.getMessage(), responseHeaders, httpStatus);
+
         return new ResponseEntity<>(response.getContent(), responseHeaders, httpStatus);
     }
     
@@ -335,6 +350,10 @@ public class ResourceAccessRestController {
             log.error(e.toString(), e);
             httpStatus = HttpStatus.NOT_FOUND;
             sendFailMessage(path, resourceId, e);
+        } catch (SecurityException se) {
+            log.debug(se.getMessage(), se);
+            httpStatus = HttpStatus.FORBIDDEN;
+            sendFailMessage(path, resourceId, se);
         } catch (GenericException ex) {
             e = ex;
             log.error(e.toString(), e);
@@ -357,6 +376,9 @@ public class ResourceAccessRestController {
         if(serResponse.isCreatedSuccessfully()) {
             responseHeaders.set(SECURITY_RESPONSE_HEADER, serResponse.getServiceResponse());
         }
+        
+        if(e != null)
+            return new ResponseEntity<>(e.getMessage(), responseHeaders, httpStatus);
         
         return new ResponseEntity<>(response.getContent(), responseHeaders, httpStatus);
     }
