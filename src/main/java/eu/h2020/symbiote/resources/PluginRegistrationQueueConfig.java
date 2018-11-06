@@ -7,7 +7,10 @@ package eu.h2020.symbiote.resources;
 
 import eu.h2020.symbiote.interfaces.PluginRegistration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.Queue;
@@ -16,6 +19,7 @@ import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -29,6 +33,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class PluginRegistrationQueueConfig {
     
+    @Value("${rabbit.replyTimeout}")
+    private int rabbitReplyTimeout;
+    
     @Bean(name=RapDefinitions.PLUGIN_EXCHANGE_OUT)
     TopicExchange exchangeOut() {
         return new TopicExchange(RapDefinitions.PLUGIN_EXCHANGE_OUT, false, false);
@@ -41,7 +48,9 @@ public class PluginRegistrationQueueConfig {
     
     @Bean(name=RapDefinitions.PLUGIN_REGISTRATION_QUEUE)
     Queue pluginQueue() {
-        return new Queue(RapDefinitions.PLUGIN_REGISTRATION_QUEUE, false);
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("x-message-ttl", rabbitReplyTimeout);
+        return new Queue(RapDefinitions.PLUGIN_REGISTRATION_QUEUE, false, false, true, arguments);
     }
     
     @Bean(name=RapDefinitions.PLUGIN_REGISTRATION_QUEUE + "Container")
@@ -51,6 +60,7 @@ public class PluginRegistrationQueueConfig {
         container.setConnectionFactory(connectionFactory);
         container.setQueueNames(RapDefinitions.PLUGIN_REGISTRATION_QUEUE);
         container.setMessageListener(listenerAdapter);
+        container.setDefaultRequeueRejected(false);
         return container;
     }
     

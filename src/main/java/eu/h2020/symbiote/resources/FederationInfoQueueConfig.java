@@ -1,5 +1,8 @@
 package eu.h2020.symbiote.resources;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
@@ -8,6 +11,7 @@ import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -20,6 +24,9 @@ import eu.h2020.symbiote.interfaces.FederationInfoRegistration;
  */
 @Configuration
 public class FederationInfoQueueConfig {
+    
+    @Value("${rabbit.replyTimeout}")
+    private int rabbitReplyTimeout;
 
 	//exchange
 	@Bean(name=RapDefinitions.FEDERATION_EXCHANGE)
@@ -30,17 +37,23 @@ public class FederationInfoQueueConfig {
 	//queues
 	@Bean(name=RapDefinitions.FEDERATION_QUEUE_CREATED)
     Queue federationCreatedQueue() {
-        return new Queue(RapDefinitions.FEDERATION_QUEUE_CREATED, false);
+	    Map<String, Object> arguments = new HashMap<>();
+	    arguments.put("x-message-ttl", rabbitReplyTimeout);
+        return new Queue(RapDefinitions.FEDERATION_QUEUE_CREATED, false, false, true, arguments);
     }
 	
 	@Bean(name=RapDefinitions.FEDERATION_QUEUE_CHANGED)
     Queue federationChangedQueue() {
-        return new Queue(RapDefinitions.FEDERATION_QUEUE_CHANGED, false);
+       Map<String, Object> arguments = new HashMap<>();
+       arguments.put("x-message-ttl", rabbitReplyTimeout);
+       return new Queue(RapDefinitions.FEDERATION_QUEUE_CHANGED, false, false, true, arguments);
     }
 	
 	@Bean(name=RapDefinitions.FEDERATION_QUEUE_DELETED)
     Queue federationDeletedQueue() {
-        return new Queue(RapDefinitions.FEDERATION_QUEUE_DELETED, false);
+       Map<String, Object> arguments = new HashMap<>();
+       arguments.put("x-message-ttl", rabbitReplyTimeout);
+       return new Queue(RapDefinitions.FEDERATION_QUEUE_DELETED, false, false, true, arguments);
     }
 	
 	//bindings
@@ -70,6 +83,7 @@ public class FederationInfoQueueConfig {
         container.setConnectionFactory(connectionFactory);
         container.setQueueNames(RapDefinitions.FEDERATION_QUEUE_CREATED);
         container.setMessageListener(listenerAdapter);
+        container.setDefaultRequeueRejected(false);
         return container;
     }
 	
@@ -80,6 +94,7 @@ public class FederationInfoQueueConfig {
         container.setConnectionFactory(connectionFactory);
         container.setQueueNames(RapDefinitions.FEDERATION_QUEUE_CHANGED);
         container.setMessageListener(listenerAdapter);
+        container.setDefaultRequeueRejected(false);
         return container;
     }
 	
@@ -90,6 +105,7 @@ public class FederationInfoQueueConfig {
         container.setConnectionFactory(connectionFactory);
         container.setQueueNames(RapDefinitions.FEDERATION_QUEUE_DELETED);
         container.setMessageListener(listenerAdapter);
+        container.setDefaultRequeueRejected(false);
         return container;
     }
 	

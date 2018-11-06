@@ -8,7 +8,10 @@ package eu.h2020.symbiote.resources;
 import eu.h2020.symbiote.interfaces.PluginNotification;
 import eu.h2020.symbiote.interfaces.conditions.NBInterfaceWebSocketCondition;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.Queue;
@@ -17,6 +20,7 @@ import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
@@ -28,7 +32,10 @@ import org.springframework.context.annotation.Configuration;
 @Conditional(NBInterfaceWebSocketCondition.class)
 @Configuration
 public class PluginNotificationQueueConfig {
-    
+
+    @Value("${rabbit.replyTimeout}")
+    private int rabbitReplyTimeout;
+
     @Bean(name=RapDefinitions.PLUGIN_NOTIFICATION_EXCHANGE_IN)
     TopicExchange pluginNotificationExchangeIn() {
         return new TopicExchange(RapDefinitions.PLUGIN_NOTIFICATION_EXCHANGE_IN, false, false);
@@ -36,7 +43,9 @@ public class PluginNotificationQueueConfig {
     
     @Bean(name=RapDefinitions.PLUGIN_NOTIFICATION_QUEUE)
     Queue pluginQueue() {
-        return new Queue(RapDefinitions.PLUGIN_NOTIFICATION_QUEUE, false);
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("x-message-ttl", rabbitReplyTimeout);
+        return new Queue(RapDefinitions.PLUGIN_NOTIFICATION_QUEUE, false, false, true, arguments);
     }
     
     @Bean(name=RapDefinitions.PLUGIN_NOTIFICATION_QUEUE + "Container")
@@ -46,6 +55,7 @@ public class PluginNotificationQueueConfig {
         container.setConnectionFactory(connectionFactory);
         container.setQueueNames(RapDefinitions.PLUGIN_NOTIFICATION_QUEUE);
         container.setMessageListener(listenerAdapter);
+        container.setDefaultRequeueRejected(false);
         return container;
     }
     

@@ -6,6 +6,10 @@
 package eu.h2020.symbiote.resources;
 
 import eu.h2020.symbiote.interfaces.ResourceRegistration;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
@@ -14,6 +18,7 @@ import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.amqp.rabbit.listener.adapter.MessageListenerAdapter;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -23,6 +28,9 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class ResourceRegistrationQueueConfig {
+    @Value("${rabbit.replyTimeout}")
+    private int rabbitReplyTimeout;
+    
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN)
     DirectExchange resourceRegistrationExchangeIn() {
         return new DirectExchange(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN, true, false);
@@ -30,38 +38,52 @@ public class ResourceRegistrationQueueConfig {
     
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_QUEUE)
     Queue resourceRegistrationQueue() {
-        return new Queue(RapDefinitions.RESOURCE_REGISTRATION_QUEUE, false);
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("x-message-ttl", rabbitReplyTimeout);
+        return new Queue(RapDefinitions.RESOURCE_REGISTRATION_QUEUE, false, false, true, arguments);
     }
     
     @Bean(name=RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE)
     Queue resourceUnregistrationQueue() {
-        return new Queue(RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE, false);
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("x-message-ttl", rabbitReplyTimeout);
+        return new Queue(RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE, false, false, true, arguments);
     }
     
     @Bean(name=RapDefinitions.RESOURCE_UPDATE_QUEUE)
     Queue resourceUpdatedQueue() {
-        return new Queue(RapDefinitions.RESOURCE_UPDATE_QUEUE, false);
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("x-message-ttl", rabbitReplyTimeout);
+        return new Queue(RapDefinitions.RESOURCE_UPDATE_QUEUE, false, false, true, arguments);
     }
     
     //4 QUEUES FOR L2 RESOURCES
     @Bean(name=RapDefinitions.RESOURCE_L2_UPDATE_QUEUE)
     Queue resourceL2UpdateQueue() {
-        return new Queue(RapDefinitions.RESOURCE_L2_UPDATE_QUEUE, false);
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("x-message-ttl", rabbitReplyTimeout);
+        return new Queue(RapDefinitions.RESOURCE_L2_UPDATE_QUEUE, false, false, true, arguments);
     }
     
     @Bean(name=RapDefinitions.RESOURCE_L2_UNREGISTRATION_QUEUE)
     Queue resourceL2UnregistrationQueue() {
-        return new Queue(RapDefinitions.RESOURCE_L2_UNREGISTRATION_QUEUE, false);
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("x-message-ttl", rabbitReplyTimeout);
+        return new Queue(RapDefinitions.RESOURCE_L2_UNREGISTRATION_QUEUE, false, false, true, arguments);
     }
     
     @Bean(name=RapDefinitions.RESOURCE_L2_SHARE_QUEUE)
     Queue resourceL2ShareQueue() {
-        return new Queue(RapDefinitions.RESOURCE_L2_SHARE_QUEUE, false);
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("x-message-ttl", rabbitReplyTimeout);
+        return new Queue(RapDefinitions.RESOURCE_L2_SHARE_QUEUE, false, false, true, arguments);
     }
     
     @Bean(name=RapDefinitions.RESOURCE_L2_UNSHARE_QUEUE)
     Queue resourceL2UnShareQueue() {
-        return new Queue(RapDefinitions.RESOURCE_L2_UNSHARE_QUEUE, false);
+        Map<String, Object> arguments = new HashMap<>();
+        arguments.put("x-message-ttl", rabbitReplyTimeout);
+        return new Queue(RapDefinitions.RESOURCE_L2_UNSHARE_QUEUE, false, false, true, arguments);
     }
     //end L2
 
@@ -120,6 +142,7 @@ public class ResourceRegistrationQueueConfig {
         container.setConnectionFactory(connectionFactory);
         container.setQueueNames(RapDefinitions.RESOURCE_REGISTRATION_QUEUE);
         container.setMessageListener(listenerAdapter);
+        container.setDefaultRequeueRejected(false);
         return container;
     }
     
@@ -130,6 +153,7 @@ public class ResourceRegistrationQueueConfig {
         container.setConnectionFactory(connectionFactory);
         container.setQueueNames(RapDefinitions.RESOURCE_UNREGISTRATION_QUEUE);
         container.setMessageListener(listenerAdapter);
+        container.setDefaultRequeueRejected(false);
         return container;
     }
 
@@ -140,6 +164,7 @@ public class ResourceRegistrationQueueConfig {
         container.setConnectionFactory(connectionFactory);
         container.setQueueNames(RapDefinitions.RESOURCE_UPDATE_QUEUE);
         container.setMessageListener(listenerAdapter);
+        container.setDefaultRequeueRejected(false);
         return container;
     }
     
@@ -151,6 +176,7 @@ public class ResourceRegistrationQueueConfig {
         container.setConnectionFactory(connectionFactory);
         container.setQueueNames(RapDefinitions.RESOURCE_L2_UPDATE_QUEUE);
         container.setMessageListener(listenerAdapter);
+        container.setDefaultRequeueRejected(false);
         return container;
     }
     
@@ -161,6 +187,7 @@ public class ResourceRegistrationQueueConfig {
         container.setConnectionFactory(connectionFactory);
         container.setQueueNames(RapDefinitions.RESOURCE_L2_UNREGISTRATION_QUEUE);
         container.setMessageListener(listenerAdapter);
+        container.setDefaultRequeueRejected(false);
         return container;
     }
 
@@ -171,6 +198,7 @@ public class ResourceRegistrationQueueConfig {
         container.setConnectionFactory(connectionFactory);
         container.setQueueNames(RapDefinitions.RESOURCE_L2_SHARE_QUEUE);
         container.setMessageListener(listenerAdapter);
+        container.setDefaultRequeueRejected(false);
         return container;
     }
     
@@ -181,6 +209,7 @@ public class ResourceRegistrationQueueConfig {
         container.setConnectionFactory(connectionFactory);
         container.setQueueNames(RapDefinitions.RESOURCE_L2_UNSHARE_QUEUE);
         container.setMessageListener(listenerAdapter);
+        container.setDefaultRequeueRejected(false);
         return container;
     }
     //end L2
