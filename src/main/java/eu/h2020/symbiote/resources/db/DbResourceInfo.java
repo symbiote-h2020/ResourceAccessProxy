@@ -10,6 +10,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import eu.h2020.symbiote.cloud.model.internal.FederationInfoBean;
 import eu.h2020.symbiote.cloud.model.rap.ResourceInfo;
+import eu.h2020.symbiote.model.cim.Resource;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +36,7 @@ public class DbResourceInfo {
     @JsonIgnore
     private List<String> sessionIdList;
     
+    private Resource resource;
 
 	@JsonIgnore
     private String pluginId;
@@ -49,6 +51,7 @@ public class DbResourceInfo {
         this.sessionIdList = null;
         this.type = null;
         this.federationInfo = null;
+        this.resource = null;
     }
     
     public DbResourceInfo(String resourceId, String platformResourceId) {
@@ -122,6 +125,14 @@ public class DbResourceInfo {
     @JsonProperty("federationInfo")
     public void setFederationInfo(FederationInfoBean federationInfo) {
         this.federationInfo = federationInfo;
+    }
+    
+    public Resource getResource() {
+        return resource;
+    }
+
+    public void setResource(Resource resource) {
+        this.resource = resource;
     }
 
     public ResourceInfo toResourceInfo() {

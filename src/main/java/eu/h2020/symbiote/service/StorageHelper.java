@@ -15,7 +15,12 @@ import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.messages.plugin.RapPluginErrorResponse;
 import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
 import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
+import eu.h2020.symbiote.model.cim.Actuator;
+import eu.h2020.symbiote.model.cim.Capability;
 import eu.h2020.symbiote.model.cim.Observation;
+import eu.h2020.symbiote.model.cim.Parameter;
+import eu.h2020.symbiote.model.cim.Sensor;
+import eu.h2020.symbiote.model.cim.Service;
 import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessGetMessage;
 import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessHistoryMessage;
 import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessMessage;
@@ -33,6 +38,7 @@ import eu.h2020.symbiote.resources.db.DbResourceInfo;
 import eu.h2020.symbiote.interfaces.ResourceAccessNotificationService;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
+import eu.h2020.symbiote.validation.ValidationHelper;
 
 import java.io.UnsupportedEncodingException;
 import java.text.DateFormat;
@@ -66,6 +72,7 @@ import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import static eu.h2020.symbiote.resources.RapDefinitions.JSON_OBJECT_TYPE_FIELD_NAME;
+import static org.hamcrest.CoreMatchers.instanceOf;
 
 /**
  *
@@ -343,9 +350,11 @@ public class StorageHelper {
         try {
             ResourceAccessMessage msg;
             String pluginId = null;
+            String internalId = null;
             for(ResourceInfo resourceInfo: resourceInfoList){
                 pluginId = resourceInfo.getPluginId();
                 type = resourceInfo.getType();
+                internalId = resourceInfo.getInternalId();
                 if(pluginId != null)
                     break;
             }
@@ -357,8 +366,13 @@ public class StorageHelper {
                 pluginId = lst.get(0).getPlatformId();
             }
             
-            if(type.toLowerCase().startsWith("service")) {
+            DbResourceInfo dbResourceInfo = resourcesRepo.findByInternalId(internalId).get(0);
+
+            if(dbResourceInfo.getResource() instanceof Service) {
                 requestBody = "[" + requestBody + "]";
+                validateServiceRequestBody(dbResourceInfo, requestBody);
+            } else { // actuator
+                validateActuationRequestBody(dbResourceInfo, requestBody);
             }
             
             String routingKey = pluginId + "." + ResourceAccessMessage.AccessType.SET.toString().toLowerCase();
@@ -383,6 +397,9 @@ public class StorageHelper {
                 throw new ODataApplicationException(errorResponse.getMessage(), errorResponse.getResponseCode(), null);
             }
             return rpResponse;
+        } catch (eu.h2020.symbiote.validation.ValidationException ve) {
+            throw new ODataApplicationException("Validation error: " + ve.getMessage(), 
+                    HttpStatusCode.BAD_REQUEST.getStatusCode(), Locale.ROOT, ve);
         } catch (ODataApplicationException ae) {
             throw ae;        
         } catch (Exception e) {
@@ -390,6 +407,15 @@ public class StorageHelper {
         }
     }
 
+    private void validateActuationRequestBody(DbResourceInfo dbResourceInfo, String payload) throws eu.h2020.symbiote.validation.ValidationException {
+        List<Capability> capabilitiesDefined = ((Actuator)dbResourceInfo.getResource()).getCapabilities();
+        ValidationHelper.validateActuatorPayload(capabilitiesDefined, payload);        
+    }
+
+    private void validateServiceRequestBody(DbResourceInfo dbResourceInfo, String payload) throws eu.h2020.symbiote.validation.ValidationException {
+        List<Parameter> parametersDefined = ((Service)dbResourceInfo.getResource()).getParameters();
+        ValidationHelper.validateServicePayload(parametersDefined, payload);
+    }
 
     /**
      * This method is used to execute a filter locally on RAP

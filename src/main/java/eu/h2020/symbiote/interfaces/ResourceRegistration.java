@@ -86,11 +86,8 @@ public class ResourceRegistration {
 							+ internalId);
 
 					addPolicy(symbioteId, internalId, msg.getAccessPolicy());
-					addResource(symbioteId, internalId, props, pluginId, null);
+					addResource(symbioteId, internalId, resource, props, pluginId, null);
 				}
-				
-				
-				
 			}
 			addCloudResourceInfoForOData(msgs);
 		} catch (Exception e) {
@@ -176,7 +173,7 @@ public class ResourceRegistration {
 					log.debug("Updating resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
 
 					addPolicy(symbioteId, internalId, msg.getAccessPolicy());
-					addResource(symbioteId, internalId, props, pluginId, null);
+					addResource(symbioteId, internalId, resource, props, pluginId, null);
 				}
 
 			}
@@ -223,7 +220,7 @@ public class ResourceRegistration {
 					federationInfoReduced.setSharingInformation(newMap);
 						
 					log.debug("Updating resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
-					addResource(symbioteId, internalId, props, pluginId, federationInfoReduced);
+					addResource(symbioteId, internalId, resource, props, pluginId, federationInfoReduced);
 				}
 			
 			}
@@ -288,7 +285,7 @@ public class ResourceRegistration {
 						federationInfoReduced.setSharingInformation(newMap);
 						
 						log.debug("Sharing resource with symbioteId: " + symbioteId + ", internalId: " + internalId);
-						addResource(symbioteId, internalId, props, pluginId, federationInfoReduced);
+						addResource(symbioteId, internalId, resource, props, pluginId, federationInfoReduced);
 					}
 					
 				}
@@ -349,9 +346,11 @@ public class ResourceRegistration {
 		}
 	}
 
-	private void addResource(String resourceId, String platformResourceId, List<String> obsProperties, String pluginId,
+	private void addResource(String resourceId, String platformResourceId, Resource resource, List<String> obsProperties, String pluginId,
 			FederationInfoBean federationInfo) {
 		DbResourceInfo resourceInfo = new DbResourceInfo(resourceId, platformResourceId);
+		resourceInfo.setResource(resource);
+		
 		if (obsProperties != null)
 			resourceInfo.setObservedProperties(obsProperties);
 		if (pluginId != null && pluginId.length() > 0)

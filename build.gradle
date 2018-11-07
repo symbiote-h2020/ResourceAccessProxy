@@ -72,6 +72,8 @@ Forces dependencies' cache invalidation for each build for dependencies marked w
 configurations.all {
     // check for updates every build
     resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+    // exclude logging to log4j12
+    exclude group: "org.slf4j", module: "slf4j-log4j12"
 }
 
 dependencies {
@@ -88,9 +90,11 @@ dependencies {
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
 
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:5.32+') { }
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:5.33+') { }
     // localMaven
     //compile('eu.h2020.symbiote:SymbIoTeLibraries:5.29.0-SNAPSHOT')
+
+    compile('com.github.symbiote-h2020:SymbIoTeSemantics:2.3.1')
 
     // Spring
     compile('org.springframework.cloud:spring-cloud-starter')

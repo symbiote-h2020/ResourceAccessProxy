@@ -125,7 +125,7 @@ public class RAPEdmController {
             response = handler.process(createODataRequest(req, split));
             
             responseStr = StreamUtils.copyToString(response.getContent(), StandardCharsets.UTF_8);
-            if(response.getStatusCode() != HttpStatus.OK.value()){
+            if(!HttpStatus.valueOf(response.getStatusCode()).is2xxSuccessful()){
                 if(responseStr != null && !responseStr.isEmpty())
                     sendFailMessage(req, responseStr);
                 else
@@ -226,6 +226,8 @@ public class RAPEdmController {
                         sw.append(",\n");
                 }
                 input = sw.toString();
+                // setting custom header if it is service
+                odRequest.addHeader("X-RAP-Service", "true");
             }
 
             odRequest.setBody(new ReaderInputStream(new StringReader(input), StandardCharsets.UTF_8));
