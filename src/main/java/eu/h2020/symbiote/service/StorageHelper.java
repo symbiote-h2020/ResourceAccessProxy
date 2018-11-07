@@ -17,6 +17,7 @@ import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
 import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
 import eu.h2020.symbiote.model.cim.Actuator;
 import eu.h2020.symbiote.model.cim.Capability;
+import eu.h2020.symbiote.model.cim.Datatype;
 import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.model.cim.Parameter;
 import eu.h2020.symbiote.model.cim.Sensor;
@@ -56,6 +57,7 @@ import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.olingo.commons.api.http.HttpStatusCode;
 import org.apache.olingo.server.api.ODataApplicationException;
 import org.apache.olingo.server.api.uri.UriParameter;
@@ -88,6 +90,10 @@ public class StorageHelper {
     private final RabbitTemplate rabbitTemplate;
     private final TopicExchange exchange;
     private final AuthorizationManager authManager;
+    
+    private boolean validateServiceRequestPayload = false;
+    private boolean validateActuatorRequestPayload = false;
+    private boolean validateServiceResponsePayload = false;
 
     private static final Pattern PATTERN = Pattern.compile(
             "\\p{Digit}{1,4}-\\p{Digit}{1,2}-\\p{Digit}{1,2}"
@@ -368,11 +374,13 @@ public class StorageHelper {
             
             DbResourceInfo dbResourceInfo = resourcesRepo.findByInternalId(internalId).get(0);
 
-            if(dbResourceInfo.getResource() instanceof Service) {
+            if(isService(dbResourceInfo)) {
                 requestBody = "[" + requestBody + "]";
-                validateServiceRequestBody(dbResourceInfo, requestBody);
+                if(validateServiceRequestPayload)
+                    validateServiceRequestBody(dbResourceInfo, requestBody);
             } else { // actuator
-                validateActuationRequestBody(dbResourceInfo, requestBody);
+                if(validateActuatorRequestPayload)
+                    validateActuationRequestBody(dbResourceInfo, requestBody);
             }
             
             String routingKey = pluginId + "." + ResourceAccessMessage.AccessType.SET.toString().toLowerCase();
@@ -391,11 +399,18 @@ public class StorageHelper {
             }
             log.debug("Message Set: " + json);
             Object o = rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+            
             RapPluginResponse rpResponse = extractRapPluginResponse(o);
             if(rpResponse instanceof RapPluginErrorResponse) {
                 RapPluginErrorResponse errorResponse = (RapPluginErrorResponse) rpResponse;
                 throw new ODataApplicationException(errorResponse.getMessage(), errorResponse.getResponseCode(), null);
             }
+            
+            // validate service response
+            if(validateServiceResponsePayload && isService(dbResourceInfo)) {
+                validateServiceResponseBody(dbResourceInfo, rpResponse.getContent()); 
+            }
+            
             return rpResponse;
         } catch (eu.h2020.symbiote.validation.ValidationException ve) {
             throw new ODataApplicationException("Validation error: " + ve.getMessage(), 
@@ -403,20 +418,46 @@ public class StorageHelper {
         } catch (ODataApplicationException ae) {
             throw ae;        
         } catch (Exception e) {
-            throw new ODataApplicationException("Internal Error", HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), Locale.ROOT);
+            throw new ODataApplicationException("Internal Error", HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), Locale.ROOT, e);
         }
     }
 
+    private boolean isService(DbResourceInfo dbResourceInfo) {
+        return dbResourceInfo.getResource() instanceof Service;
+    }
+    
     private void validateActuationRequestBody(DbResourceInfo dbResourceInfo, String payload) throws eu.h2020.symbiote.validation.ValidationException {
+        if(dbResourceInfo.getResource() == null) {
+            log.warn("Try to validate request body for actuator with internalId '{}' but registration in mongo doesn't have resource. Please reregister resource.", dbResourceInfo.getInternalId());
+            return;
+        }
         List<Capability> capabilitiesDefined = ((Actuator)dbResourceInfo.getResource()).getCapabilities();
         ValidationHelper.validateActuatorPayload(capabilitiesDefined, payload);        
     }
 
     private void validateServiceRequestBody(DbResourceInfo dbResourceInfo, String payload) throws eu.h2020.symbiote.validation.ValidationException {
+        if(dbResourceInfo.getResource() == null) {
+            log.warn("Try to validate request body for service with internalId '{}' but registration in mongo doesn't have resource. Please reregister resource.", dbResourceInfo.getInternalId());
+            return;
+        }
         List<Parameter> parametersDefined = ((Service)dbResourceInfo.getResource()).getParameters();
         ValidationHelper.validateServicePayload(parametersDefined, payload);
     }
 
+    private void validateServiceResponseBody(DbResourceInfo dbResourceInfo, String responseBody) throws eu.h2020.symbiote.validation.ValidationException {
+        if(dbResourceInfo.getResource() == null) {
+            log.warn("Try to validate response body for service with internalId '{}' but registration in mongo doesn't have resource. Please reregister resource.", dbResourceInfo.getInternalId());
+            return;
+        }
+        
+        Datatype resultType = ((Service)dbResourceInfo.getResource()).getResultType();
+        if(resultType == null) {
+            log.warn("Can not validate response body for service with internalId '{}' because service don't have resultType. Please reregister resource with resultType.", dbResourceInfo.getInternalId());            
+        }
+        
+        ValidationHelper.validateType(resultType, responseBody, null);
+    }
+    
     /**
      * This method is used to execute a filter locally on RAP
      * @param expression    the filter expression
@@ -616,5 +657,29 @@ public class StorageHelper {
         }catch(Exception e){
             log.error("Error to send SetSuccessfulAttempts to Monitoring", e);
         }
+    }
+
+    public boolean isValidateServiceRequestPayload() {
+        return validateServiceRequestPayload;
+    }
+
+    public void setValidateServiceRequestPayload(boolean validateServiceRequestPayload) {
+        this.validateServiceRequestPayload = validateServiceRequestPayload;
+    }
+
+    public boolean isValidateActuatorRequestPayload() {
+        return validateActuatorRequestPayload;
+    }
+
+    public void setValidateActuatorRequestPayload(boolean validateActuatorRequestPayload) {
+        this.validateActuatorRequestPayload = validateActuatorRequestPayload;
+    }
+
+    public boolean isValidateServiceResponsePayload() {
+        return validateServiceResponsePayload;
+    }
+
+    public void setValidateServiceResponsePayload(boolean validateServiceResponsePayload) {
+        this.validateServiceResponsePayload = validateServiceResponsePayload;
     }
 }

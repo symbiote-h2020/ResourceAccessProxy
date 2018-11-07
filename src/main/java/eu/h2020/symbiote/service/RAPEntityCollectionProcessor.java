@@ -88,9 +88,17 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
     @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
     TopicExchange exchange;
     
-    
     @Value("${rabbit.replyTimeout}")
     private int rabbitReplyTimeout;
+    
+    @Value("${rap.validateServiceRequestPayload:false}")
+    private boolean validateServicePayload;
+    
+    @Value("${rap.validateActuatorRequestPayload:false}")
+    private boolean validateActuatorPayload;
+    
+    @Value("${rap.validateServiceResponsePayload:false}")
+    private boolean validateServiceResult;
 
     private StorageHelper storageHelper;
     
@@ -100,6 +108,10 @@ public class RAPEntityCollectionProcessor implements EntityCollectionProcessor {
     //    this.serviceMetadata = sm;
         storageHelper = new StorageHelper(resourcesRepo, pluginRepo, authManager, 
                 rabbitTemplate, rabbitReplyTimeout, exchange, notificationService);
+        storageHelper.setValidateActuatorRequestPayload(validateActuatorPayload);
+        storageHelper.setValidateServiceRequestPayload(validateServicePayload);
+        storageHelper.setValidateServiceResponsePayload(validateServiceResult);
+
     }
 
     //Sensor('id')/Observation

@@ -67,7 +67,7 @@ public class ValidationHelper {
         }
     }
 
-    private static void validateType(Datatype datatype, String json, List<Restriction> restrictions) throws ValidationException {
+    public static void validateType(Datatype datatype, String json, List<Restriction> restrictions) throws ValidationException {
         try {
             validateType(datatype, new ObjectMapper().readTree(json), restrictions);
         } catch (IOException ex) {
@@ -75,7 +75,7 @@ public class ValidationHelper {
         }
     }
 
-    private static void validateType(Datatype datatype, JsonNode node, List<Restriction> restrictions) throws ValidationException {
+    public static void validateType(Datatype datatype, JsonNode node, List<Restriction> restrictions) throws ValidationException {
         if (datatype.isArray()) {
             if (!node.isArray()) {
                 throw new ValidationException("parameter with isArray=true must contain array");

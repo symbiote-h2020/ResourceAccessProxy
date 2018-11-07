@@ -85,12 +85,24 @@ public class RAPPrimitiveProcessor implements PrimitiveProcessor {
     @Value("${rabbit.replyTimeout}")
     private int rabbitReplyTimeout;
 
+    @Value("${rap.validateServiceRequestPayload:false}")
+    private boolean validateServicePayload;
+    
+    @Value("${rap.validateActuatorRequestPayload:false}")
+    private boolean validateActuatorPayload;
+    
+    @Value("${rap.validateServiceResponsePayload:false}")
+    private boolean validateServiceResult;
+
     private StorageHelper storageHelper;
     
     @Override
     public void init(OData odata, ServiceMetadata sm) {
         storageHelper = new StorageHelper(resourcesRepo, pluginRepo, authManager,
                 rabbitTemplate, rabbitReplyTimeout, exchange, notificationService);
+        storageHelper.setValidateActuatorRequestPayload(validateActuatorPayload);
+        storageHelper.setValidateServiceRequestPayload(validateServicePayload);
+        storageHelper.setValidateServiceResponsePayload(validateServiceResult);
     }
     
     //Sensor('id')/name
