@@ -51,7 +51,11 @@ public class ValidationHelper {
             if (!temp.isPresent()) {
                 throw new ValidationException("provided parameter '" + parameterPresent.getKey() + "' is not defined");
             }
-            validateType(temp.get().getDatatype(), parameterPresent.getValue(), temp.get().getRestrictions());
+            try {
+                validateType(temp.get().getDatatype(), parameterPresent.getValue(), temp.get().getRestrictions());
+            } catch (ValidationException ve) {
+                throw new ValidationException("parameter: '" + parameterPresent.getKey() + "' - " + ve.getMessage(), ve);
+            }
         }
     }
 
@@ -63,7 +67,12 @@ public class ValidationHelper {
             if (!temp.isPresent()) {
                 throw new ValidationException("provided capability '" + capabilityPresent.getKey() + "' is not defined");
             }
-            validateServicePayload(temp.get().getParameters(), capabilitiesPresent.get(temp.get().getName()));
+            
+            try {
+                validateServicePayload(temp.get().getParameters(), capabilitiesPresent.get(temp.get().getName()));
+            } catch(ValidationException ve) {
+                throw new ValidationException("capability '" + temp.get().getName() + "' - " + ve.getMessage(), ve);
+            }
         }
     }
 

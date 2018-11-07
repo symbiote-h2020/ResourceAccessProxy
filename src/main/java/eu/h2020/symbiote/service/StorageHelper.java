@@ -455,7 +455,11 @@ public class StorageHelper {
             log.warn("Can not validate response body for service with internalId '{}' because service don't have resultType. Please reregister resource with resultType.", dbResourceInfo.getInternalId());            
         }
         
-        ValidationHelper.validateType(resultType, responseBody, null);
+        try {
+            ValidationHelper.validateType(resultType, responseBody, null);
+        } catch (eu.h2020.symbiote.validation.ValidationException ve) {
+            throw new eu.h2020.symbiote.validation.ValidationException("Service response body - " + ve.getMessage(), ve);
+        }
     }
     
     /**
