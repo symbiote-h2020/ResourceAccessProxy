@@ -94,10 +94,6 @@ public class ResourceAccessRestController {
     @Autowired
     private AuthorizationManager authManager; 
     
-    @SuppressWarnings("unused")
-    @Autowired
-    private AccessPolicyRepository accessPolicyRepo;
-   
     @Value("${symbiote.rap.cram.url}") 
     private String notificationUrl;
         
@@ -177,10 +173,16 @@ public class ResourceAccessRestController {
             log.error(e.toString(), e);
             httpStatus = HttpStatus.NOT_FOUND;
             sendFailMessage(path, resourceId, e);
-        } catch (SecurityException se) {
+        } catch (SecurityException | ValidationException se) {
+            e = se;
             log.debug(se.getMessage(), se);
-            httpStatus = HttpStatus.FORBIDDEN;
+            httpStatus = HttpStatus.UNAUTHORIZED;
             sendFailMessage(path, resourceId, se);
+        } catch (TimeoutException ex) {
+            e = ex;
+            log.error(e.toString(), e);
+            httpStatus = HttpStatus.GATEWAY_TIMEOUT;
+            sendFailMessage(path, resourceId, e);
         } catch (Exception ex) {
             e = ex;
             String err = "Unable to read resource with id: " + resourceId;
@@ -269,10 +271,16 @@ public class ResourceAccessRestController {
             log.error(e.toString(),e);
             httpStatus = HttpStatus.NOT_FOUND;
             sendFailMessage(path, resourceId, e);
-        } catch (SecurityException se) {
+        } catch (SecurityException | ValidationException se) {
+            e = se;
             log.warn(se.getMessage(), se);
-            httpStatus = HttpStatus.FORBIDDEN;
+            httpStatus = HttpStatus.UNAUTHORIZED;
             sendFailMessage(path, resourceId, se);
+        } catch (TimeoutException ex) {
+            e = ex;
+            log.error(e.toString(), e);
+            httpStatus = HttpStatus.GATEWAY_TIMEOUT;
+            sendFailMessage(path, resourceId, e);
         } catch (Exception ex) {
             e = ex;
             String err = "Unable to read resource with id: " + resourceId;
@@ -350,9 +358,10 @@ public class ResourceAccessRestController {
             log.error(e.toString(), e);
             httpStatus = HttpStatus.NOT_FOUND;
             sendFailMessage(path, resourceId, e);
-        } catch (SecurityException se) {
+        } catch (SecurityException | ValidationException se) {
+            e = se;
             log.debug(se.getMessage(), se);
-            httpStatus = HttpStatus.FORBIDDEN;
+            httpStatus = HttpStatus.UNAUTHORIZED;
             sendFailMessage(path, resourceId, se);
         } catch (GenericException ex) {
             e = ex;

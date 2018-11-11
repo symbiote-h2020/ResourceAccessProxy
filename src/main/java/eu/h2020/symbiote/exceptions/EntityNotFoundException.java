@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  *
  * @author Matteo Pardi
  */
-@ResponseStatus(HttpStatus.BAD_REQUEST)
+@ResponseStatus(HttpStatus.NOT_FOUND)
 public class EntityNotFoundException extends RuntimeException {
     private static final long serialVersionUID = -7083406099980297962L;
 

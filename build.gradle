@@ -12,7 +12,7 @@ if (!hasProperty('mainClass')) {
 // initial extensions to gradle
 buildscript {
     ext {
-        springBootVersion = '1.5.14.RELEASE'
+        springBootVersion = '1.5.17.RELEASE'
         springCloudVersion = 'Dalston.SR5'
     }
     repositories {
@@ -125,6 +125,8 @@ dependencies {
     compile("org.springframework.boot:spring-boot-starter-web")
     testCompile ("org.springframework.boot:spring-boot-starter-test")
     
+    // lombok
+    compileOnly('org.projectlombok:lombok')
     
     //Owlapi
     //compile('net.sourceforge.owlapi:owlapi-distribution:5.1.1')

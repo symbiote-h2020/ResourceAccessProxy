@@ -107,7 +107,7 @@ public class RAPEntityProcessor implements EntityProcessor{
     @Override
     public void init(OData odata, ServiceMetadata sm) {
         this.odata = odata;   
-    //    this.serviceMetadata = sm;
+        //this.serviceMetadata = sm;
         storageHelper = new StorageHelper(resourcesRepo, pluginRepo, authManager, 
                 rabbitTemplate, rabbitReplyTimeout, exchange, notificationService);
         storageHelper.setValidateActuatorRequestPayload(validateActuatorPayload);
@@ -312,7 +312,8 @@ public class RAPEntityProcessor implements EntityProcessor{
                 return;
             }
 
-            RapPluginResponse rapPluginResponse = storageHelper.setService(DbResourceInfo.toResourceInfos(resourceInfoList), body);        
+            RapPluginResponse rapPluginResponse = storageHelper.setService(DbResourceInfo.toResourceInfos(resourceInfoList), body);
+
 //            responseString = "";        
 //            if ((obj != null) && (obj instanceof byte[])) {
 //                try {

@@ -410,11 +410,11 @@ public class ResourceRegistration {
 	
 	/**
 	 * deleting a certain resource with symbioteId
-	 * @param internalId
+	 * @param symbioteId
 	 */
 	private void deleteResource(String symbioteId) {
 		try {
-			Optional<DbResourceInfo> resource = resourcesRepository.findById(symbioteId);;
+			Optional<DbResourceInfo> resource = resourcesRepository.findById(symbioteId);
 			if (resource.isPresent()) {
 				resourcesRepository.delete(symbioteId);;
 			}

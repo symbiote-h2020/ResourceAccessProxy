@@ -31,6 +31,11 @@ public class ResourceRegistrationQueueConfig {
     @Value("${rabbit.replyTimeout}")
     private int rabbitReplyTimeout;
     
+    @Bean
+    ResourceRegistration resourceReceiver() {
+        return new ResourceRegistration();
+    }
+    
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN)
     DirectExchange resourceRegistrationExchangeIn() {
         return new DirectExchange(RapDefinitions.RESOURCE_REGISTRATION_EXCHANGE_IN, true, false);
@@ -214,11 +219,6 @@ public class ResourceRegistrationQueueConfig {
     }
     //end L2
     
-    @Bean
-    ResourceRegistration resourceReceiver() {
-        return new ResourceRegistration();
-    }
-
     @Bean(name=RapDefinitions.RESOURCE_REGISTRATION_QUEUE + "Listener")
     MessageListenerAdapter resourceRegistrationListenerAdapter(ResourceRegistration receiver) {
         return new MessageListenerAdapter(receiver, "receiveL1RegistrationMessage");

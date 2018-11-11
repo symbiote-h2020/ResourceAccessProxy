@@ -98,6 +98,18 @@ public class OwlapiHelp {
         addInfoFromRegistration = false;
     }
     
+    public void clearAll() throws Exception {
+        loadedOntology = null;
+        map = null;
+        classes = null;
+        classesStart.clear();
+        classesRead.clear();;
+        allOntology = null;
+        fromOwlToClasses();
+        addInfoFromDB = false;
+        addInfoFromRegistration = false;
+    }
+    
     public String getLoadedOntology() {
         return loadedOntology;
     }

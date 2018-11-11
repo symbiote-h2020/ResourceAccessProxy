@@ -9,8 +9,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.semanticweb.owlapi.model.IRI;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -27,6 +29,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @TestConfiguration
+@DataMongoTest
+@Import({OwlapiHelp.class})
 @ActiveProfiles("test")
 public class TestReadBim {
     
