@@ -5,9 +5,23 @@
  */
 package eu.h2020.symbiote.validation;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.apache.jena.datatypes.DatatypeFormatException;
+import org.apache.jena.datatypes.RDFDatatype;
+import org.apache.jena.datatypes.TypeMapper;
+import org.apache.jena.shared.PrefixMapping;
+
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import eu.h2020.symbiote.model.cim.Capability;
 import eu.h2020.symbiote.model.cim.ComplexDatatype;
 import eu.h2020.symbiote.model.cim.ComplexProperty;
@@ -17,19 +31,6 @@ import eu.h2020.symbiote.model.cim.Parameter;
 import eu.h2020.symbiote.model.cim.PrimitiveDatatype;
 import eu.h2020.symbiote.model.cim.PrimitiveProperty;
 import eu.h2020.symbiote.model.cim.Restriction;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
-import org.apache.jena.datatypes.DatatypeFormatException;
-import org.apache.jena.datatypes.RDFDatatype;
-import org.apache.jena.datatypes.TypeMapper;
-import org.apache.jena.shared.PrefixMapping;
 
 /**
  *

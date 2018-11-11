@@ -5,23 +5,8 @@
  */
 package eu.h2020.symbiote.service;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
-import eu.h2020.symbiote.bim.OwlapiHelp;
-import eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo;
-import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
-import eu.h2020.symbiote.interfaces.ResourceAccessNotificationService;
-import eu.h2020.symbiote.managers.AuthorizationManager;
-import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
-import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
-import eu.h2020.symbiote.resources.db.ResourcesRepository;
-import eu.h2020.symbiote.resources.RapDefinitions;
-import eu.h2020.symbiote.resources.db.PluginRepository;
-import eu.h2020.symbiote.resources.db.DbResourceInfo;
 import static eu.h2020.symbiote.service.RAPEntityCollectionProcessor.setErrorResponse;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.olingo.commons.api.edm.EdmEntitySet;
 import org.apache.olingo.commons.api.edm.EdmEntityType;
@@ -43,10 +29,11 @@ import org.apache.olingo.server.api.ODataLibraryException;
 import org.apache.olingo.server.api.ODataRequest;
 import org.apache.olingo.server.api.ODataResponse;
 import org.apache.olingo.server.api.ServiceMetadata;
+import org.apache.olingo.server.api.deserializer.ODataDeserializer;
 import org.apache.olingo.server.api.processor.EntityProcessor;
 import org.apache.olingo.server.api.uri.UriInfo;
-import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriParameter;
+import org.apache.olingo.server.api.uri.UriResource;
 import org.apache.olingo.server.api.uri.UriResourceEntitySet;
 import org.apache.olingo.server.api.uri.UriResourceNavigation;
 import org.slf4j.Logger;
@@ -55,9 +42,24 @@ import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Component;
-import org.apache.olingo.server.api.deserializer.ODataDeserializer;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
+import eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo;
+import eu.h2020.symbiote.exceptions.CustomODataApplicationException;
+import eu.h2020.symbiote.interfaces.ResourceAccessNotificationService;
+import eu.h2020.symbiote.managers.AuthorizationManager;
+import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
+import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
+import eu.h2020.symbiote.resources.RapDefinitions;
+import eu.h2020.symbiote.resources.db.DbResourceInfo;
+import eu.h2020.symbiote.resources.db.PluginRepository;
+import eu.h2020.symbiote.resources.db.ResourcesRepository;
 
 /**
  *

@@ -5,39 +5,20 @@
  */
 package eu.h2020.symbiote.interfaces;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo;
-import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
-import eu.h2020.symbiote.resources.db.ResourcesRepository;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
-import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessGetMessage;
-import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessHistoryMessage;
-import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessMessage.AccessType;
-import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessSetMessage;
-import eu.h2020.symbiote.cloud.model.rap.ResourceInfo;
-import eu.h2020.symbiote.exceptions.*;
-import eu.h2020.symbiote.interfaces.conditions.NBInterfaceRESTCondition;
-import eu.h2020.symbiote.managers.AuthorizationManager;
-import eu.h2020.symbiote.managers.AuthorizationResult;
-import eu.h2020.symbiote.managers.ServiceResponseResult;
-import eu.h2020.symbiote.resources.RapDefinitions;
-import eu.h2020.symbiote.resources.db.AccessPolicyRepository;
-import eu.h2020.symbiote.resources.db.DbResourceInfo;
-import eu.h2020.symbiote.resources.db.PlatformInfo;
-import eu.h2020.symbiote.resources.db.PluginRepository;
-import eu.h2020.symbiote.cloud.model.rap.query.Query;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
+import static eu.h2020.symbiote.resources.RapDefinitions.JSON_OBJECT_TYPE_FIELD_NAME;
 
 import java.io.UnsupportedEncodingException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 
-import org.omg.PortableServer.RequestProcessingPolicyOperations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
@@ -56,7 +37,33 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.HandlerMapping;
 
-import static eu.h2020.symbiote.resources.RapDefinitions.JSON_OBJECT_TYPE_FIELD_NAME;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
+import eu.h2020.symbiote.cloud.model.rap.ResourceInfo;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessGetMessage;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessHistoryMessage;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessMessage.AccessType;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessSetMessage;
+import eu.h2020.symbiote.cloud.model.rap.query.Query;
+import eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo;
+import eu.h2020.symbiote.exceptions.EntityNotFoundException;
+import eu.h2020.symbiote.exceptions.GenericException;
+import eu.h2020.symbiote.exceptions.TimeoutException;
+import eu.h2020.symbiote.interfaces.conditions.NBInterfaceRESTCondition;
+import eu.h2020.symbiote.managers.AuthorizationManager;
+import eu.h2020.symbiote.managers.AuthorizationResult;
+import eu.h2020.symbiote.managers.ServiceResponseResult;
+import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
+import eu.h2020.symbiote.resources.RapDefinitions;
+import eu.h2020.symbiote.resources.db.DbResourceInfo;
+import eu.h2020.symbiote.resources.db.PlatformInfo;
+import eu.h2020.symbiote.resources.db.PluginRepository;
+import eu.h2020.symbiote.resources.db.ResourcesRepository;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 
 
 /**

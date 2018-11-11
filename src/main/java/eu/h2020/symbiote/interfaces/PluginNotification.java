@@ -7,7 +7,6 @@ package eu.h2020.symbiote.interfaces;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import eu.h2020.symbiote.managers.AuthorizationManager;
 import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.resources.db.ResourcesRepository;
 import eu.h2020.symbiote.service.notificationResource.WebSocketController;
@@ -31,17 +30,14 @@ public class PluginNotification {
     private static final Logger log = LoggerFactory.getLogger(PluginNotification.class);
 
     @Autowired
-    ResourceAccessNotificationService notificationService;
+    private ResourceAccessNotificationService notificationService;
     
     @Autowired
-    WebSocketController webSocketController;
+    private WebSocketController webSocketController;
     
     @Value("${symbiote.rap.cram.url}") 
     private String notificationUrl;
     
-    @Autowired
-    private AuthorizationManager authManager;
-
     @Autowired
     private ResourcesRepository resourcesRepo;
 

@@ -9,6 +9,7 @@ package eu.h2020.symbiote.validation;
  *
  * @author Michael Jacoby <michael.jacoby@iosb.fraunhofer.de>
  */
+@SuppressWarnings("serial")
 public class ValidationException extends Exception {
 
     public ValidationException(String message, Throwable cause) {

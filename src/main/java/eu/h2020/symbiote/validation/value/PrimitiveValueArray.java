@@ -44,7 +44,7 @@ public class PrimitiveValueArray<T> implements Value<List<T>> {
         return values;
     }
 
-    public <T> T asCustomType(Class<T> clazz) {
+    public <C> C asCustomType(Class<C> clazz) {
         try {
             return new ObjectMapper().treeToValue(asJson(), clazz);
         } catch (JsonProcessingException ex) {

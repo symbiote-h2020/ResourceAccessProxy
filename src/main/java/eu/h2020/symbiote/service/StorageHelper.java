@@ -5,41 +5,7 @@
  */
 package eu.h2020.symbiote.service;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo;
-import eu.h2020.symbiote.resources.db.ResourcesRepository;
-import eu.h2020.symbiote.messages.plugin.RapPluginErrorResponse;
-import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
-import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
-import eu.h2020.symbiote.model.cim.Actuator;
-import eu.h2020.symbiote.model.cim.Capability;
-import eu.h2020.symbiote.model.cim.Datatype;
-import eu.h2020.symbiote.model.cim.Observation;
-import eu.h2020.symbiote.model.cim.Parameter;
-import eu.h2020.symbiote.model.cim.Sensor;
-import eu.h2020.symbiote.model.cim.Service;
-import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessGetMessage;
-import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessHistoryMessage;
-import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessMessage;
-import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessSetMessage;
-import eu.h2020.symbiote.cloud.model.rap.ResourceInfo;
-import eu.h2020.symbiote.cloud.model.rap.query.Comparison;
-import eu.h2020.symbiote.cloud.model.rap.query.Filter;
-import eu.h2020.symbiote.cloud.model.rap.query.Operator;
-import eu.h2020.symbiote.cloud.model.rap.query.Query;
-import eu.h2020.symbiote.managers.AuthorizationManager;
-import eu.h2020.symbiote.managers.AuthorizationResult;
-import eu.h2020.symbiote.resources.db.PlatformInfo;
-import eu.h2020.symbiote.resources.db.PluginRepository;
-import eu.h2020.symbiote.resources.db.DbResourceInfo;
-import eu.h2020.symbiote.interfaces.ResourceAccessNotificationService;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
-import eu.h2020.symbiote.validation.ValidationHelper;
+import static eu.h2020.symbiote.resources.RapDefinitions.JSON_OBJECT_TYPE_FIELD_NAME;
 
 import java.io.UnsupportedEncodingException;
 import java.text.DateFormat;
@@ -57,12 +23,11 @@ import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.olingo.commons.api.http.HttpStatusCode;
-import org.apache.olingo.server.api.ODataApplicationException;
-import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.commons.core.edm.primitivetype.EdmString;
+import org.apache.olingo.server.api.ODataApplicationException;
 import org.apache.olingo.server.api.ODataRequest;
+import org.apache.olingo.server.api.uri.UriParameter;
 import org.apache.olingo.server.api.uri.queryoption.expression.Binary;
 import org.apache.olingo.server.api.uri.queryoption.expression.BinaryOperatorKind;
 import org.apache.olingo.server.api.uri.queryoption.expression.Expression;
@@ -73,8 +38,41 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
-import static eu.h2020.symbiote.resources.RapDefinitions.JSON_OBJECT_TYPE_FIELD_NAME;
-import static org.hamcrest.CoreMatchers.instanceOf;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
+import eu.h2020.symbiote.cloud.model.rap.ResourceInfo;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessGetMessage;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessHistoryMessage;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessMessage;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessSetMessage;
+import eu.h2020.symbiote.cloud.model.rap.query.Comparison;
+import eu.h2020.symbiote.cloud.model.rap.query.Filter;
+import eu.h2020.symbiote.cloud.model.rap.query.Operator;
+import eu.h2020.symbiote.cloud.model.rap.query.Query;
+import eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo;
+import eu.h2020.symbiote.interfaces.ResourceAccessNotificationService;
+import eu.h2020.symbiote.managers.AuthorizationManager;
+import eu.h2020.symbiote.managers.AuthorizationResult;
+import eu.h2020.symbiote.messages.plugin.RapPluginErrorResponse;
+import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
+import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
+import eu.h2020.symbiote.model.cim.Actuator;
+import eu.h2020.symbiote.model.cim.Capability;
+import eu.h2020.symbiote.model.cim.Datatype;
+import eu.h2020.symbiote.model.cim.Observation;
+import eu.h2020.symbiote.model.cim.Parameter;
+import eu.h2020.symbiote.model.cim.Service;
+import eu.h2020.symbiote.resources.db.DbResourceInfo;
+import eu.h2020.symbiote.resources.db.PlatformInfo;
+import eu.h2020.symbiote.resources.db.PluginRepository;
+import eu.h2020.symbiote.resources.db.ResourcesRepository;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
+import eu.h2020.symbiote.validation.ValidationHelper;
 
 /**
  *
@@ -352,6 +350,7 @@ public class StorageHelper {
      * @throws ODataApplicationException exception in handling OData
      */
     public RapPluginResponse setService(List<ResourceInfo> resourceInfoList, String requestBody) throws ODataApplicationException {
+        @SuppressWarnings("unused")
         String type = "";
         try {
             ResourceAccessMessage msg;

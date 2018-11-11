@@ -1,14 +1,11 @@
 package eu.h2020.symbiote.rap.tests;
 
 
-import eu.h2020.symbiote.bim.OwlapiHelp;
-import eu.h2020.symbiote.service.CustomField;
-
-import static org.assertj.core.api.Assertions.setRemoveAssertJRelatedElementsFromStackTrace;
 import static org.junit.Assert.assertEquals;
 
 import java.util.HashMap;
 import java.util.Optional;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.semanticweb.owlapi.model.IRI;
@@ -19,6 +16,9 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
+
+import eu.h2020.symbiote.bim.OwlapiHelp;
+import eu.h2020.symbiote.service.CustomField;
 
 /*
  * To change this license header, choose License Headers in Project Properties.

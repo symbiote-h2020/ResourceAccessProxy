@@ -24,6 +24,7 @@ import java.util.stream.Collectors;
  *
  * @author Michael Jacoby <michael.jacoby@iosb.fraunhofer.de>
  */
+@SuppressWarnings({ "serial", "rawtypes" })
 public class ValueDeserializer extends StdDeserializer<Value> {
 
     public ValueDeserializer() {
@@ -41,6 +42,7 @@ public class ValueDeserializer extends StdDeserializer<Value> {
         return deserialize(jsonParser, deserializationContext);
     }
 
+    @SuppressWarnings({ "unchecked" })
     @Override
     public Value deserialize(JsonParser jp, DeserializationContext dc) throws JsonProcessingException, IOException {
         JsonNode root = jp.getCodec().readTree(jp);

@@ -52,6 +52,7 @@ public interface Value<T> {
         throw new RuntimeException("Value cannot be cast to complex value array");
     }
 
+    @SuppressWarnings("rawtypes")
     public default PrimitiveValueArray asPrimitiveArray() {
         if (PrimitiveValueArray.class.isAssignableFrom(this.getClass())) {
             return (PrimitiveValueArray) this;

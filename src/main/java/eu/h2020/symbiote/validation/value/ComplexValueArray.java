@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
  *
  * @author Michael Jacoby <michael.jacoby@iosb.fraunhofer.de>
  */
+@SuppressWarnings("rawtypes")
 public class ComplexValueArray implements Value<List<? extends Value>> {
 
     List<ComplexValue> values;

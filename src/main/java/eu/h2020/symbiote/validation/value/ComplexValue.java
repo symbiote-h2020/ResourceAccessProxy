@@ -13,6 +13,7 @@ import java.util.Objects;
  *
  * @author Michael Jacoby <michael.jacoby@iosb.fraunhofer.de>
  */
+@SuppressWarnings("rawtypes")
 public class ComplexValue implements Value<Map<String, Value>> {
 
     private final Map<String, Value> values;
