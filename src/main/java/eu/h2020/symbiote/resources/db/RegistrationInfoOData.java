@@ -117,6 +117,9 @@ public class RegistrationInfoOData {
         for(ParameterInfo pi: this.parameters){
             String name = pi.getName();
             String type = getShortClassName(pi.getType());
+            if(pi.getType().contains("[]")){
+                type += "[]";
+            }
             CustomField cf = new CustomField(type, name);
             customFieldList.add(cf);
         }
