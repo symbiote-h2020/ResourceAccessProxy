@@ -3,6 +3,9 @@ package eu.h2020.symbiote.rap.tests;
 
 import eu.h2020.symbiote.bim.OwlapiHelp;
 import eu.h2020.symbiote.service.CustomField;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.HashMap;
 import java.util.Optional;
 import org.junit.Test;
@@ -41,33 +44,33 @@ public class TestReadBim {
     public void readBim() {
         //map
         HashMap<String,HashMap<String,String>> owlMap = owlApiHelp.getMap();
-        assert(owlMap != null);
-        assert(!owlMap.isEmpty());
+        assertThat(owlMap).isNotNull();
+        assertThat(owlMap).isNotEmpty();
         String entityName = "Actuator";
         Optional<String> classLongName = owlMap.keySet().stream().filter(str -> (getShortClassName(str)).equalsIgnoreCase(entityName)).findFirst();
-        assert(classLongName.isPresent());
+        assertThat(classLongName.isPresent()).isTrue();
         HashMap<String,String> mapOfEntityName = owlMap.get(classLongName.get());
-        assert(mapOfEntityName != null);
-        assert(!mapOfEntityName.isEmpty());
+        assertThat(mapOfEntityName).isNotNull();
+        assertThat(mapOfEntityName).isNotEmpty();
         String superclass = "Superclass";
-        assert(mapOfEntityName.containsKey(superclass));
+        assertThat(mapOfEntityName).containsKey(superclass);
         String entityNameSuperClass = "Device";
         String entityNameSuperClassLongName = mapOfEntityName.get(superclass);
-        assert(getShortClassName(entityNameSuperClassLongName).equals(entityNameSuperClass));
+        assertThat(getShortClassName(entityNameSuperClassLongName)).isEqualTo(entityNameSuperClass);
         //classes
         HashMap<String,HashMap<String,String>> owlClasses = owlApiHelp.getClasses();
-        assert(owlClasses != null);
-        assert(!owlClasses.isEmpty());
+        assertThat(owlClasses).isNotNull();
+        assertThat(owlClasses).isNotEmpty();
         HashMap<String,String> classOfActuator = owlClasses.get(classLongName.get());
-        assert(classOfActuator != null);
-        assert(!classOfActuator.isEmpty());
+        assertThat(classOfActuator).isNotNull();
+        assertThat(classOfActuator).isNotEmpty();
         HashMap<String,String> classOfDevice = owlClasses.get(entityNameSuperClassLongName);
-        assert(classOfDevice != null);
-        assert(!classOfDevice.isEmpty());
-        assert(classOfDevice.containsKey("id"));
+        assertThat(classOfDevice).isNotNull();
+        assertThat(classOfDevice).isNotEmpty();
+        assertThat(classOfDevice).containsKey("id");
         for(String key: classOfDevice.keySet()){
-            assert(classOfActuator.containsKey(key));
-            assert(classOfActuator.get(key).equals(classOfDevice.get(key)));
+            assertThat(classOfActuator).containsKey(key);
+            assertThat(classOfActuator.get(key)).isEqualTo(classOfDevice.get(key));
         }
     }
     
