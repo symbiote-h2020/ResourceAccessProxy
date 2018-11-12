@@ -185,6 +185,51 @@ public class ODataControllerTest {
     }
 
     @Test
+    public void testGetWhenOneResourceRegisteredInInternalPluginWithOldResponseFromPlugin_shouldReturnResource() throws Exception {
+        // given
+        securityOk();
+        String resourceId = "1";
+        int top = 1;
+        
+        // insert
+        String platformResourceId = "pl_1";
+        List<String> obsProperties = null;
+        String pluginId = PlatformSpecificPlugin.PLUGIN_PLATFORM_ID;
+        DbResourceInfo resourceInfoResult = createResource(resourceId, platformResourceId, obsProperties, pluginId);
+        when(resourcesRepository.findById(any())).thenReturn(Optional.of(resourceInfoResult));
+        String responseFromPlugin = "{\n" + 
+                "  \"@c\": \".RapPluginOkResponse\",\n" + 
+                "  \"body\": {\n" + 
+                "    \"resourceId\": \"1\"\n" + 
+                "  },\n" + 
+                "  \"responseCode\": 200\n" + 
+                "}";
+        
+        when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
+        .thenReturn(responseFromPlugin);
+        
+        // when
+        ResultActions res = mockMvc.perform(get("/rap/Sensor('"+resourceId+"')/Observation?$top="+top).headers(getHeaders())
+                .accept(new MediaType(MediaType.APPLICATION_JSON.getType(), MediaType.APPLICATION_JSON.getSubtype(),
+                        Charset.forName("utf8"))));
+        
+        // then
+        res.andExpect(status().isOk());
+        String content = res.andReturn().getResponse().getContentAsString();
+        
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        List<Observation> observations = mapper.readValue(content, new TypeReference<List<Observation>>() {});
+        
+        assertThat(observations)
+        .isNotNull()
+        .hasSize(1)
+        .extracting("resourceId")
+        .containsExactly("1");
+    }
+    
+    @Test
     public void testGetWhenOneResourceRegisteredInExternalPluginThatIsNotRegistered_shouldReturnGatewayTimeout()
             throws Exception {
         // given
@@ -288,6 +333,46 @@ public class ODataControllerTest {
         assertThat(observations)
             .isNotNull()
             .hasSize(2);
+    }
+    
+    @Test
+    public void testHistoryWhenOneResourceRegisteredInInternalPluginWithOldPlugin_shouldReturnResources() throws Exception {
+        // given
+        securityOk();
+        String resourceId = "1";
+        int top = 10;
+        
+        // insert
+        String platformResourceId = "pl_1";
+        List<String> obsProperties = null;
+        String pluginId = PlatformSpecificPlugin.PLUGIN_PLATFORM_ID;
+        DbResourceInfo resourceInfoResult = createResource(resourceId, platformResourceId, obsProperties, pluginId);
+        when(resourcesRepository.findById(any())).thenReturn(Optional.of(resourceInfoResult));
+        String responseFromPlugin = "{\n" + 
+                "  \"@c\": \".RapPluginOkResponse\",\n" + 
+                "  \"body\": [{ \"resourceId\": \"1\" }, { \"resourceId\": \"1\" }],\n" + 
+                "  \"responseCode\": 200\n" + 
+                "}";
+        when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
+        .thenReturn(responseFromPlugin);
+        
+        // when
+        ResultActions res = mockMvc.perform(get("/rap/Sensor('"+resourceId+"')/Observation?$top="+top)
+                .headers(getHeaders()));
+        
+        // then
+        res.andExpect(status().isOk());
+        String content = res.andReturn().getResponse().getContentAsString();
+        
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        List<Observation> observations = mapper.readValue(content, new TypeReference<List<Observation>>() {
+        });
+        
+        assertThat(observations)
+        .isNotNull()
+        .hasSize(2);
     }
     
     @Test
@@ -734,6 +819,39 @@ public class ODataControllerTest {
         assertThat(content).isEqualTo("\"some service response\"");
     }
 
+    @Test
+    public void testSetServiceWhenOneResourceRegisteredInInternalPluginWithOldPlugin_shouldReturnResource() throws Exception {
+        // given
+        securityOk();
+        String resourceId = "1";
+        
+        // insert
+        String platformResourceId = "isrid1";
+        List<String> obsProperties = null;
+        String pluginId = PlatformSpecificPlugin.PLUGIN_PLATFORM_ID;
+        DbResourceInfo resourceInfoResult = createResource(resourceId, platformResourceId, obsProperties, pluginId);
+        
+        when(resourcesRepository.findById(any())).thenReturn(Optional.of(resourceInfoResult));
+        when(resourcesRepository.findByInternalId(any())).thenReturn(Arrays.asList(resourceInfoResult));
+        String responseFromPlugin = "{\n" + 
+                "  \"@c\": \".RapPluginOkResponse\",\n" + 
+                "  \"body\": \"some service response\",\n" + 
+                "  \"responseCode\": 200\n" + 
+                "}";
+        when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
+        .thenReturn(responseFromPlugin);
+        
+        // when
+        ResultActions res = mockMvc.perform(put("/rap/Service('"+resourceId+"')").headers(getHeaders())
+                .contentType(MediaType.APPLICATION_JSON).content("[{}]"));
+        
+        // then
+        res.andExpect(status().isOk());
+        String content = res.andReturn().getResponse().getContentAsString();
+        
+        assertThat(content).isEqualTo("\"some service response\"");
+    }
+    
     @Test
     public void testSetServiceWhenOneResourceRegisteredInExternalPluginThatIsNotRegistered_shouldReturnGatewayTimeout()
             throws Exception {

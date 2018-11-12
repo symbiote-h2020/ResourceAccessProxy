@@ -37,6 +37,20 @@ public class RapPluginOkResponse extends RapPluginResponse {
         setBody(jsonBody);
         setResponseCode(responseCode);
     }
+
+    public static RapPluginOkResponse createFromJson(int responseCode, String json) {
+        RapPluginOkResponse response = new RapPluginOkResponse();
+        response.setResponseCode(responseCode);
+        response.updateJsonBody(json);
+        return response;
+    }
+    
+    public static RapPluginOkResponse createFromJson(String json) {
+        RapPluginOkResponse response = new RapPluginOkResponse();
+        response.updateJsonBody(json);
+        response.updateResponseCode();
+        return response;
+    }
     
     public static RapPluginOkResponse createFromObject(int responseCode, Object object) {
         RapPluginOkResponse response = new RapPluginOkResponse();

@@ -7,6 +7,7 @@ package eu.h2020.symbiote.service;
 
 import static eu.h2020.symbiote.resources.RapDefinitions.JSON_OBJECT_TYPE_FIELD_NAME;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -40,6 +41,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -334,11 +336,19 @@ public class StorageHelper {
                 }
             }
             return resp;
-        } catch (Exception e) {
-            throw new ODataApplicationException("Can not parse response from RAP to JSON.\n Cause: " + e.getMessage(),
+        } catch (IOException jpe) {
+            // try to map old response
+            try {
+                JsonNode jsonTree = mapper.readTree(rawObj);
+                int responseCode = jsonTree.get("responseCode").asInt();
+                String bodyJson = mapper.writeValueAsString(jsonTree.get("body"));
+                return RapPluginOkResponse.createFromJson(responseCode, bodyJson);
+            } catch (Exception e) {
+                throw new ODataApplicationException("Can not parse response from RAP to JSON.\n Cause: " + e.getMessage(),
                     HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), 
                     Locale.ROOT,
                     e);
+            }
         }
     }
 
