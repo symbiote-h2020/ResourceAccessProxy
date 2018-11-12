@@ -338,7 +338,8 @@ public class RAPEntityProcessor implements EntityProcessor{
 
             // 4th: configure the response object: set the body, headers and status code
             //response.setContent(serializerResult.getContent());
-            response.setContent(new ByteArrayInputStream(rapPluginResponse.getContent().getBytes(StandardCharsets.UTF_8)));
+            if(rapPluginResponse.getContent() != null)
+                response.setContent(new ByteArrayInputStream(rapPluginResponse.getContent().getBytes(StandardCharsets.UTF_8)));
             response.setStatusCode(rapPluginResponse.getResponseCode());
             response.addHeader("Access-Control-Allow-Origin", "*");
             response.addHeader(HttpHeader.CONTENT_TYPE, responseFormat.toContentTypeString());

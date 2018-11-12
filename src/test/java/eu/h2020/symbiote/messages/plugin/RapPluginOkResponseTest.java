@@ -13,7 +13,7 @@ public class RapPluginOkResponseTest {
 
     @Test(expected=RapPluginException.class)
     public void testSettingToBodyNotSerializableObject() throws Exception {
-        response = new RapPluginOkResponse(new ClassWithSelfReference());
+        response = RapPluginOkResponse.createFromObject(new ClassWithSelfReference());
     }
     
     @Test

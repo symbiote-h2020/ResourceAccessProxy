@@ -213,67 +213,10 @@ public class StorageHelper {
                     try {
                         // need to clean up response if top 1 is used and RAP plugin does not support filtering
                         if (top == 1) {
-                            Observation internalObservation;
-                            if(okResponse.getBody() instanceof List) {
-                                List<?> list = (List<?>) okResponse.getBody();
-                                if(list.size() != 0 && list.get(0) instanceof Observation) {
-                                    @SuppressWarnings("unchecked")
-                                    List<Observation> observations = (List<Observation>) list;
-                                    internalObservation = observations.get(0);
-                                    Observation observation = new Observation(symbioteId, internalObservation.getLocation(),
-                                            internalObservation.getResultTime(), internalObservation.getSamplingTime(),
-                                            internalObservation.getObsValues());
-                                    okResponse.setBody(Arrays.asList(observation));
-                                }
-                                /*
-                                // THIS WOULD CUT OUT SUPPORT FOR PIMs
-                                else {
-                                    throw new IllegalStateException("When reading one resource returned list must have exactly one Observation. Got: " + list.size() + ".");
-                                }
-                                */
-                            } else if(okResponse.getBody() instanceof Observation) {
-                                internalObservation = (Observation) okResponse.getBody();
-                                Observation observation = new Observation(symbioteId, internalObservation.getLocation(),
-                                        internalObservation.getResultTime(), internalObservation.getSamplingTime(),
-                                        internalObservation.getObsValues());
-                                okResponse.setBody(Arrays.asList(observation));
-                            } else if(okResponse.getBody() instanceof Map) {
-                                String jsonBody = mapper.writeValueAsString(okResponse.getBody());
-                                try {
-                                    internalObservation = mapper.readValue(jsonBody, Observation.class);
-                                    Observation observation = new Observation(symbioteId, internalObservation.getLocation(),
-                                            internalObservation.getResultTime(), internalObservation.getSamplingTime(),
-                                            internalObservation.getObsValues());
-                                    okResponse.setBody(Arrays.asList(observation));
-                                } catch (Exception e) { /* do nothing*/ }
-                            } /*
-                            // THIS WOULD CUT OUT SUPPORT FOR PIMs
-                            else {
-                                throw new IllegalStateException("Unsupported body response form RAP plugin when reading one resource. Got " + 
-                                        okResponse.getBody().getClass().getName());
-                            }
-                            */
+                            reduceTop1(okResponse, symbioteId);
                         } else { 
                             // top is not 1
-                            if(okResponse.getBody() instanceof List) {
-                                List<?> list = (List<?>) okResponse.getBody();
-                                if(list.size() != 0 && list.get(0) instanceof Observation) {
-                                    @SuppressWarnings("unchecked")
-                                    List<Observation> internalObservations = (List<Observation>) list;
-
-                                    List<Observation> observationsList = new ArrayList<>();
-                                    int i = 0;
-                                    for (Observation o : internalObservations) {
-                                        i++;
-                                        if(i > top) {
-                                            break;
-                                        }
-                                        Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
-                                        observationsList.add(ob);
-                                    }
-                                    okResponse.setBody(observationsList);
-                                }
-                            }
+                            reduceTopN(top, okResponse, symbioteId);
                             /*
                             // THIS WOULD CUT OUT SUPPORT FOR PIMs
                             else {
@@ -302,6 +245,64 @@ public class StorageHelper {
             log.error(err);
             throw new ODataApplicationException(err, HttpStatusCode.NOT_FOUND.getStatusCode(), Locale.ROOT);
         }
+    }
+
+    private void reduceTopN(Integer top, RapPluginOkResponse okResponse, String symbioteId) {
+        okResponse.bodyToObservations().ifPresent(internalObservations -> {
+            
+            if(internalObservations.size() != 0) {
+                @SuppressWarnings("unchecked")
+                
+                List<Observation> observationsList = new ArrayList<>();
+                int i = 0;
+                for (Observation o : internalObservations) {
+                    i++;
+                    if(i > top) {
+                        break;
+                    }
+                    Observation ob = new Observation(symbioteId, o.getLocation(), o.getResultTime(), o.getSamplingTime(), o.getObsValues());
+                    observationsList.add(ob);
+                }
+                okResponse.updateBody(observationsList);
+            }
+        });
+    }
+
+    private void reduceTop1(RapPluginOkResponse okResponse, String symbioteId) {
+        okResponse.bodyToObservations().ifPresent(observations -> {
+            if(observations.size() != 0) {
+                @SuppressWarnings("unchecked")
+                Observation internalObservation = observations.get(0);
+                Observation observation = new Observation(symbioteId, internalObservation.getLocation(),
+                        internalObservation.getResultTime(), internalObservation.getSamplingTime(),
+                        internalObservation.getObsValues());
+                okResponse.updateBody(Arrays.asList(observation));
+            }
+        });
+        okResponse.bodyToObservation().ifPresent(internalObservation -> {
+            Observation observation = new Observation(symbioteId, internalObservation.getLocation(),
+                    internalObservation.getResultTime(), internalObservation.getSamplingTime(),
+                    internalObservation.getObsValues());
+            okResponse.updateBody(Arrays.asList(observation));
+        });
+        
+//        } else if(okResponse.getBody() instanceof Map) {
+//            String jsonBody = mapper.writeValueAsString(okResponse.getBody());
+//            try {
+//                internalObservation = mapper.readValue(jsonBody, Observation.class);
+//                Observation observation = new Observation(symbioteId, internalObservation.getLocation(),
+//                        internalObservation.getResultTime(), internalObservation.getSamplingTime(),
+//                        internalObservation.getObsValues());
+//                okResponse.setBody(Arrays.asList(observation));
+//            } catch (Exception e) { /* do nothing*/ }
+//        } 
+        /*
+        // THIS WOULD CUT OUT SUPPORT FOR PIMs
+        else {
+            throw new IllegalStateException("Unsupported body response form RAP plugin when reading one resource. Got " + 
+                    okResponse.getBody().getClass().getName());
+        }
+        */    
     }
 
     private RapPluginResponse extractRapPluginResponse(Object obj)

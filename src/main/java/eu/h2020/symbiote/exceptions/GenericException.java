@@ -19,4 +19,8 @@ public class GenericException extends RuntimeException {
     public GenericException(String reason) {
         super ("Generic server failure: " + reason);
     }   
+
+    public GenericException(String reason, Throwable t) {
+        super ("Generic server failure: " + reason, t);
+    }   
 }

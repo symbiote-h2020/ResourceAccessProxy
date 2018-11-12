@@ -122,7 +122,7 @@ public class TestRestController {
         DbResourceInfo resourceInfoResult = createResource(resourceId, platformResourceId, obsProperties, pluginId);
         when(resourcesRepository.findById(any())).thenReturn(Optional.of(resourceInfoResult));
         String responseFromPlugin = new ObjectMapper()
-                .writeValueAsString(new RapPluginOkResponse(new Observation(resourceId, null, null, null, null)));
+                .writeValueAsString(RapPluginOkResponse.createFromObject(new Observation(resourceId, null, null, null, null)));
         when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
                 .thenReturn(responseFromPlugin);
 
@@ -205,7 +205,7 @@ public class TestRestController {
         DbResourceInfo resourceInfoResult = createResource(resourceId, platformResourceId, obsProperties, pluginId);
         when(resourcesRepository.findById(any())).thenReturn(Optional.of(resourceInfoResult));
         String responseFromPlugin = new ObjectMapper()
-                .writeValueAsString(new RapPluginOkResponse(Arrays.asList(new Observation(resourceId, null, null, null, null),
+                .writeValueAsString(RapPluginOkResponse.createFromObject(Arrays.asList(new Observation(resourceId, null, null, null, null),
                         new Observation(resourceId, null, null, null, null))));
         when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
                 .thenReturn(responseFromPlugin);
@@ -305,7 +305,7 @@ public class TestRestController {
         res.andExpect(status().isNoContent());
         String content = res.andReturn().getResponse().getContentAsString();
 
-        assertThat(content).isEqualTo("null");
+        assertThat(content).isEqualTo("");
     }
     
     @Test
@@ -375,7 +375,7 @@ public class TestRestController {
         DbResourceInfo resourceInfoResult = createResource(resourceId, platformResourceId, obsProperties, pluginId);
         when(resourcesRepository.findById(any())).thenReturn(Optional.of(resourceInfoResult));
         String responseFromPlugin = new ObjectMapper()
-                .writeValueAsString(new RapPluginOkResponse("service response"));
+                .writeValueAsString(RapPluginOkResponse.createFromObject("service response"));
         when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
                 .thenReturn(responseFromPlugin);
 
@@ -386,8 +386,8 @@ public class TestRestController {
         // then
         res.andExpect(status().isOk());
         String content = res.andReturn().getResponse().getContentAsString();
-
         assertThat(content).isEqualTo("\"service response\"");
+
     }
  
     @Test

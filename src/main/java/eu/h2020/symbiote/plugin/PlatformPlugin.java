@@ -108,7 +108,7 @@ public abstract class PlatformPlugin {
                     else {
                         try {
                             Object returnObject = mapper.readValue(json, Object.class);
-                            return serializeResponse(mapper, new RapPluginOkResponse(returnObject));
+                            return serializeResponse(mapper,RapPluginOkResponse.createFromObject(returnObject));
                         } catch (IOException e) {
                             throw new RapPluginException(500, "PlatfromSpecificPlugin dit not return valid JSON string.");
                         }
@@ -154,7 +154,7 @@ public abstract class PlatformPlugin {
                 throw new RapPluginException(500, "RAP plugin implementation did not raturn List<Observation> or Observation.");
             }
         }
-        return new RapPluginOkResponse(o);
+        return RapPluginOkResponse.createFromObject(o);
     }
 
     private String serializeResponse(ObjectMapper mapper, RapPluginResponse response) {

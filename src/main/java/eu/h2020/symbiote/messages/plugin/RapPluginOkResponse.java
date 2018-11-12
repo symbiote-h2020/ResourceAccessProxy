@@ -1,8 +1,9 @@
 package eu.h2020.symbiote.messages.plugin;
 
-import java.util.LinkedHashMap;
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.apache.olingo.commons.api.http.HttpStatusCode;
 
@@ -14,23 +15,41 @@ import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.plugin.RapPluginException;
 
 public class RapPluginOkResponse extends RapPluginResponse {
-    private Object body;
+    private String jsonBody;
     
     public RapPluginOkResponse() {
         setResponseCode(204);
     }
     
-    public RapPluginOkResponse(Object body) throws RapPluginException {
-        setBody(body);
-        if(body == null)
+    public RapPluginOkResponse(String jsonBody) throws RapPluginException {
+        setBody(jsonBody);
+        updateResponseCode();
+    }
+
+    private void updateResponseCode() {
+        if(jsonBody == null)
             setResponseCode(204);
         else
             setResponseCode(200);
     }
     
-    public RapPluginOkResponse(int responseCode, Object body) throws RapPluginException {
-        setBody(body);
+    public RapPluginOkResponse(int responseCode, String jsonBody) throws RapPluginException {
+        setBody(jsonBody);
         setResponseCode(responseCode);
+    }
+    
+    public static RapPluginOkResponse createFromObject(int responseCode, Object object) {
+        RapPluginOkResponse response = new RapPluginOkResponse();
+        response.setResponseCode(responseCode);
+        response.updateBody(object);
+        return response;
+    }
+
+    public static RapPluginOkResponse createFromObject(Object object) {
+        RapPluginOkResponse response = new RapPluginOkResponse();
+        response.updateBody(object);
+        response.updateResponseCode();
+        return response;
     }
     
     @Override
@@ -40,36 +59,56 @@ public class RapPluginOkResponse extends RapPluginResponse {
         super.setResponseCode(responseCode);
     }
 
-    public void setBody(Object body) throws RapPluginException {
-        if(body instanceof LinkedHashMap || body instanceof List)
-           tryToParseObservationOrListOfObservation(body);
-        else 
-            this.body = body;
-        getContent();
+    public void updateJsonBody(String jsonBody) throws RapPluginException {
+        this.jsonBody = jsonBody;
+    }
+
+    public void setBody(String body) throws RapPluginException {
+        updateJsonBody(body);
     }
     
-    private void tryToParseObservationOrListOfObservation(Object object) {
+    public void updateBody(Object object) {
+      ObjectMapper mapper = new ObjectMapper();
+      try {
+          updateJsonBody(mapper.writeValueAsString(object));
+      } catch (JsonProcessingException e) {
+          throw new RapPluginException(HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), "Content of body can not be serialized to JSON. Body is of type " + object.getClass().getName());
+      }
+    }
+    
+    public String getBody() {
+        return jsonBody;
+    }
+
+    /**
+     * Try to parse Observation from jsonBody 
+     * @return optional of observation
+     */
+    public Optional<Observation> bodyToObservation() {
         ObjectMapper mapper = new ObjectMapper();
         try {
-            body = mapper.convertValue(object, Observation.class);
-            return;
-        } catch (IllegalArgumentException e) {
-            try {
-                body = mapper.convertValue(object, new TypeReference<List<Observation>>() {});
-                return;
-            } catch (IllegalArgumentException e1) {
-                body = object;
-            }
+            return Optional.of(mapper.readValue(jsonBody, Observation.class));
+        } catch (IOException | IllegalArgumentException e) {
+            return Optional.empty();
         }
     }
 
-    public Object getBody() {
-        return body;
+    /**
+     * Try to parse List<Observation> from jsonBody 
+     * @return optional of list of observations
+     */
+    public Optional<List<Observation>> bodyToObservations() {
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            return Optional.of(mapper.readValue(jsonBody, new TypeReference<List<Observation>>() {}));
+        } catch (IOException | IllegalArgumentException e) {
+            return Optional.empty();
+        }
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(body) + super.hashCode();
+        return Objects.hashCode(jsonBody) + super.hashCode();
     }
 
     @Override
@@ -82,16 +121,11 @@ public class RapPluginOkResponse extends RapPluginResponse {
             return false;
         RapPluginOkResponse other = (RapPluginOkResponse) obj;
         
-        return super.equals(other) && Objects.equals(body, other.body);
+        return super.equals(other) && Objects.equals(jsonBody, other.jsonBody);
     }
 
     @Override
     public String getContent() throws RapPluginException {
-        ObjectMapper mapper = new ObjectMapper();
-        try {
-            return mapper.writeValueAsString(body);
-        } catch (JsonProcessingException e) {
-            throw new RapPluginException(HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), "Content of body can not be serialized to JSON. Body is of type " + body.getClass().getName());
-        }
+        return jsonBody;
     }
 }

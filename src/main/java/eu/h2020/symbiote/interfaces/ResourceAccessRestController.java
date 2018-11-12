@@ -427,7 +427,7 @@ public class ResourceAccessRestController {
             }
             return resp;
         } catch (Exception e) {
-            throw new GenericException("Can not parse response from RAP to JSON.\n Cause: " + e.getMessage());
+            throw new GenericException("Can not parse response from RAP to JSON.", e);
         }
     }
 

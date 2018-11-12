@@ -3,6 +3,7 @@ package eu.h2020.symbiote.messages.plugin;
 import static org.assertj.core.api.Assertions.*;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -60,103 +61,103 @@ public class RapPluginResponseTest {
 
     @Test
     public void testDeserializingOkResponseWithObservation() throws Exception {
-        response = mapper.readValue("{\n" + 
+        String jsonContent = "{\n" + 
                 "  \"@c\" : \".RapPluginOkResponse\",\n" + 
-                "  \"body\" : {\n" + 
-                "    \"resourceId\" : \"symbIoTeID1\",\n" + 
-                "    \"location\" : {\n" + 
-                "      \"@c\" : \".WGS84Location\",\n" + 
-                "      \"longitude\" : 15.9,\n" + 
-                "      \"latitude\" : 45.8,\n" + 
-                "      \"altitude\" : 145.0,\n" + 
-                "      \"name\" : \"Spansko\",\n" + 
-                "      \"description\" : [ \"City of Zagreb\" ]\n" + 
-                "    },\n" + 
-                "    \"resultTime\" : \"2018-02-26T09:04:52\",\n" + 
-                "    \"samplingTime\" : \"2018-02-26T09:04:51\",\n" + 
-                "    \"obsValues\" : [ {\n" + 
-                "      \"value\" : \"7\",\n" + 
-                "      \"obsProperty\" : {\n" + 
-                "        \"name\" : \"Temperature\",\n" + 
-                "        \"description\" : [ \"Air temperature\" ]\n" + 
-                "      },\n" + 
-                "      \"uom\" : {\n" + 
-                "        \"symbol\" : \"C\",\n" + 
-                "        \"name\" : \"degree Celsius\",\n" + 
-                "        \"description\" : [ \"Temperature in degree Celsius\" ]\n" + 
-                "      }\n" + 
-                "    } ]\n" + 
-                "  },\n" + 
+                "  \"body\" : \"{\\n" + 
+                "    \\\"resourceId\\\" : \\\"symbIoTeID1\\\",\\n" + 
+                "    \\\"location\\\" : {\\n" + 
+                "      \\\"@c\\\" : \\\".WGS84Location\\\",\\n" + 
+                "      \\\"longitude\\\" : 15.9,\\n" + 
+                "      \\\"latitude\\\" : 45.8,\\n" + 
+                "      \\\"altitude\\\" : 145.0,\\n" + 
+                "      \\\"name\\\" : \\\"Spansko\\\",\\n" + 
+                "      \\\"description\\\" : [ \\\"City of Zagreb\\\" ]\\n" + 
+                "    },\\n" + 
+                "    \\\"resultTime\\\" : \\\"2018-02-26T09:04:52\\\",\\n" + 
+                "    \\\"samplingTime\\\" : \\\"2018-02-26T09:04:51\\\",\\n" + 
+                "    \\\"obsValues\\\" : [ {\\n" + 
+                "      \\\"value\\\" : \\\"7\\\",\\n" + 
+                "      \\\"obsProperty\\\" : {\\n" + 
+                "        \\\"name\\\" : \\\"Temperature\\\",\\n" + 
+                "        \\\"description\\\" : [ \\\"Air temperature\\\" ]\\n" + 
+                "      },\\n" + 
+                "      \\\"uom\\\" : {\\n" + 
+                "        \\\"symbol\\\" : \\\"C\\\",\\n" + 
+                "        \\\"name\\\" : \\\"degree Celsius\\\",\\n" + 
+                "        \\\"description\\\" : [ \\\"Temperature in degree Celsius\\\" ]\\n" + 
+                "      }\\n" + 
+                "    } ]\\n" + 
+                "  }\",\n" + 
                 "  \"responseCode\" : 200\n" + 
-                "}", RapPluginResponse.class);
+                "}";
+        response = mapper.readValue(jsonContent, RapPluginResponse.class);
         
         assertThat(response).isInstanceOf(RapPluginOkResponse.class);
         assertThat(response.getResponseCode()).isEqualTo(200);
-        assertThat(((RapPluginOkResponse)response).getBody()).isInstanceOf(Observation.class);
+        assertThat(((RapPluginOkResponse)response).bodyToObservation().isPresent()).isTrue();
     }
     
     @Test
     public void testDeserializingOkResponseWithListOfObservations() throws Exception {
-        response = mapper.readValue("{\n" + 
+        String jsonContent = "{\n" + 
                 "  \"@c\" : \".RapPluginOkResponse\",\n" + 
-                "  \"body\" : [ {\n" + 
-                "    \"resourceId\" : \"symbIoTeID1\",\n" + 
-                "    \"location\" : {\n" + 
-                "      \"@c\" : \".WGS84Location\",\n" + 
-                "      \"longitude\" : 15.9,\n" + 
-                "      \"latitude\" : 45.8,\n" + 
-                "      \"altitude\" : 145.0,\n" + 
-                "      \"name\" : \"Spansko\",\n" + 
-                "      \"description\" : [ \"City of Zagreb\" ]\n" + 
-                "    },\n" + 
-                "    \"resultTime\" : \"2018-02-26T10:06:36\",\n" + 
-                "    \"samplingTime\" : \"2018-02-26T10:06:35\",\n" + 
-                "    \"obsValues\" : [ {\n" + 
-                "      \"value\" : \"7\",\n" + 
-                "      \"obsProperty\" : {\n" + 
-                "        \"name\" : \"Temperature\",\n" + 
-                "        \"description\" : [ \"Air temperature\" ]\n" + 
-                "      },\n" + 
-                "      \"uom\" : {\n" + 
-                "        \"symbol\" : \"C\",\n" + 
-                "        \"name\" : \"degree Celsius\",\n" + 
-                "        \"description\" : [ \"Temperature in degree Celsius\" ]\n" + 
-                "      }\n" + 
-                "    } ]\n" + 
-                "  }, {\n" + 
-                "    \"resourceId\" : \"symbIoTeID1\",\n" + 
-                "    \"location\" : {\n" + 
-                "      \"@c\" : \".WGS84Location\",\n" + 
-                "      \"longitude\" : 15.9,\n" + 
-                "      \"latitude\" : 45.8,\n" + 
-                "      \"altitude\" : 145.0,\n" + 
-                "      \"name\" : \"Spansko\",\n" + 
-                "      \"description\" : [ \"City of Zagreb\" ]\n" + 
-                "    },\n" + 
-                "    \"resultTime\" : \"2018-02-26T10:06:36\",\n" + 
-                "    \"samplingTime\" : \"2018-02-26T10:06:35\",\n" + 
-                "    \"obsValues\" : [ {\n" + 
-                "      \"value\" : \"7\",\n" + 
-                "      \"obsProperty\" : {\n" + 
-                "        \"name\" : \"Temperature\",\n" + 
-                "        \"description\" : [ \"Air temperature\" ]\n" + 
-                "      },\n" + 
-                "      \"uom\" : {\n" + 
-                "        \"symbol\" : \"C\",\n" + 
-                "        \"name\" : \"degree Celsius\",\n" + 
-                "        \"description\" : [ \"Temperature in degree Celsius\" ]\n" + 
-                "      }\n" + 
-                "    } ]\n" + 
-                "  } ],\n" + 
+                "  \"body\" : \"[ {\\n" + 
+                "    \\\"resourceId\\\" : \\\"symbIoTeID1\\\",\\n" + 
+                "    \\\"location\\\" : {\\n" + 
+                "      \\\"@c\\\" : \\\".WGS84Location\\\",\\n" + 
+                "      \\\"longitude\\\" : 15.9,\\n" + 
+                "      \\\"latitude\\\" : 45.8,\\n" + 
+                "      \\\"altitude\\\" : 145.0,\\n" + 
+                "      \\\"name\\\" : \\\"Spansko\\\",\\n" + 
+                "      \\\"description\\\" : [ \\\"City of Zagreb\\\" ]\\n" + 
+                "    },\\n" + 
+                "    \\\"resultTime\\\" : \\\"2018-02-26T10:06:36\\\",\\n" + 
+                "    \\\"samplingTime\\\" : \\\"2018-02-26T10:06:35\\\",\\n" + 
+                "    \\\"obsValues\\\" : [ {\\n" + 
+                "      \\\"value\\\" : \\\"7\\\",\\n" + 
+                "      \\\"obsProperty\\\" : {\\n" + 
+                "        \\\"name\\\" : \\\"Temperature\\\",\\n" + 
+                "        \\\"description\\\" : [ \\\"Air temperature\\\" ]\\n" + 
+                "      },\\n" + 
+                "      \\\"uom\\\" : {\\n" + 
+                "        \\\"symbol\\\" : \\\"C\\\",\\n" + 
+                "        \\\"name\\\" : \\\"degree Celsius\\\",\\n" + 
+                "        \\\"description\\\" : [ \\\"Temperature in degree Celsius\\\" ]\\n" + 
+                "      }\\n" + 
+                "    } ]\\n" + 
+                "  }, {\\n" + 
+                "    \\\"resourceId\\\" : \\\"symbIoTeID1\\\",\\n" + 
+                "    \\\"location\\\" : {\\n" + 
+                "      \\\"@c\\\" : \\\".WGS84Location\\\",\\n" + 
+                "      \\\"longitude\\\" : 15.9,\\n" + 
+                "      \\\"latitude\\\" : 45.8,\\n" + 
+                "      \\\"altitude\\\" : 145.0,\\n" + 
+                "      \\\"name\\\" : \\\"Spansko\\\",\\n" + 
+                "      \\\"description\\\" : [ \\\"City of Zagreb\\\" ]\\n" + 
+                "    },\\n" + 
+                "    \\\"resultTime\\\" : \\\"2018-02-26T10:06:36\\\",\\n" + 
+                "    \\\"samplingTime\\\" : \\\"2018-02-26T10:06:35\\\",\\n" + 
+                "    \\\"obsValues\\\" : [ {\\n" + 
+                "      \\\"value\\\" : \\\"7\\\",\\n" + 
+                "      \\\"obsProperty\\\" : {\\n" + 
+                "        \\\"name\\\" : \\\"Temperature\\\",\\n" + 
+                "        \\\"description\\\" : [ \\\"Air temperature\\\" ]\\n" + 
+                "      },\\n" + 
+                "      \\\"uom\\\" : {\\n" + 
+                "        \\\"symbol\\\" : \\\"C\\\",\\n" + 
+                "        \\\"name\\\" : \\\"degree Celsius\\\",\\n" + 
+                "        \\\"description\\\" : [ \\\"Temperature in degree Celsius\\\" ]\\n" + 
+                "      }\\n" + 
+                "    } ]\\n" + 
+                "  } ]\",\n" + 
                 "  \"responseCode\" : 200\n" + 
-                "}", RapPluginResponse.class);
+                "}";
+        response = mapper.readValue(jsonContent, RapPluginResponse.class);
 
         assertThat(response).isInstanceOf(RapPluginOkResponse.class);
         assertThat(response.getResponseCode()).isEqualTo(200);
-        Object body = ((RapPluginOkResponse)response).getBody();
-        assertThat(body).isInstanceOf(List.class);
-        List<?> list = (List<?>) body;
-        assertThat(list.get(0)).isInstanceOf(Observation.class);
+        Optional<List<Observation>> optional = ((RapPluginOkResponse)response).bodyToObservations();
+        assertThat(optional.isPresent()).isTrue();
     }
 
     @Test
