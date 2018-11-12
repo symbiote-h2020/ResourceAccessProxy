@@ -81,7 +81,7 @@ import eu.h2020.symbiote.service.RAPPrimitiveProcessor;
 @WebMvcTest(RAPEdmController.class)
 @Import({OwlapiHelp.class, RAPEdmProvider.class, RAPEntityProcessor.class, RAPEntityCollectionProcessor.class, RAPPrimitiveProcessor.class})
 @ActiveProfiles("test")
-public class TestODataController {
+public class ODataControllerTest {
     
     @Autowired
     private MockMvc mockMvc;

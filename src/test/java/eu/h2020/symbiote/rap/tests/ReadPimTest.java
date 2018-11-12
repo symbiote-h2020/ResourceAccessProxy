@@ -38,7 +38,7 @@ import eu.h2020.symbiote.service.CustomField;
 @DataMongoTest
 @Import({OwlapiHelp.class})
 @ActiveProfiles({"test", "pim"})
-public class TestReadPim {
+public class ReadPimTest {
     
     @Autowired
     private OwlapiHelp owlApiHelp;

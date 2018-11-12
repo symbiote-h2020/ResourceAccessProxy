@@ -52,7 +52,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @RunWith(SpringRunner.class)
 @WebMvcTest(ResourceAccessRestController.class)
 @ActiveProfiles("test")
-public class TestRestController {
+public class RestControllerTest {
 
     @Autowired
     private MockMvc mockMvc;

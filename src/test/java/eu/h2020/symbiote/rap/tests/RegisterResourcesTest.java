@@ -59,7 +59,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ImportAutoConfiguration
 
 @ActiveProfiles("test")
-public class TestRegisterResources {
+public class RegisterResourcesTest {
 
     @Autowired
     private ResourceRegistration resourceRegistration;

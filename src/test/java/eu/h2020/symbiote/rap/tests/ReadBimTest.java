@@ -35,7 +35,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @DataMongoTest
 @Import({OwlapiHelp.class})
 @ActiveProfiles("test")
-public class TestReadBim {
+public class ReadBimTest {
     
     @Autowired
     private OwlapiHelp owlApiHelp;

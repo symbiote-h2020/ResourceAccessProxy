@@ -44,7 +44,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @TestConfiguration
 @DataMongoTest
 @ActiveProfiles("test")
-public class TestDb {
+public class DbTest {
     @Autowired
     private ResourcesRepository resourcesRepository;
     
