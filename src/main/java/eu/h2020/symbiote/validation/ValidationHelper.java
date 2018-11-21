@@ -137,7 +137,7 @@ public class ValidationHelper {
                     if (!definedFields.keySet().contains(field.getKey())) {
                         throw new ValidationException("undefined property '" + field.getKey() + "'");
                     }
-                    validateType(definedFields.get(field.getKey()), simpleJsonNode, null);
+                    validateType(definedFields.get(field.getKey()), field.getValue(), null);
                 }
             }
         }
