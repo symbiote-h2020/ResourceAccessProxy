@@ -12,8 +12,8 @@ if (!hasProperty('mainClass')) {
 // initial extensions to gradle
 buildscript {
     ext {
-        springBootVersion = '1.5.17.RELEASE'
-        springCloudVersion = 'Dalston.SR5'
+        springBootVersion = '1.5.18.RELEASE'
+        springCloudVersion = 'Edgware.SR5'
     }
     repositories {
         mavenCentral()
@@ -72,8 +72,6 @@ Forces dependencies' cache invalidation for each build for dependencies marked w
 configurations.all {
     // check for updates every build
     resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
-    // exclude logging to log4j12
-    exclude group: "org.slf4j", module: "slf4j-log4j12"
 }
 
 dependencies {
@@ -90,9 +88,8 @@ dependencies {
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
 
-//    compile('com.github.symbiote-h2020:SymbIoTeLibraries:5.33+') { }
     // localMaven
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:develop-SNAPSHOT') { changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:5.37+') { changing = true }
 
     // Spring
     compile('org.springframework.cloud:spring-cloud-starter')
