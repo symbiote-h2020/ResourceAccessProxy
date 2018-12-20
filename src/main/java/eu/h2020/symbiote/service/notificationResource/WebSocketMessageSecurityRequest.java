@@ -22,6 +22,10 @@ public class WebSocketMessageSecurityRequest {
     @JsonProperty("payload")
     private WebSocketMessage payload;
 
+    
+    public WebSocketMessageSecurityRequest() {
+    }
+
     public WebSocketMessageSecurityRequest(Map<String, String> secRequest, WebSocketMessage payload) {
         this.secRequest = secRequest;
         this.payload = payload;
