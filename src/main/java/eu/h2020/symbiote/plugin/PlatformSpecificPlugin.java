@@ -18,7 +18,9 @@ import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,8 +29,10 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.TimeZone;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,6 +51,8 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
     public static final String PLUGIN_PLATFORM_ID = "platform_01";
     public static final String PLUGIN_RES_ACCESS_QUEUE = "rap-platform-queue_" + PLUGIN_PLATFORM_ID;
 
+    private Set<String> subscriptionSet = Collections.synchronizedSet(new HashSet<>());
+    private volatile Thread subscriptionThread;
 
     public PlatformSpecificPlugin(RabbitTemplate rabbitTemplate, TopicExchange exchange) {
         super(rabbitTemplate, exchange, PLUGIN_PLATFORM_ID, PLUGIN_PLATFORM_FILTERS_FLAG, PLUGIN_PLATFORM_NOTIFICATIONS_FLAG);
@@ -235,21 +241,68 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
         }
     }
 
+    /**
+     * Called when someone wants to subscribe
+     */
     @Override
     public void subscribeResource(String resourceId) {
-        // INSERT HERE: call to the platform to subscribe resource
+        synchronized (subscriptionSet) {
+            subscriptionSet.add(resourceId);
+            if(subscriptionThread == null) {
+                subscriptionThread = new Thread(() -> {
+                    while(subscriptionThread != null) {
+                        sendPush();
+                        try {
+                            Thread.sleep(5000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+                subscriptionThread.start();
+            }
+        }
     }
 
+    private void sendPush() {
+        ObjectMapper mapper = new ObjectMapper();
+        synchronized (subscriptionSet) {
+            for(String id: subscriptionSet) {
+                Observation observation = observationExampleValue(id);
+                String json;
+                try {
+                    json = mapper.writeValueAsString(observation);
+                    sendSubscriptionData(json);
+                } catch (JsonProcessingException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
+     * Called when someone wants to unsubscribe
+     */
     @Override
     public void unsubscribeResource(String resourceId) {
-        // INSERT HERE: call to the platform to unsubscribe resource
+        synchronized (subscriptionSet) {
+            subscriptionSet.remove(resourceId);
+            if(subscriptionSet.isEmpty())
+                subscriptionThread = null;
+        }
     }
 
     /*
      *   Some sample code for creating one observation
      */
     public Observation observationExampleValue () {
-        String sensorId = "symbIoTeID1";
+        return observationExampleValue("symbIoTeID1");
+    }
+    
+    /*
+     *   Some sample code for creating one observation
+     */
+    public Observation observationExampleValue (String sensorId) {
         ArrayList<String> ldescr = new ArrayList<>();
         ldescr.add("City of Zagreb");
         WGS84Location loc = new WGS84Location(15.9, 45.8, 145, "Spansko", ldescr);
