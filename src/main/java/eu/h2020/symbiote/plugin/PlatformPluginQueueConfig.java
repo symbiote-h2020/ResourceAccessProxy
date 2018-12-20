@@ -10,10 +10,12 @@ import eu.h2020.symbiote.resources.RapDefinitions;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.amqp.core.AmqpAdmin;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
@@ -70,11 +72,11 @@ public class PlatformPluginQueueConfig {
         return container;
     }
 
-    @DependsOn(RapDefinitions.PLUGIN_REGISTRATION_EXCHANGE_IN)
     @Bean
-    PlatformSpecificPlugin specificPluginReceiver() {
+    PlatformSpecificPlugin specificPluginReceiver(CachingConnectionFactory connectionFactory) {
         // it needs to know the exchange where to send the registration message
-        return new PlatformSpecificPlugin(rabbitTemplate, exchange);
+        connectionFactory.setPublisherReturns(true);
+        return new PlatformSpecificPlugin(new RabbitTemplate(connectionFactory), exchange);
     }
 
     @Bean(name=PlatformSpecificPlugin.PLUGIN_RES_ACCESS_QUEUE + "Listener")

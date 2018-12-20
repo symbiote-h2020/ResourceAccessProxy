@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+
 import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessGetMessage;
 import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessHistoryMessage;
@@ -28,8 +29,11 @@ import java.io.IOException;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.rabbit.core.RabbitTemplate.ReturnCallback;
 
 /**
  *
@@ -48,9 +52,9 @@ public abstract class PlatformPlugin {
     public PlatformPlugin(RabbitTemplate rabbitTemplate, TopicExchange exchange,
                           String platformId, boolean hasFilters, boolean hasNotifications) {
         this.rabbitTemplate = rabbitTemplate;
-        this.exchange = exchange; 
+        this.exchange = exchange;
         registerPlugin(platformId, hasFilters, hasNotifications);
-    }  
+    }
     
     
     public String receiveMessage(String message) {
@@ -172,6 +176,7 @@ public abstract class PlatformPlugin {
     *
     */
     private void registerPlugin(String platformId, boolean hasFilters, boolean hasNotifications) {
+        log.debug("Starting plugin registration");
         try {
             RegisterPluginMessage msg = new RegisterPluginMessage(platformId, hasFilters, hasNotifications);
             ObjectMapper mapper = new ObjectMapper();
@@ -179,10 +184,38 @@ public abstract class PlatformPlugin {
             mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             byte[] json = mapper.writeValueAsBytes(msg);
 
-            rabbitTemplate.convertAndSend(exchange.getName(), RapDefinitions.PLUGIN_REGISTRATION_KEY, json);
+            rabbitTemplate.setReturnCallback(new ReturnCallback() {
+                
+                @Override
+                public void returnedMessage(Message message, int replyCode, String replyText, String exchange, String routingKey) {
+                    log.debug("replyCode={}, replyText={}, Msg: {}", replyCode, replyText, message);
+                    sendRegisterPluginMessage(json, exchange);
+                }
+            });
+            sendRegisterPluginMessage(json, exchange.getName());
         } catch (Exception e ) {
             log.error("Error while registering plugin for platform " + platformId + "\n" + e);
         }
+    }
+    
+    private void sendRegisterPluginMessage(byte[] json, String exchange) {
+        new Thread(() -> {
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+                log.debug("This should not happend!", e);
+            }
+            log.debug("Sending register plugin message: {}", new String(json));
+            rabbitTemplate.setMandatory(true);
+            rabbitTemplate.convertAndSend(exchange, RapDefinitions.PLUGIN_REGISTRATION_KEY, json);
+        }).start();
+    }
+
+    
+    public void sendSubscriptionData(String json) {
+        rabbitTemplate.send(RapDefinitions.PLUGIN_NOTIFICATION_EXCHANGE_IN, 
+                RapDefinitions.PLUGIN_NOTIFICATION_KEY, 
+                new Message(json.getBytes(), new MessageProperties()));
     }
     
     /*  
