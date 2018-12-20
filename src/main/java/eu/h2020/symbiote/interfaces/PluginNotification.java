@@ -60,7 +60,7 @@ public class PluginNotification {
             webSocketController.SendMessage(observation);
             
         } catch (Exception e) {
-            log.info("Error while processing notification received from plugin \n" + e.getMessage());
+            log.error("Error while processing notification received from plugin", e);
         }
     }
 
@@ -118,8 +118,13 @@ public class PluginNotification {
             ObjectMapper mapper = new ObjectMapper();
             String jsonBody = mapper.writeValueAsString(obj);
             internalObservation = mapper.readValue(jsonBody, Observation.class);
-
+        } else if(obj instanceof byte[]) {
+            ObjectMapper mapper = new ObjectMapper();
+            internalObservation = mapper.readValue((byte[])obj, Observation.class);
+        } else {
+            throw new IllegalArgumentException("Can not recognize notification from RAP plugin. It is of type " + obj.getClass().getName());
         }
+        
         DbResourceInfo resInfo = getResourceInfo(internalObservation.getResourceId());
 
         return new Observation(resInfo.getSymbioteId(), internalObservation.getLocation(),
