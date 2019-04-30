@@ -40,8 +40,6 @@ import org.springframework.test.context.junit4.SpringRunner;
  * @author Luca Tomaselli
  */
 @RunWith(SpringRunner.class)
-@SpringBootTest
-@TestConfiguration
 @DataMongoTest
 @ActiveProfiles("test")
 public class DbTest {

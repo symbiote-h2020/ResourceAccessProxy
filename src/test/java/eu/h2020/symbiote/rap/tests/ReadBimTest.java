@@ -30,8 +30,6 @@ import org.springframework.test.context.junit4.SpringRunner;
  * @author Luca Tomaselli
  */
 @RunWith(SpringRunner.class)
-@SpringBootTest
-@TestConfiguration
 @DataMongoTest
 @Import({OwlapiHelp.class})
 @ActiveProfiles("test")

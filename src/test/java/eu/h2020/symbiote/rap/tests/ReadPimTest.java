@@ -33,10 +33,9 @@ import eu.h2020.symbiote.service.CustomField;
  */
 
 @RunWith(SpringRunner.class)
-@SpringBootTest
-@TestConfiguration
 @DataMongoTest
 @Import({OwlapiHelp.class})
+
 @ActiveProfiles({"test", "pim"})
 public class ReadPimTest {
     

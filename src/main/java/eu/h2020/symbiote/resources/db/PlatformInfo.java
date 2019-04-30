@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 /**
@@ -19,7 +20,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class PlatformInfo {
     @Id
     @JsonProperty("platformId")
-    private final String id;
+    private final String platformId;
     
     @JsonProperty("hasFilters")
     private final boolean hasFilters;
@@ -28,23 +29,24 @@ public class PlatformInfo {
     private final boolean hasNotifications;
     
     public PlatformInfo() {
-        id = "";
+        platformId = "";
         hasFilters = false;
         hasNotifications = false;
     }
     
+    @PersistenceConstructor
     @JsonCreator
     public PlatformInfo(@JsonProperty("platformId") String platformId, 
             @JsonProperty("hasFilters") boolean hasFilters,
             @JsonProperty("hasNotifications") boolean hasNotifications) {
-        this.id = platformId;
+        this.platformId = platformId;
         this.hasFilters = hasFilters;
         this.hasNotifications = hasNotifications;
     }
     
     @JsonProperty("platformId")
     public String getPlatformId() {
-        return id;
+        return platformId;
     }
     
     @JsonProperty("hasFilters")
