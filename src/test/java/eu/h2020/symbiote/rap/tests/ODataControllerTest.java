@@ -162,6 +162,7 @@ public class ODataControllerTest {
                 .writeValueAsString(RapPluginOkResponse.createFromObject(new Observation(resourceId, null, null, null, null)));
         when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
                 .thenReturn(responseFromPlugin);
+        when(exchange.getName()).thenReturn("somePluginExchange");
 
         // when
         ResultActions res = mockMvc.perform(get("/rap/Sensor('"+resourceId+"')/Observation?$top="+top).headers(getHeaders())
@@ -206,8 +207,9 @@ public class ODataControllerTest {
                 "}";
         
         when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
-        .thenReturn(responseFromPlugin);
-        
+            .thenReturn(responseFromPlugin);
+        when(exchange.getName()).thenReturn("somePluginExchange");
+
         // when
         ResultActions res = mockMvc.perform(get("/rap/Sensor('"+resourceId+"')/Observation?$top="+top).headers(getHeaders())
                 .accept(new MediaType(MediaType.APPLICATION_JSON.getType(), MediaType.APPLICATION_JSON.getSubtype(),
@@ -315,6 +317,7 @@ public class ODataControllerTest {
                         new Observation(resourceId, null, null, null, null))));
         when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
                 .thenReturn(responseFromPlugin);
+        when(exchange.getName()).thenReturn("somePluginExchange");
 
         // when
         ResultActions res = mockMvc.perform(get("/rap/Sensor('"+resourceId+"')/Observation?$top="+top)
@@ -354,7 +357,8 @@ public class ODataControllerTest {
                 "  \"responseCode\": 200\n" + 
                 "}";
         when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
-        .thenReturn(responseFromPlugin);
+            .thenReturn(responseFromPlugin);
+        when(exchange.getName()).thenReturn("somePluginExchange");
         
         // when
         ResultActions res = mockMvc.perform(get("/rap/Sensor('"+resourceId+"')/Observation?$top="+top)
@@ -453,6 +457,7 @@ public class ODataControllerTest {
                 .writeValueAsString(new RapPluginOkResponse());
         when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
                 .thenReturn(responseFromPlugin);
+        when(exchange.getName()).thenReturn("somePluginExchange");
 
         // when
         ResultActions res = mockMvc.perform(put("/rap/Actuator('"+resourceId+"')").headers(getHeaders())
@@ -527,6 +532,7 @@ public class ODataControllerTest {
                 .writeValueAsString(new RapPluginOkResponse());
         when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
                 .thenReturn(responseFromPlugin);
+        when(exchange.getName()).thenReturn("somePluginExchange");
 
         // when
         ResultActions res = mockMvc.perform(put("/rap/Actuator('"+resourceId+"')").headers(getHeaders())
@@ -556,6 +562,7 @@ public class ODataControllerTest {
                 .writeValueAsString(new RapPluginOkResponse());
         when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
                 .thenReturn(responseFromPlugin);
+        when(exchange.getName()).thenReturn("somePluginExchange");
 
         // when
         ResultActions res = mockMvc.perform(put("/rap/Light('"+resourceId+"')").headers(getHeaders())
@@ -584,8 +591,9 @@ public class ODataControllerTest {
         String responseFromPlugin = new ObjectMapper()
                 .writeValueAsString(new RapPluginOkResponse());
         when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
-        .thenReturn(responseFromPlugin);
-        
+            .thenReturn(responseFromPlugin);
+        when(exchange.getName()).thenReturn("somePluginExchange");
+
         // when
         ResultActions res = mockMvc.perform(put("/rap/Light('"+resourceId+"')").headers(getHeaders())
                 .contentType(MediaType.APPLICATION_JSON).content("{\"DimmerCapability\": [{\"level\":0}]}"));
@@ -613,7 +621,8 @@ public class ODataControllerTest {
         String responseFromPlugin = new ObjectMapper()
                 .writeValueAsString(new RapPluginOkResponse());
         when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
-        .thenReturn(responseFromPlugin);
+            .thenReturn(responseFromPlugin);
+        when(exchange.getName()).thenReturn("somePluginExchange");
         
         // when
         ResultActions res = mockMvc.perform(put("/rap/Curtain('"+resourceId+"')").headers(getHeaders())
@@ -807,6 +816,7 @@ public class ODataControllerTest {
                 .writeValueAsString(RapPluginOkResponse.createFromObject("some service response"));
         when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
                 .thenReturn(responseFromPlugin);
+        when(exchange.getName()).thenReturn("somePluginExchange");
 
         // when
         ResultActions res = mockMvc.perform(put("/rap/Service('"+resourceId+"')").headers(getHeaders())
@@ -839,8 +849,9 @@ public class ODataControllerTest {
                 "  \"responseCode\": 200\n" + 
                 "}";
         when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
-        .thenReturn(responseFromPlugin);
-        
+            .thenReturn(responseFromPlugin);
+        when(exchange.getName()).thenReturn("somePluginExchange");
+
         // when
         ResultActions res = mockMvc.perform(put("/rap/Service('"+resourceId+"')").headers(getHeaders())
                 .contentType(MediaType.APPLICATION_JSON).content("[{}]"));
