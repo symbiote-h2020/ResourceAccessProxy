@@ -69,6 +69,6 @@ public class PluginRegistration {
     }
     
     private void deletePlugin(String platformId) {
-        pluginRepository.delete(platformId);
+        pluginRepository.deleteById(platformId);
     }
 }

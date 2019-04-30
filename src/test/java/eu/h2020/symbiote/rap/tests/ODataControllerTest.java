@@ -1055,10 +1055,10 @@ public class ODataControllerTest {
         .thenReturn(responseFromPlugin);
         
         AtomicReference<RegistrationInfoOData> collected = new AtomicReference<>();
-        doAnswer(new Answer<Object>() {
+        doAnswer(new Answer<RegistrationInfoOData>() {
             @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                RegistrationInfoOData arg = invocation.getArgumentAt(0, RegistrationInfoOData.class);
+            public RegistrationInfoOData answer(InvocationOnMock invocation) throws Throwable {
+                RegistrationInfoOData arg = invocation.getArgument(0);
                 collected.set(arg);
                 return arg;
             }

@@ -5,7 +5,6 @@
  */
 package eu.h2020.symbiote.rap.tests;
 
-import com.netflix.util.Pair;
 import eu.h2020.symbiote.model.cim.ComplexDatatype;
 import eu.h2020.symbiote.model.cim.Datatype;
 import eu.h2020.symbiote.model.cim.Parameter;
@@ -18,6 +17,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.assertj.core.api.Assertions;
 import static org.junit.Assert.fail;
 import org.junit.Before;
@@ -72,8 +73,8 @@ public class ValidationHelperTest {
         result.setDataProperties(new ArrayList<>());
         for (Pair<String, String> property : properties) {
             PrimitiveProperty primitiveProperty = new PrimitiveProperty();
-            primitiveProperty.setName(property.first());
-            primitiveProperty.setPrimitiveDatatype(createPrimitiveDatatype(property.second()));
+            primitiveProperty.setName(property.getLeft());
+            primitiveProperty.setPrimitiveDatatype(createPrimitiveDatatype(property.getRight()));
             result.getDataProperties().add(primitiveProperty);
         }
         return result;
@@ -83,8 +84,8 @@ public class ValidationHelperTest {
     public void testValidateTypeWithJSON() {
 
         Datatype definedDatatype = createComplexDatatype(
-                new Pair(PARAMETER_1_NAME, DATATYPE_STRING),
-                new Pair(PARAMETER_2_NAME, DATATYPE_INT));
+                Pair.of(PARAMETER_1_NAME, DATATYPE_STRING),
+                Pair.of(PARAMETER_2_NAME, DATATYPE_INT));
         String payload
                 = "{ "
                 + " \"" + PARAMETER_1_NAME + "\": \"" + PARAMETER_1_VALUE + "\" , "
@@ -101,8 +102,8 @@ public class ValidationHelperTest {
     public void testValidateTypeWithJSONLD() {
 
         Datatype definedDatatype = createComplexDatatype(
-                new Pair(PARAMETER_1_NAME, DATATYPE_STRING),
-                new Pair(PARAMETER_2_NAME, DATATYPE_INT));
+                Pair.of(PARAMETER_1_NAME, DATATYPE_STRING),
+                Pair.of(PARAMETER_2_NAME, DATATYPE_INT));
         String payload
                 = "{ "
                 + " \"@context\": \"{}\" , "
