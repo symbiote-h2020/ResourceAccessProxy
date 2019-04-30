@@ -5,43 +5,34 @@
 // Note however, that you may define your own "run" and "debug" task if you
 // prefer. In this case NetBeans will not add these tasks but you may rely on
 // your own implementation.
+plugins {
+	// code
+	id 'org.springframework.boot' version '2.1.4.RELEASE'
+	id 'java'
+    id 'io.franzbecker.gradle-lombok' version '3.0.0'
+
+    // code quality
+    id "jacoco"
+    id "org.owasp.dependencycheck" version "5.0.0-M2"
+
+    // IDEs
+    id "eclipse"
+    id "idea"
+    
+    // publishing
+    id "maven-publish"
+    id "com.cinnober.gradle.semver-git" version "2.4.0"    
+}
+
+apply plugin: 'io.spring.dependency-management'
+
+ext {
+	set('springCloudVersion', 'Greenwich.SR1')
+}
+
 if (!hasProperty('mainClass')) {
     ext.mainClass = 'eu.h2020.symbiote.ResourceAccessProxyApplication'
 }
-
-// initial extensions to gradle
-buildscript {
-    ext {
-        springBootVersion = '1.5.18.RELEASE'
-        springCloudVersion = 'Edgware.SR5'
-    }
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath "io.spring.gradle:dependency-management-plugin:1.0.0.RELEASE"
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-        classpath group: 'com.cinnober.gradle', name: 'semver-git', version: '2.2.1'
-        classpath 'org.owasp:dependency-check-gradle:1.4.5.1'
-    }
-}
-
-// code
-apply plugin: "io.spring.dependency-management"
-apply plugin: 'java'
-apply plugin: 'org.springframework.boot'
-
-// code quality
-apply plugin: 'jacoco'
-apply plugin: 'org.owasp.dependencycheck'
-
-// IDEs
-apply plugin: 'eclipse'
-apply plugin: 'idea'
-
-// publishing
-apply plugin: 'com.cinnober.gradle.semver-git'
-apply plugin: 'maven-publish'
 
 // XXX please change with your commits according to http://semver.org/
 project.group = 'eu.h2020.symbiote'
@@ -88,50 +79,54 @@ dependencies {
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
 
+    implementation('com.github.symbiote-h2020:SymbIoTeLibraries:5.37+') { changing = true }
+    implementation('com.github.symbiote-h2020:SymbIoTeLibraries:5.33+') { }
     // localMaven
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:5.37+') { changing = true }
+    //implementation('eu.h2020.symbiote:SymbIoTeLibraries:5.29.0-SNAPSHOT')
+    //implementation('com.github.symbiote-h2020:SymbIoTeSemantics:2.3.5')
+    //implementation('org.apache.httpcomponents:httpcore:4.4.11')
 
     // Spring
-    compile('org.springframework.cloud:spring-cloud-starter')
-    compile('org.springframework.cloud:spring-cloud-starter-config')
-    compile('org.springframework.retry:spring-retry')
-    compile('org.springframework.boot:spring-boot-starter-aop')
-    compile('org.springframework.cloud:spring-cloud-starter-eureka')
-    compile('org.springframework.cloud:spring-cloud-starter-zipkin')
-    compile('org.springframework.boot:spring-boot-starter-amqp')
-    compile('org.springframework.boot:spring-boot-starter-data-rest')
-    compile('org.springframework.boot:spring-boot-starter-web')
-    compile('org.springframework.boot:spring-boot-starter-data-mongodb')
+    implementation('org.springframework.cloud:spring-cloud-starter')
+    implementation('org.springframework.cloud:spring-cloud-starter-config')
+    implementation('org.springframework.retry:spring-retry')
+    implementation('org.springframework.boot:spring-boot-starter-aop')
+    implementation('org.springframework.cloud:spring-cloud-starter-netflix-eureka-client')
+    implementation('org.springframework.cloud:spring-cloud-starter-zipkin')
+    implementation('org.springframework.boot:spring-boot-starter-amqp')
+    implementation('org.springframework.boot:spring-boot-starter-data-rest')
+    implementation('org.springframework.boot:spring-boot-starter-web')
+    implementation('org.springframework.boot:spring-boot-starter-data-mongodb')
 
     // OData
-    compile("org.apache.olingo:odata-commons-api:${'4.3.0'}")
-    compile("org.apache.olingo:odata-commons-core:${'4.3.0'}")
+    implementation("org.apache.olingo:odata-commons-api:${'4.3.0'}")
+    implementation("org.apache.olingo:odata-commons-core:${'4.3.0'}")
     
-    compile("org.apache.olingo:odata-server-api:${'4.3.0'}")
-    compile("org.apache.olingo:odata-server-core:${'4.3.0'}")
+    implementation("org.apache.olingo:odata-server-api:${'4.3.0'}")
+    implementation("org.apache.olingo:odata-server-core:${'4.3.0'}")
   
     // Websocket
-    compile("org.springframework.boot:spring-boot-starter-websocket")
+    implementation("org.springframework.boot:spring-boot-starter-websocket")
 
     // Others
-    compile("com.jayway.jsonpath:json-path:2.4.0")
+    implementation("com.jayway.jsonpath:json-path:2.4.0")
 
     // test only
-    compile("org.springframework.boot:spring-boot-starter-web")
-    testCompile ("org.springframework.boot:spring-boot-starter-test")
+    implementation("org.springframework.boot:spring-boot-starter-web")
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
     
     // lombok
     compileOnly('org.projectlombok:lombok')
     
     //Owlapi
     //compile('net.sourceforge.owlapi:owlapi-distribution:5.1.1')
-    compile('net.sourceforge.owlapi:owlapi-contract:5.1.1')
-    compile('net.sourceforge.owlapi:owlapi-util:3.3')
+    implementation('net.sourceforge.owlapi:owlapi-contract:5.1.1')
+    implementation('net.sourceforge.owlapi:owlapi-util:3.3')
 }
 
 // publication
-bootRepackage {
-    classifier = 'run'
+bootJar {
+	classifier = 'run'
 }
 
 jar {
@@ -167,19 +162,19 @@ publishing {
 
             artifact javadocJar
 
-            artifact(file("$libsDir/$project.name-$project.version-${bootRepackage.classifier}.jar")) {
+            artifact(file("$libsDir/$project.name-$project.version-${bootJar.classifier}.jar")) {
                 classifier "run"
             }
         }
     }
 }
 
-publishToMavenLocal.dependsOn(bootRepackage)
+publishToMavenLocal.dependsOn(bootJar)
 
 // code quality below
 // jacoco configuration section
 jacoco {
-    toolVersion = "0.7.9"
+    toolVersion = "0.8.3"
 }
 
 jacocoTestReport {
