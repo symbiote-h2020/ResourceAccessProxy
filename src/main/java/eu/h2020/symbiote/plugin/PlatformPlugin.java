@@ -189,6 +189,7 @@ public abstract class PlatformPlugin {
                 @Override
                 public void returnedMessage(Message message, int replyCode, String replyText, String exchange, String routingKey) {
                     log.debug("replyCode={}, replyText={}, Msg: {}", replyCode, replyText, message);
+                    log.info("Retrying to register plugin to platform");
                     sendRegisterPluginMessage(json, exchange);
                 }
             });
