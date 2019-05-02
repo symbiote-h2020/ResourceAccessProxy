@@ -1,0 +1,33 @@
+version: "3.5"
+
+services:
+  symbiote_rabbitmq:
+    image: rabbitmq:3-management
+    networks:
+      - symbiote
+    ports:
+      - 5671:5671
+      - 5672:5672
+      - 15672:15672
+  symbiote_mongo:
+    image: mongo:3.6
+    networks:
+      - symbiote
+    ports:
+      - 27017:27017
+  symbiote_rap:
+    image: symbioteh2020/symbiote-rap:{{project.version}}
+    depends_on:
+      - symbiote_rabbitmq
+      - symbiote_mongo
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+    networks:
+      - symbiote
+    ports:
+      - 8080:8103    
+networks:
+  symbiote:
+    name: symbiote
