@@ -45,10 +45,6 @@ public abstract class PlatformPlugin {
     private final RabbitTemplate rabbitTemplate;
     private final TopicExchange exchange;
 
-    public RabbitTemplate getRabbitTemplate() {
-        return this.rabbitTemplate;
-    }
-    
     public PlatformPlugin(RabbitTemplate rabbitTemplate, TopicExchange exchange,
                           String platformId, boolean hasFilters, boolean hasNotifications) {
         this.rabbitTemplate = rabbitTemplate;
