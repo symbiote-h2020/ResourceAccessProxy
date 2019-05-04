@@ -36,7 +36,7 @@ public class ResourceAccessNotificationService {
     
     @Autowired
     @Qualifier(RapDefinitions.RAP_ACCESS_EXCHANGE)
-    DirectExchange exchange;
+    private DirectExchange exchange;
     
     private ObjectMapper mapper;
     
