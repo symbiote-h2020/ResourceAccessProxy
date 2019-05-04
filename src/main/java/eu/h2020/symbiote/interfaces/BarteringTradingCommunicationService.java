@@ -36,10 +36,6 @@ public class BarteringTradingCommunicationService {
     @Autowired
     private RabbitTemplate rabbitTemplate;
     
-    @Autowired
-    @Qualifier(RapDefinitions.RAP_ACCESS_EXCHANGE)
-    DirectExchange exchange;
-
     @Value("${rabbit.exchange.bartered.access}")
     private String barteringExchangeName;
 
