@@ -27,7 +27,7 @@ plugins {
     id "com.cinnober.gradle.semver-git" version "2.4.0"  
     
     // docker images
-    id 'com.google.cloud.tools.jib' version '1.1.2'  
+    id 'com.google.cloud.tools.jib' version '2.2.0'  
 }
 
 apply plugin: 'io.spring.dependency-management'
@@ -69,6 +69,13 @@ Forces dependencies' cache invalidation for each build for dependencies marked w
 configurations.all {
     // check for updates every build
     resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+
+	exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        if (details.requested.name == 'log4j') {
+            details.useTarget "org.slf4j:log4j-over-slf4j:1.7.5"
+        }
+    }
 }
 
 dependencies {
@@ -103,14 +110,14 @@ dependencies {
     implementation('org.springframework.boot:spring-boot-starter-web')
     implementation('org.springframework.boot:spring-boot-starter-data-mongodb')
 
-	implementation('org.apache.commons:commons-lang3:3.9')
+	implementation('org.apache.commons:commons-lang3:3.10')
 	
     // OData
-    implementation("org.apache.olingo:odata-commons-api:${'4.3.0'}")
-    implementation("org.apache.olingo:odata-commons-core:${'4.3.0'}")
+    implementation("org.apache.olingo:odata-commons-api:${'4.7.1'}")
+    implementation("org.apache.olingo:odata-commons-core:${'4.7.1'}")
     
-    implementation("org.apache.olingo:odata-server-api:${'4.3.0'}")
-    implementation("org.apache.olingo:odata-server-core:${'4.3.0'}")
+    implementation("org.apache.olingo:odata-server-api:${'4.7.1'}")
+    implementation("org.apache.olingo:odata-server-core:${'4.7.1'}")
   
     // Websocket
     implementation("org.springframework.boot:spring-boot-starter-websocket")
@@ -126,9 +133,9 @@ dependencies {
     compileOnly('org.projectlombok:lombok')
     
     //Owlapi
-    //compile('net.sourceforge.owlapi:owlapi-distribution:5.1.1')
-    implementation('net.sourceforge.owlapi:owlapi-contract:5.1.1')
-    implementation('net.sourceforge.owlapi:owlapi-util:3.3')
+    //implementation('net.sourceforge.owlapi:owlapi-distribution:5.1.1')
+    implementation('net.sourceforge.owlapi:owlapi-contract:5.1.14')
+    implementation('net.sourceforge.owlapi:owlapi-util:3.3')    
 }
 
 // publication
