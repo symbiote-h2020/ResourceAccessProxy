@@ -7,13 +7,16 @@
 // your own implementation.
 plugins {
 	// code
-	id 'org.springframework.boot' version '2.1.4.RELEASE'
+	id 'org.springframework.boot' version '2.2.7.RELEASE'
 	id 'java'
-    id 'io.franzbecker.gradle-lombok' version '3.0.0'
+    id 'io.franzbecker.gradle-lombok' version '4.0.0'
+
+    // dependency management
+    id 'com.github.ben-manes.versions' version '0.28.0' // find new versions of dependency task: dependencyUpdates
 
     // code quality
     id "jacoco"
-    id "org.owasp.dependencycheck" version "5.0.0-M2"
+    id "org.owasp.dependencycheck" version "5.3.2.1"
 
     // IDEs
     id "eclipse"
@@ -30,7 +33,7 @@ plugins {
 apply plugin: 'io.spring.dependency-management'
 
 ext {
-	set('springCloudVersion', 'Greenwich.SR1')
+	set('springCloudVersion', 'Hoxton.SR4')
 }
 
 if (!hasProperty('mainClass')) {
@@ -82,7 +85,7 @@ dependencies {
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
 
-    implementation('com.github.symbiote-h2020:SymbIoTeLibraries:5.37+') { changing = true }
+    implementation('com.github.symbiote-h2020:SymbIoTeLibraries:6.0+') { changing = true }
     // localMaven
     //implementation('eu.h2020.symbiote:SymbIoTeLibraries:5.29.0-SNAPSHOT')
     //implementation('com.github.symbiote-h2020:SymbIoTeSemantics:2.3.5')
@@ -178,7 +181,7 @@ publishToMavenLocal.dependsOn(bootJar)
 // code quality below
 // jacoco configuration section
 jacoco {
-    toolVersion = "0.8.3"
+    toolVersion = "0.8.5"
 }
 
 jacocoTestReport {
