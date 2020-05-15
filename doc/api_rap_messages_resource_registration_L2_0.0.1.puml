@@ -1,0 +1,19 @@
+@startuml
+title Resource registration L2
+
+
+interface "Update"
+note top of Update : exchange=symbIoTe.registrationHandler\nkey=symbIoTe.rh.resource.updated\n\npayload=List<eu.h2020.symbiote.cloud.model.internal.CloudResource>
+interface "Unregister"
+note top of Unregister : exchange=symbIoTe.registrationHandler\nkey=symbIoTe.rh.resource.deleted\n\npayload=List<String(internalId)>
+interface "Share"
+note top of Share : exchange=symbIoTe.registrationHandler\nkey=symbIoTe.rh.resource.shared\n\npayload=eu.h2020.symbiote.cloud.model.ResourceLocalSharingMessage
+interface "Unshare"
+note bottom of Unshare : exchange=symbIoTe.registrationHandler\nkey=symbIoTe.rh.resource.unshared\n\npayload=eu.h2020.symbiote.cloud.model.ResourceLocalSharingMessage
+
+[RAP] -left- Update
+[RAP] -up- Unregister
+[RAP] -right- Share
+[RAP] -down- Unshare
+
+@enduml
