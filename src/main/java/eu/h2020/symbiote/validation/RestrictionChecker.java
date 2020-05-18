@@ -5,13 +5,6 @@
  */
 package eu.h2020.symbiote.validation;
 
-import eu.h2020.symbiote.model.cim.EnumRestriction;
-import eu.h2020.symbiote.model.cim.InstanceOfRestriction;
-import eu.h2020.symbiote.model.cim.LengthRestriction;
-import eu.h2020.symbiote.model.cim.RangeRestriction;
-import eu.h2020.symbiote.model.cim.RegExRestriction;
-import eu.h2020.symbiote.model.cim.Restriction;
-import eu.h2020.symbiote.model.cim.StepRestriction;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.util.Arrays;
@@ -21,14 +14,23 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import org.apache.jena.datatypes.RDFDatatype;
 import org.apache.jena.datatypes.xsd.XSDDatatype;
 import org.apache.jena.datatypes.xsd.impl.RDFLangString;
 import org.apache.jena.rdf.model.Literal;
 
+import eu.h2020.symbiote.model.cim.EnumRestriction;
+import eu.h2020.symbiote.model.cim.InstanceOfRestriction;
+import eu.h2020.symbiote.model.cim.LengthRestriction;
+import eu.h2020.symbiote.model.cim.RangeRestriction;
+import eu.h2020.symbiote.model.cim.RegExRestriction;
+import eu.h2020.symbiote.model.cim.Restriction;
+import eu.h2020.symbiote.model.cim.StepRestriction;
+
 /**
  *
- * @author Michael Jacoby <michael.jacoby@iosb.fraunhofer.de>
+ * @author <a href="mailto:michael.jacoby@iosb.fraunhofer.de">Michael Jacoby</a>
  */
 public class RestrictionChecker {
 
@@ -136,9 +138,9 @@ public class RestrictionChecker {
     }
 
     private static void checkStepRestriction(StepRestriction restriction, Object value) throws ValidationException {
-        checkRangeRestriction((RangeRestriction) restriction, value);
-        if (!((asNumber(value).doubleValue() % ((StepRestriction) restriction).getStep()) == 0)) {
-            throw new ValidationException("value must multiple of " + ((StepRestriction) restriction).getStep());
+        checkRangeRestriction(restriction, value);
+        if (!((asNumber(value).doubleValue() % restriction.getStep()) == 0)) {
+            throw new ValidationException("value must multiple of " + restriction.getStep());
         }
     }
 

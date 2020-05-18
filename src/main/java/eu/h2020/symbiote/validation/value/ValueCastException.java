@@ -7,7 +7,7 @@ package eu.h2020.symbiote.validation.value;
 
 /**
  *
- * @author Michael Jacoby <michael.jacoby@iosb.fraunhofer.de>
+ * @author <a href="mailto:michael.jacoby@iosb.fraunhofer.de">Michael Jacoby</a>
  */
 @SuppressWarnings("serial")
 public class ValueCastException extends RuntimeException {

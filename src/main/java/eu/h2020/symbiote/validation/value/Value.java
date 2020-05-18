@@ -4,48 +4,48 @@ import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  *
- * @author Michael Jacoby <michael.jacoby@iosb.fraunhofer.de>
+ * @author <a href="mailto:michael.jacoby@iosb.fraunhofer.de">Michael Jacoby</a>
  * @param <T> actual type of the value
  */
 public interface Value<T> {
 
-    public T get();
+    T get();
 
-    public default boolean isPrimitive() {
+    default boolean isPrimitive() {
         return false;
     }
 
-    public default boolean isComplex() {
+    default boolean isComplex() {
         return false;
     }
 
-    public default boolean isCustomType() {
+    default boolean isCustomType() {
         return false;
     }
 
-    public default boolean isComplexArray() {
+    default boolean isComplexArray() {
         return false;
     }
 
-    public default boolean isPrimitiveArray() {
+    default boolean isPrimitiveArray() {
         return false;
     }
 
-    public default PrimitiveValue<T> asPrimitive() {
+    default PrimitiveValue<T> asPrimitive() {
         if (PrimitiveValue.class.isAssignableFrom(this.getClass())) {
             return (PrimitiveValue<T>) this;
         }
         throw new RuntimeException("Value cannot be cast to primitive value");
     }
 
-    public default ComplexValue asComplex() {
+    default ComplexValue asComplex() {
         if (ComplexValue.class.isAssignableFrom(this.getClass())) {
             return (ComplexValue) this;
         }
         throw new RuntimeException("Value cannot be cast to complex value");
     }
 
-    public default ComplexValueArray asComplexArray() {
+    default ComplexValueArray asComplexArray() {
         if (ComplexValueArray.class.isAssignableFrom(this.getClass())) {
             return (ComplexValueArray) this;
         }
@@ -53,12 +53,12 @@ public interface Value<T> {
     }
 
     @SuppressWarnings("rawtypes")
-    public default PrimitiveValueArray asPrimitiveArray() {
+    default PrimitiveValueArray asPrimitiveArray() {
         if (PrimitiveValueArray.class.isAssignableFrom(this.getClass())) {
             return (PrimitiveValueArray) this;
         }
         throw new RuntimeException("Value cannot be cast to primitive value array");
     }
 
-    public JsonNode asJson();
+    JsonNode asJson();
 }

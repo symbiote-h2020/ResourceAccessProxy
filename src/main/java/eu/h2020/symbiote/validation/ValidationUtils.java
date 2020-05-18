@@ -43,7 +43,7 @@ import eu.h2020.symbiote.semantics.ontology.CIM;
 
 /**
  *
- * @author Michael Jacoby <michael.jacoby@iosb.fraunhofer.de>
+ * @author <a href="mailto:michael.jacoby@iosb.fraunhofer.de">Michael Jacoby</a>
  */
 public class ValidationUtils {
 

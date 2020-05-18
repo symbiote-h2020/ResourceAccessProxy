@@ -5,14 +5,6 @@
  */
 package eu.h2020.symbiote.validation.value;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import com.google.common.collect.Lists;
-import eu.h2020.symbiote.validation.ValidationUtils;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -20,9 +12,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
+import com.google.common.collect.Lists;
+
+import eu.h2020.symbiote.validation.ValidationUtils;
+
 /**
  *
- * @author Michael Jacoby <michael.jacoby@iosb.fraunhofer.de>
+ * @author <a href="mailto:michael.jacoby@iosb.fraunhofer.de">Michael Jacoby</a>
  */
 @SuppressWarnings({ "serial", "rawtypes" })
 public class ValueDeserializer extends StdDeserializer<Value> {
@@ -58,7 +60,7 @@ public class ValueDeserializer extends StdDeserializer<Value> {
                     .filter(x -> x.isValueNode())
                     .collect(Collectors.counting());
             if (primitiveElementCount == 0) {
-                // all elements are complex                
+                // all elements are complex
                 List<ComplexValue> values = new ArrayList<>();
                 Iterator<JsonNode> elementIterator = root.elements();
                 while (elementIterator.hasNext()) {
@@ -72,7 +74,7 @@ public class ValueDeserializer extends StdDeserializer<Value> {
                 throw new RuntimeException("found mixed array of primitive and non-primitive values");
             }
         } else if (root.isObject()) {
-            return parseComplex(root);            
+            return parseComplex(root);
         }
         throw new RuntimeException("unkown JSON content");
     }

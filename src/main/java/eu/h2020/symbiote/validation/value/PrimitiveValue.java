@@ -1,18 +1,20 @@
 package eu.h2020.symbiote.validation.value;
 
+import java.text.NumberFormat;
+import java.text.ParseException;
+import java.util.Objects;
+
+import org.apache.jena.datatypes.RDFDatatype;
+import org.apache.jena.datatypes.TypeMapper;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import java.text.NumberFormat;
-import java.text.ParseException;
-import java.util.Objects;
-import org.apache.jena.datatypes.RDFDatatype;
-import org.apache.jena.datatypes.TypeMapper;
 
 /**
  *
- * @author Michael Jacoby <michael.jacoby@iosb.fraunhofer.de>
+ * @author <a href="mailto:michael.jacoby@iosb.fraunhofer.de">Michael Jacoby</a>
  */
 public class PrimitiveValue<T> implements Value<T> {
 

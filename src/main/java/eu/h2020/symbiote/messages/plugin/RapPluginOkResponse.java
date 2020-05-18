@@ -16,11 +16,11 @@ import eu.h2020.symbiote.plugin.RapPluginException;
 
 public class RapPluginOkResponse extends RapPluginResponse {
     private String jsonBody;
-    
+
     public RapPluginOkResponse() {
         setResponseCode(204);
     }
-    
+
     public RapPluginOkResponse(String jsonBody) throws RapPluginException {
         setBody(jsonBody);
         updateResponseCode();
@@ -32,7 +32,7 @@ public class RapPluginOkResponse extends RapPluginResponse {
         else
             setResponseCode(200);
     }
-    
+
     public RapPluginOkResponse(int responseCode, String jsonBody) throws RapPluginException {
         setBody(jsonBody);
         setResponseCode(responseCode);
@@ -44,14 +44,14 @@ public class RapPluginOkResponse extends RapPluginResponse {
         response.updateJsonBody(json);
         return response;
     }
-    
+
     public static RapPluginOkResponse createFromJson(String json) {
         RapPluginOkResponse response = new RapPluginOkResponse();
         response.updateJsonBody(json);
         response.updateResponseCode();
         return response;
     }
-    
+
     public static RapPluginOkResponse createFromObject(int responseCode, Object object) {
         RapPluginOkResponse response = new RapPluginOkResponse();
         response.setResponseCode(responseCode);
@@ -65,7 +65,7 @@ public class RapPluginOkResponse extends RapPluginResponse {
         response.updateResponseCode();
         return response;
     }
-    
+
     @Override
     public void setResponseCode(int responseCode) {
         if(responseCode < 200 || responseCode > 299)
@@ -80,7 +80,7 @@ public class RapPluginOkResponse extends RapPluginResponse {
     public void setBody(String body) throws RapPluginException {
         updateJsonBody(body);
     }
-    
+
     public void updateBody(Object object) {
       ObjectMapper mapper = new ObjectMapper();
       try {
@@ -89,13 +89,13 @@ public class RapPluginOkResponse extends RapPluginResponse {
           throw new RapPluginException(HttpStatusCode.INTERNAL_SERVER_ERROR.getStatusCode(), "Content of body can not be serialized to JSON. Body is of type " + object.getClass().getName());
       }
     }
-    
+
     public String getBody() {
         return jsonBody;
     }
 
     /**
-     * Try to parse Observation from jsonBody 
+     * Try to parse Observation from jsonBody
      * @return optional of observation
      */
     public Optional<Observation> bodyToObservation() {
@@ -108,7 +108,7 @@ public class RapPluginOkResponse extends RapPluginResponse {
     }
 
     /**
-     * Try to parse List<Observation> from jsonBody 
+     * Try to parse List&lt;Observation&gt; from jsonBody
      * @return optional of list of observations
      */
     public Optional<List<Observation>> bodyToObservations() {
@@ -134,7 +134,7 @@ public class RapPluginOkResponse extends RapPluginResponse {
         if (!(obj instanceof RapPluginOkResponse))
             return false;
         RapPluginOkResponse other = (RapPluginOkResponse) obj;
-        
+
         return super.equals(other) && Objects.equals(jsonBody, other.jsonBody);
     }
 

@@ -21,8 +21,8 @@ import org.apache.jena.shared.PrefixMapping;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import eu.h2020.symbiote.jsonld.JsonLDHelper;
 
+import eu.h2020.symbiote.jsonld.JsonLDHelper;
 import eu.h2020.symbiote.model.cim.Capability;
 import eu.h2020.symbiote.model.cim.ComplexDatatype;
 import eu.h2020.symbiote.model.cim.ComplexProperty;
@@ -35,7 +35,7 @@ import eu.h2020.symbiote.model.cim.Restriction;
 
 /**
  *
- * @author Michael Jacoby <michael.jacoby@iosb.fraunhofer.de>
+ * @author <a href="mailto:michael.jacoby@iosb.fraunhofer.de">Michael Jacoby</a>
  */
 public class ValidationHelper {
 
@@ -69,7 +69,7 @@ public class ValidationHelper {
             if (!temp.isPresent()) {
                 throw new ValidationException("provided capability '" + capabilityPresent.getKey() + "' is not defined");
             }
-            
+
             try {
                 validateServicePayload(temp.get().getParameters(), capabilitiesPresent.get(temp.get().getName()));
             } catch(ValidationException ve) {
