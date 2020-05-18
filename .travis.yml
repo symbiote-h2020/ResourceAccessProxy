@@ -1,10 +1,11 @@
 language: java
+dist: trusty
 env:
   global:
   - GITHUB_REPO=symbiote-h2020/ResourceAccessProxy
   - secure: WyrCpig1Pz/ppZp6XzuSenIGVxh5vEpvtzktINtmA6LGimSopcg8v5q0vjGFYJAuNeBh4TN2krfeTe3N97gviCRa5+pBYtN6gD5qkVa+NR4iQ8H9a0EsSV8TG/EWPzHV1rdSPQxqBAToulEcHX9fjQUDpH2ozCjc5CxIuO631bWx0sMZSUn7kpwEMh1iex+Mgs5NgLXt7KlTTq+4MMvSRDP+XhV7Ag1dKeRWsNwkt5xe1iF2M66mPiGBB0q13pY2zjHKGIWwteMLuGWAZimeS1QyGFXk/lDUudrS9SGxLZ9fTJRNKK8Y1SUY5rJvFGQthpwcP055e2hot5Dfg2DOQAwXz4fS3XIHt0mN0787vVPp40UjInnI00+NQ+JgF+cLHjoeuHWo4clnii729SCl9+2ushUUV2grGJNt23XXE7wf+9SpV3lF1HThUYs/z26kENoJOmOP6J7ix9t1UmNQ+7n/grG3Y/pM6JQQyq+aRa6+Wrk9EZXEt4vaTqc+qqstsXh9lTeZQWKR53azis7yX/1LhGkmFEBye3wT0MJH1gbajn0kJQiH6LekTErKzp0qJMLEk9iSMDwpuyUvW4kH4HRUOX4Jwstyo0Z0fPoz3wNdFa4a2UIdMxvR4waPqaXcFlX6NYvtbG5S3eV1OPLi8r2bQUPgY6vewpNUpahVTHA=
 jdk:
-- oraclejdk8
+- openjdk11
 services:
 - mongodb
 - rabbitmq
