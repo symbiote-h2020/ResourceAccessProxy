@@ -5,11 +5,14 @@
  */
 package eu.h2020.symbiote.interfaces;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import eu.h2020.symbiote.model.cim.Observation;
-import eu.h2020.symbiote.resources.db.ResourcesRepository;
-import eu.h2020.symbiote.service.notificationResource.WebSocketController;
+import static eu.h2020.symbiote.resources.RapDefinitions.JSON_OBJECT_TYPE_FIELD_NAME;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
 import org.apache.olingo.commons.api.http.HttpStatusCode;
 import org.apache.olingo.server.api.ODataApplicationException;
 import org.slf4j.Logger;
@@ -17,10 +20,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
-import java.util.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
+import eu.h2020.symbiote.model.cim.Observation;
 import eu.h2020.symbiote.resources.db.DbResourceInfo;
-import static eu.h2020.symbiote.resources.RapDefinitions.JSON_OBJECT_TYPE_FIELD_NAME;
+import eu.h2020.symbiote.resources.db.ResourcesRepository;
+import eu.h2020.symbiote.service.notificationResource.WebSocketController;
 
 /**
  *
@@ -31,13 +37,13 @@ public class PluginNotification {
 
     @Autowired
     private ResourceAccessNotificationService notificationService;
-    
+
     @Autowired
     private WebSocketController webSocketController;
-    
-    @Value("${symbiote.rap.cram.url}") 
+
+    @Value("${symbiote.rap.cram.url}")
     private String notificationUrl;
-    
+
     @Autowired
     private ResourcesRepository resourcesRepo;
 
@@ -55,10 +61,13 @@ public class PluginNotification {
 
             // THIS WOULD CUT OUT SUPPORT FOR PIMs in notification mechanism
             Observation observation = changeInternalIdToSymbIoTeIdInObservation(messageObject);
-            sendSuccessfulPushMessage(observation.getResourceId());
+            if(observation != null) {
+              sendSuccessfulPushMessage(observation.getResourceId());
 
-            webSocketController.SendMessage(observation);
-            
+              webSocketController.SendMessage(observation);
+            } else {
+              log.debug("No session for observation: {}", message);
+            }
         } catch (Exception e) {
             log.error("Error while processing notification received from plugin", e);
         }
@@ -70,7 +79,7 @@ public class PluginNotification {
 
         for (DbResourceInfo rInfo : resInfoList) {
             List<String> sessionList = rInfo.getSessionId();
-            if(!sessionList.isEmpty()) {
+            if(sessionList  != null && !sessionList.isEmpty()) {
                 resInfo=rInfo;
                 break;
             }
@@ -124,8 +133,9 @@ public class PluginNotification {
         } else {
             throw new IllegalArgumentException("Can not recognize notification from RAP plugin. It is of type " + obj.getClass().getName());
         }
-        
+
         DbResourceInfo resInfo = getResourceInfo(internalObservation.getResourceId());
+        if(resInfo == null) return null;
 
         return new Observation(resInfo.getSymbioteId(), internalObservation.getLocation(),
                 internalObservation.getResultTime(), internalObservation.getSamplingTime(),
@@ -139,7 +149,7 @@ public class PluginNotification {
     public void sendSuccessfulPushMessage(String symbioteId){
         List<Date> dateList = new ArrayList<>();
         dateList.add(new Date());
-        
+
         notificationService.addSuccessfulPushes(symbioteId, dateList);
         notificationService.sendAccessData();
     }

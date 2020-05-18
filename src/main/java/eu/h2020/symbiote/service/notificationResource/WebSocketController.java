@@ -5,32 +5,6 @@
  */
 package eu.h2020.symbiote.service.notificationResource;
 
-import eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import eu.h2020.symbiote.resources.db.ResourcesRepository;
-import eu.h2020.symbiote.cloud.model.rap.ResourceInfo;
-import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessMessage;
-import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessSubscribeMessage;
-import eu.h2020.symbiote.model.cim.Observation;
-import eu.h2020.symbiote.exceptions.EntityNotFoundException;
-import eu.h2020.symbiote.interfaces.conditions.NBInterfaceWebSocketCondition;
-import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessUnSubscribeMessage;
-import eu.h2020.symbiote.interfaces.ResourceAccessNotificationService;
-import eu.h2020.symbiote.resources.RapDefinitions;
-import eu.h2020.symbiote.resources.db.PlatformInfo;
-import eu.h2020.symbiote.resources.db.PluginRepository;
-import eu.h2020.symbiote.resources.db.DbResourceInfo;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
-import eu.h2020.symbiote.managers.AuthorizationManager;
-import eu.h2020.symbiote.managers.AuthorizationResult;
-import eu.h2020.symbiote.managers.ServiceResponseResult;
-import eu.h2020.symbiote.service.notificationResource.WebSocketMessage.Action;
 import static eu.h2020.symbiote.security.commons.SecurityConstants.SECURITY_RESPONSE_HEADER;
 
 import java.io.IOException;
@@ -43,8 +17,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.apache.olingo.commons.api.http.HttpStatusCode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,36 +37,68 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
+import eu.h2020.symbiote.cloud.model.rap.ResourceInfo;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessMessage;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessSubscribeMessage;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessUnSubscribeMessage;
+import eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo;
+import eu.h2020.symbiote.exceptions.EntityNotFoundException;
+import eu.h2020.symbiote.interfaces.ResourceAccessNotificationService;
+import eu.h2020.symbiote.interfaces.conditions.NBInterfaceWebSocketCondition;
+import eu.h2020.symbiote.managers.AuthorizationManager;
+import eu.h2020.symbiote.managers.AuthorizationResult;
+import eu.h2020.symbiote.managers.ServiceResponseResult;
+import eu.h2020.symbiote.model.cim.Observation;
+import eu.h2020.symbiote.resources.RapDefinitions;
+import eu.h2020.symbiote.resources.db.DbResourceInfo;
+import eu.h2020.symbiote.resources.db.PlatformInfo;
+import eu.h2020.symbiote.resources.db.PluginRepository;
+import eu.h2020.symbiote.resources.db.ResourcesRepository;
+import eu.h2020.symbiote.resources.db.WebsocketSessionInfo;
+import eu.h2020.symbiote.resources.db.WebsocketSessionRepository;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
+import eu.h2020.symbiote.service.notificationResource.WebSocketMessage.Action;
+
 /**
  *
  * @author Luca Tomaselli
  */
 @Conditional(NBInterfaceWebSocketCondition.class)
 @Component
-@CrossOrigin 
+@CrossOrigin
 public class WebSocketController extends TextWebSocketHandler {
 
     private static final Logger log = LoggerFactory.getLogger(WebSocketController.class);
 
     @Autowired
     ResourceAccessNotificationService notificationService;
-    
+
     @Autowired
     ResourcesRepository resourcesRepo;
-    
+
     @Autowired
     PluginRepository pluginRepo;
-        
+
+    @Autowired
+    WebsocketSessionRepository sessionRepo;
+
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
     @Autowired
     @Qualifier(RapDefinitions.PLUGIN_EXCHANGE_OUT)
     TopicExchange exchange;
-    
-    @Value("${symbiote.rap.cram.url}") 
+
+    @Value("${symbiote.rap.cram.url}")
     private String notificationUrl;
-    
+
     @Autowired
     private AuthorizationManager authManager;
 
@@ -109,10 +119,13 @@ public class WebSocketController extends TextWebSocketHandler {
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         log.info("Session " + session.getId() + " closed with status " + status.getCode());
         idSession.remove(session.getId());
+        WebsocketSessionInfo websocketSessionInfo = sessionRepo.findById(session.getId()).get();
+        Unsubscribe(session, websocketSessionInfo.getResourceIds());
+        sessionRepo.deleteById(session.getId());
 
         //update DB
-        List<DbResourceInfo> resInfoList = resourcesRepo.findAll();
-        if (resInfoList != null) {
+        sessionRepo.findById(session.getId()).ifPresent(sessionInfo -> {
+            Iterable<DbResourceInfo> resInfoList = resourcesRepo.findAllById(sessionInfo.getResourceIds());
             for (DbResourceInfo resInfo : resInfoList) {
                 List<String> sessionsIdOfRes = resInfo.getSessionId();
                 if (sessionsIdOfRes != null) {
@@ -121,7 +134,18 @@ public class WebSocketController extends TextWebSocketHandler {
                     resourcesRepo.save(resInfo);
                 }
             }
-        }
+
+            StreamSupport.stream(resInfoList.spliterator(), false)
+              .collect(Collectors.groupingBy(i -> i.getPluginId()))
+              .forEach((plugin, resList) -> {
+                try {
+                  sendUnsubscribeToPlugin(plugin,
+                      resList.stream().map(i -> i.toResourceInfo()).collect(Collectors.toList()));
+                } catch (JsonProcessingException e) {
+                  log.info("Can not unsubscribe plugin: {}", plugin);
+                }
+              });
+        });
     }
 
     /**
@@ -134,6 +158,7 @@ public class WebSocketController extends TextWebSocketHandler {
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         log.info("Connected ... " + session.getId());
         idSession.put(session.getId(), session);
+        sessionRepo.save(new WebsocketSessionInfo(session.getId(), new ArrayList<>()));
     }
 
     /**
@@ -148,28 +173,28 @@ public class WebSocketController extends TextWebSocketHandler {
         Exception e = null;
         HttpStatusCode code = HttpStatusCode.INTERNAL_SERVER_ERROR;
         String message = "";
-        try 
+        try
         {
             message = jsonTextMessage.getPayload();
             log.info("message received: " + message);
 
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);        
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             WebSocketMessageSecurityRequest webSocketMessageSecurity = mapper.readValue(message, WebSocketMessageSecurityRequest.class);
-            
+
             Map<String,String> securityRequest = webSocketMessageSecurity.getSecRequest();
             if(securityRequest == null) {
                 log.error("Security Request cannot be empty");
                 throw new Exception("Security Request cannot be empty");
             }
-            
+
             WebSocketMessage webSocketMessage = webSocketMessageSecurity.getPayload();
             List<String> resourcesId = webSocketMessage.getIds();
             log.debug("Ids: " + resourcesId);
-            
+
             checkAccessPolicies(securityRequest,resourcesId);
-            
+
             Action act = webSocketMessage.getAction();
             switch(act) {
                 case SUBSCRIBE:
@@ -194,12 +219,12 @@ public class WebSocketController extends TextWebSocketHandler {
             e = entityEx;
             log.error("Can not find entity", e);
         } catch (ValidationException vex) {
-        	log.error(vex.getMessage());        	
+        	log.error(vex.getMessage());
         } catch (Exception ex) {
             e = ex;
             log.error("Generic IO Exception: " + e.getMessage(), e);
         }
-        
+
         if(e != null){
             session.sendMessage(new TextMessage(code.name()+ " "+
                     e.getMessage()));
@@ -209,24 +234,31 @@ public class WebSocketController extends TextWebSocketHandler {
 
 
     private void Subscribe(WebSocketSession session, List<String> resourcesId) throws Exception {
+        WebsocketSessionInfo websocketSessionInfo = sessionRepo.findById(session.getId()).get();
+        websocketSessionInfo.setResourceIds(
+            Stream.concat(resourcesId.stream(), websocketSessionInfo.getResourceIds().stream())
+              .distinct()
+              .collect(Collectors.toList()));
+        sessionRepo.save(websocketSessionInfo);
+
         HashMap<String, List<DbResourceInfo>> subscribeList = new HashMap<>();
         for (String resId : resourcesId) {
             // adding new resource info to subscribe map, with pluginId as key
-            DbResourceInfo resInfo = getResourceInfo(resId);            
+            DbResourceInfo resInfo = getResourceInfo(resId);
             String pluginId = resInfo.getPluginId();
             // if no plugin id specified, we assume there's only one plugin attached
             if(pluginId == null) {
                 List<PlatformInfo> lst = pluginRepo.findAll();
                 if(lst == null || lst.isEmpty())
-                    throw new Exception("No plugin found");                
+                    throw new Exception("No plugin found");
                 pluginId = lst.get(0).getPlatformId();
-            } 
+            }
             List<DbResourceInfo> rl;
             if(subscribeList.containsKey(pluginId)) {
                 rl = subscribeList.get(pluginId);
             } else {
                 rl = new ArrayList<>();
-            }            
+            }
             rl.add(resInfo);
             subscribeList.put(pluginId, rl);
             //update DB
@@ -238,24 +270,32 @@ public class WebSocketController extends TextWebSocketHandler {
             resInfo.setSessionId(sessionsIdOfRes);
             resourcesRepo.save(resInfo);
         }
-        
+
         for(String plugin : subscribeList.keySet() ) {
             List<ResourceInfo> resList = subscribeList.get(plugin).stream().map(ri -> ri.toResourceInfo()).collect(Collectors.toList());
             ResourceAccessMessage msg = new ResourceAccessSubscribeMessage(resList);
             String routingKey = plugin + "." + ResourceAccessMessage.AccessType.SUBSCRIBE.toString().toLowerCase();
-            
+
             ObjectMapper mapper = new ObjectMapper();
             mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);        
+            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
             String json = mapper.writeValueAsString(msg);
 
-            rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);            
+            rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
             sendSuccessfulAccessMessage(resourcesId, SuccessfulAccessMessageInfo.AccessType.SUBSCRIPTION_START.name());
         }
-        
+
     }
-    
+
     private void Unsubscribe(WebSocketSession session, List<String> resourcesId) throws Exception {
+        WebsocketSessionInfo websocketSessionInfo = sessionRepo.findById(session.getId()).get();
+        Set<String> setOfResourceIds = new HashSet<>(resourcesId);
+        websocketSessionInfo.setResourceIds(
+            websocketSessionInfo.getResourceIds().stream()
+              .filter(r -> !setOfResourceIds.contains(r))
+              .collect(Collectors.toList()));
+        sessionRepo.save(websocketSessionInfo);
+
         HashMap<String, List<DbResourceInfo>> unsubscribeList = new HashMap<>();
         for (String resId : resourcesId) {
             // adding new resource info to subscribe map, with pluginId as key
@@ -265,15 +305,15 @@ public class WebSocketController extends TextWebSocketHandler {
             if(pluginId == null) {
                 List<PlatformInfo> lst = pluginRepo.findAll();
                 if(lst == null || lst.isEmpty())
-                    throw new Exception("No plugin found");                
+                    throw new Exception("No plugin found");
                 pluginId = lst.get(0).getPlatformId();
-            } 
+            }
             List<DbResourceInfo> rl;
             if(unsubscribeList.containsKey(pluginId)) {
                 rl = unsubscribeList.get(pluginId);
             } else {
                 rl = new ArrayList<>();
-            }            
+            }
             rl.add(resInfo);
             unsubscribeList.put(pluginId, rl);
             //update DB
@@ -281,22 +321,27 @@ public class WebSocketController extends TextWebSocketHandler {
             if (sessionsIdOfRes != null) {
                 sessionsIdOfRes.remove(session.getId());
                 resInfo.setSessionId(sessionsIdOfRes);
-                resourcesRepo.save(resInfo);            
+                resourcesRepo.save(resInfo);
             }
         }
         for(String plugin : unsubscribeList.keySet() ) {
             List<ResourceInfo> resList = unsubscribeList.get(plugin).stream().map(ri -> ri.toResourceInfo()).collect(Collectors.toList());
-            ResourceAccessMessage msg = new ResourceAccessUnSubscribeMessage(resList);
-            String routingKey = plugin + "." + ResourceAccessMessage.AccessType.UNSUBSCRIBE.toString().toLowerCase();
-
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
-            mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);        
-            String json = mapper.writeValueAsString(msg);
-
-            rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
-            sendSuccessfulAccessMessage(resourcesId, SuccessfulAccessMessageInfo.AccessType.SUBSCRIPTION_END.name());
+            sendUnsubscribeToPlugin(plugin, resList);
         }
+    }
+
+    private void sendUnsubscribeToPlugin(String plugin, List<ResourceInfo> resList) throws JsonProcessingException {
+      ResourceAccessMessage msg = new ResourceAccessUnSubscribeMessage(resList);
+      String routingKey = plugin + "." + ResourceAccessMessage.AccessType.UNSUBSCRIBE.toString().toLowerCase();
+
+      ObjectMapper mapper = new ObjectMapper();
+      mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+      mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+      String json = mapper.writeValueAsString(msg);
+
+      rabbitTemplate.convertSendAndReceive(exchange.getName(), routingKey, json);
+      List<String> symbioteResourceIds = resList.stream().map(r -> r.getSymbioteId()).collect(Collectors.toList());
+      sendSuccessfulAccessMessage(symbioteResourceIds, SuccessfulAccessMessageInfo.AccessType.SUBSCRIPTION_END.name());
     }
 
 
@@ -311,11 +356,11 @@ public class WebSocketController extends TextWebSocketHandler {
         ServiceResponseResult serResponse = authManager.generateServiceResponse();
         if(serResponse.isCreatedSuccessfully()) {
             secResponse.put(SECURITY_RESPONSE_HEADER, serResponse.getServiceResponse());
-        }        
+        }
         WebSocketMessageSecurityResponse messageSecurityResp = new WebSocketMessageSecurityResponse(secResponse, obs);
-        
-        String internalId = obs.getResourceId();
-        DbResourceInfo resInfo = getResourceByInternalId(internalId);
+
+        String symbioteId = obs.getResourceId();
+        DbResourceInfo resInfo = resourcesRepo.findById(symbioteId).get();  //getResourceByInternalId(internalId);
         List<String> sessionIdList = resInfo.getSessionId();
         HashSet<WebSocketSession> sessionList = new HashSet<>();
         if (sessionIdList != null && !sessionIdList.isEmpty()) {
@@ -353,11 +398,11 @@ public class WebSocketController extends TextWebSocketHandler {
         Optional<DbResourceInfo> resInfoOptional = resourcesRepo.findById(resId);
         if(!resInfoOptional.isPresent())
             throw new EntityNotFoundException(resId);
-        
+
         resInfo = resInfoOptional.get();
         return resInfo;
     }
-    
+
     private DbResourceInfo getResourceByInternalId(String internalId) {
         DbResourceInfo resInfo = null;
         try {
@@ -384,30 +429,30 @@ public class WebSocketController extends TextWebSocketHandler {
      * @param accessType type of access from {@link eu.h2020.symbiote.core.cci.accessNotificationMessages.SuccessfulAccessMessageInfo.AccessType} name
      */
     public void sendSuccessfulAccessMessage(List<String> symbioteIdList, String accessType){
-        List<Date> dateList = new ArrayList<Date>();
+        List<Date> dateList = new ArrayList<>();
         dateList.add(new Date());
-        
+
         notificationService.addSuccessfulAttemptsList(symbioteIdList, dateList, accessType);
         notificationService.sendAccessData();
     }
-    
+
     private void sendFailMessage(String path, Exception e) {
         String appId = "";String issuer = ""; String validationStatus = "";
         String symbioteId = "";
-        
+
         String code = Integer.toString(HttpStatus.INTERNAL_SERVER_ERROR.value());
         String message = e.getMessage();
         if(message == null)
             message = e.toString();
-        
+
         if(e.getClass().equals(EntityNotFoundException.class)){
             code = Integer.toString(HttpStatus.NOT_FOUND.value());
             symbioteId = ((EntityNotFoundException) e).getSymbioteId();
         }
-            
-        List<Date> dateList = new ArrayList<Date>();
+
+        List<Date> dateList = new ArrayList<>();
         dateList.add(new Date());
-        notificationService.addFailedAttempts(symbioteId, dateList, 
+        notificationService.addFailedAttempts(symbioteId, dateList,
             code, message, appId, issuer, validationStatus, path);
         notificationService.sendAccessData();
     }
@@ -420,17 +465,17 @@ public class WebSocketController extends TextWebSocketHandler {
      * @throws Exception security exception
      */
     public void checkAccessPolicies(Map<String, String> secHdrs, List<String> resourceIdList) throws Exception {
-        
+
         log.debug("secHeaders: " + secHdrs);
         SecurityRequest securityReq = new SecurityRequest(secHdrs);
 
-        for(String resourceId: resourceIdList){        
+        for(String resourceId: resourceIdList){
             AuthorizationResult result = authManager.checkResourceUrlRequest(resourceId, securityReq);
             log.info(result.getMessage());
             if(!result.isValidated()) {
                 log.error("Resource " + resourceId + "access has been denied with message: " + result.getMessage());
                 throw new ValidationException("The access policies were not satisfied for resource " + resourceId + ". MSG: " + result.getMessage());
             }
-        }        
+        }
     }
 }
