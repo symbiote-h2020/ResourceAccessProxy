@@ -1,0 +1,16 @@
+@startuml
+title Resource registration L1
+
+
+interface "Register"
+note top of Register : exchange=symbIoTe.registrationHandler\nkey=symbIoTe.rh.resource.core.register\n\npayload=List<eu.h2020.symbiote.cloud.model.internal.CloudResource>
+interface "Delete"
+note top of Delete : exchange=symbIoTe.registrationHandler\nkey=symbIoTe.rh.resource.core.delete\n\npayload=List<String(internalId)>
+interface "Update"
+note bottom of Update : exchange=symbIoTe.registrationHandler\nkey=symbIoTe.rh.resource.core.update\n\npayload=List<eu.h2020.symbiote.cloud.model.internal.CloudResource>
+
+[RAP] -up- Register
+[RAP] -right- Delete
+[RAP] -down- Update
+
+@enduml

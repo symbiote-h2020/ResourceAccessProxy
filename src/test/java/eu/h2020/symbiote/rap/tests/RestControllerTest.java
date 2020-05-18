@@ -125,6 +125,7 @@ public class RestControllerTest {
                 .writeValueAsString(RapPluginOkResponse.createFromObject(new Observation(resourceId, null, null, null, null)));
         when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
                 .thenReturn(responseFromPlugin);
+        when(exchange.getName()).thenReturn("somePluginExchange");
 
         // when
         ResultActions res = mockMvc.perform(get("/rap/Sensor/" + resourceId).headers(getHeaders()));
@@ -209,6 +210,7 @@ public class RestControllerTest {
                         new Observation(resourceId, null, null, null, null))));
         when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
                 .thenReturn(responseFromPlugin);
+        when(exchange.getName()).thenReturn("somePluginExchange");
 
         // when
         ResultActions res = mockMvc.perform(get("/rap/Sensor/" + resourceId + "/history").headers(getHeaders()));
@@ -296,6 +298,7 @@ public class RestControllerTest {
                 .writeValueAsString(new RapPluginOkResponse());
         when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
                 .thenReturn(responseFromPlugin);
+        when(exchange.getName()).thenReturn("somePluginExchange");
 
         // when
         ResultActions res = mockMvc.perform(post("/rap/Actuator/" + resourceId).headers(getHeaders())
@@ -378,6 +381,7 @@ public class RestControllerTest {
                 .writeValueAsString(RapPluginOkResponse.createFromObject("service response"));
         when(rabbitTemplate.convertSendAndReceive(any(String.class), any(String.class), any(Object.class)))
                 .thenReturn(responseFromPlugin);
+        when(exchange.getName()).thenReturn("somePluginExchange");
 
         // when
         ResultActions res = mockMvc.perform(post("/rap/Service/" + resourceId).headers(getHeaders())

@@ -1,0 +1,11 @@
+@startuml 
+title RAP Receiving Push Notifications from Plugin
+
+interface "Notification"
+note right of Notification : exchange=symbIoTe.rapPluginExchange-notification\nkey=symbIoTe.rapPluginExchange.plugin-notification\n\nqueue=symbIoTe.platform-queue-notification
+
+[RAP] - Notification
+[<Internal> Plugin] ..> Notification
+note on link #LightBlue: eu.h2020.symbiote.model.cim.Observation
+
+@enduml

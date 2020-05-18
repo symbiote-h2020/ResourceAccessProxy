@@ -1,0 +1,16 @@
+@startuml
+title RAP Receiving Federation Messages
+
+interface "FederationCreated" as FCreated
+note top of FCreated : exchange=symbIoTe.federation\nkey=symbIoTe.federation.created\n\npayload=eu.h2020.symbiote.model.mim.Federation
+
+interface "FederationChanged" as FChanged
+note bottom of FChanged : exchange=symbIoTe.federation\nkey=symbIoTe.federation.changed\n\npayload=eu.h2020.symbiote.model.mim.Federation
+
+interface "FederationDeleted" as FDeleted
+note top of FDeleted : exchange=symbIoTe.federation\nkey=symbIoTe.federation.deleted\n\npayload=String(federationId)
+
+[RAP] -left- FCreated
+[RAP] -down- FChanged
+[RAP] -right- FDeleted
+@enduml

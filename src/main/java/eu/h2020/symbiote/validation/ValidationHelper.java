@@ -21,6 +21,7 @@ import org.apache.jena.shared.PrefixMapping;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import eu.h2020.symbiote.jsonld.JsonLDHelper;
 
 import eu.h2020.symbiote.model.cim.Capability;
 import eu.h2020.symbiote.model.cim.ComplexDatatype;
@@ -86,19 +87,20 @@ public class ValidationHelper {
     }
 
     public static void validateType(Datatype datatype, JsonNode node, List<Restriction> restrictions) throws ValidationException {
+        JsonNode simpleJsonNode = JsonLDHelper.removeJSONLDInfo(node);
         if (datatype.isArray()) {
-            if (!node.isArray()) {
+            if (!simpleJsonNode.isArray()) {
                 throw new ValidationException("parameter with isArray=true must contain array");
             }
             datatype.setArray(false);
-            Iterator<JsonNode> elementIterator = node.elements();
+            Iterator<JsonNode> elementIterator = simpleJsonNode.elements();
             while (elementIterator.hasNext()) {
                 validateType(datatype, elementIterator.next(), restrictions);
             }
             datatype.setArray(true);
         } else {
             if (ValidationUtils.isPrimitiveDatatype(datatype)) {
-                if (!node.isValueNode()) {
+                if (!simpleJsonNode.isValueNode()) {
                     throw new ValidationException("parameter with primitive datatype must contain single value");
                 }
                 PrimitiveDatatype primitiveDatatype = (PrimitiveDatatype) datatype;
@@ -110,7 +112,7 @@ public class ValidationHelper {
                 if (rdfDatatype.getJavaClass() == null) {
                     throw new ValidationException("no representing java class found for datatype '" + primitiveDatatype.getBaseDatatype() + "'");
                 }
-                String value = node.isTextual() ? node.asText() : node.toString();
+                String value = simpleJsonNode.isTextual() ? simpleJsonNode.asText() : simpleJsonNode.toString();
                 try {
                     Object typedValue = rdfDatatype.parse(value);
                     RestrictionChecker.checkRestrictions(typedValue, rdfDatatype, restrictions);
@@ -118,13 +120,13 @@ public class ValidationHelper {
                     throw new ValidationException("value '" + value + "' could not be parsed to datatype '" + rdfDatatype.getURI() + "'");
                 }
             } else if (ValidationUtils.isComplexDatatype(datatype)) {
-                if (!node.isObject()) {
+                if (!simpleJsonNode.isObject()) {
                     throw new ValidationException("parameter with complex datatype must contain object");
                 }
                 ComplexDatatype complexDatatype = (ComplexDatatype) datatype;
                 Map<String, Datatype> definedFields = complexDatatype.getDataProperties().stream()
                         .collect(Collectors.toMap(x -> x.getName(), x -> getDatatype(x)));
-                Map<String, JsonNode> presentFields = ValidationUtils.toMap(node.fields());
+                Map<String, JsonNode> presentFields = ValidationUtils.toMap(simpleJsonNode.fields());
                 if (!presentFields.keySet().containsAll(definedFields.keySet())) {
                     throw new ValidationException("missing defined properties: "
                             + definedFields.keySet().stream()
@@ -135,7 +137,7 @@ public class ValidationHelper {
                     if (!definedFields.keySet().contains(field.getKey())) {
                         throw new ValidationException("undefined property '" + field.getKey() + "'");
                     }
-                    validateType(definedFields.get(field.getKey()), node, null);
+                    validateType(definedFields.get(field.getKey()), field.getValue(), null);
                 }
             }
         }

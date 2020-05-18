@@ -5,22 +5,18 @@
  */
 package eu.h2020.symbiote.plugin;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-
-import eu.h2020.symbiote.model.cim.WGS84Location;
-import eu.h2020.symbiote.model.cim.Observation;
-import eu.h2020.symbiote.model.cim.ObservationValue;
-import eu.h2020.symbiote.model.cim.Property;
-import eu.h2020.symbiote.model.cim.UnitOfMeasurement;
-
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.TimeZone;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,14 +24,15 @@ import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.HttpStatus;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.TimeZone;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import eu.h2020.symbiote.model.cim.Observation;
+import eu.h2020.symbiote.model.cim.ObservationValue;
+import eu.h2020.symbiote.model.cim.Property;
+import eu.h2020.symbiote.model.cim.UnitOfMeasurement;
+import eu.h2020.symbiote.model.cim.WGS84Location;
 
 
 /**
@@ -250,7 +247,7 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
             subscriptionSet.add(resourceId);
             if(subscriptionThread == null) {
                 subscriptionThread = new Thread(() -> {
-                    while(subscriptionThread != null) {
+                    while(!subscriptionSet.isEmpty()) {
                         sendPush();
                         try {
                             Thread.sleep(5000);
@@ -258,6 +255,7 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
                             e.printStackTrace();
                         }
                     }
+                    subscriptionThread = null;
                 });
                 subscriptionThread.start();
             }
@@ -287,8 +285,6 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
     public void unsubscribeResource(String resourceId) {
         synchronized (subscriptionSet) {
             subscriptionSet.remove(resourceId);
-            if(subscriptionSet.isEmpty())
-                subscriptionThread = null;
         }
     }
 
@@ -298,7 +294,7 @@ public class PlatformSpecificPlugin extends PlatformPlugin {
     public Observation observationExampleValue () {
         return observationExampleValue("symbIoTeID1");
     }
-    
+
     /*
      *   Some sample code for creating one observation
      */

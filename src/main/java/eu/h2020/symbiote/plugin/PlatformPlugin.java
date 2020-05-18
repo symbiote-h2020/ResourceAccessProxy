@@ -5,28 +5,9 @@
  */
 package eu.h2020.symbiote.plugin;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
-import eu.h2020.symbiote.model.cim.Observation;
-import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessGetMessage;
-import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessHistoryMessage;
-import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessMessage;
-import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessSetMessage;
-import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessSubscribeMessage;
-import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessUnSubscribeMessage;
-import eu.h2020.symbiote.cloud.model.rap.ResourceInfo;
-import eu.h2020.symbiote.messages.plugin.RapPluginErrorResponse;
-import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
-import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
-import eu.h2020.symbiote.messages.registration.RegisterPluginMessage;
-import eu.h2020.symbiote.resources.RapDefinitions;
-
 import java.io.IOException;
 import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
@@ -34,6 +15,26 @@ import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.core.RabbitTemplate.ReturnCallback;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
+import eu.h2020.symbiote.cloud.model.rap.ResourceInfo;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessGetMessage;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessHistoryMessage;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessMessage;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessSetMessage;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessSubscribeMessage;
+import eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessUnSubscribeMessage;
+import eu.h2020.symbiote.messages.plugin.RapPluginErrorResponse;
+import eu.h2020.symbiote.messages.plugin.RapPluginOkResponse;
+import eu.h2020.symbiote.messages.plugin.RapPluginResponse;
+import eu.h2020.symbiote.messages.registration.RegisterPluginMessage;
+import eu.h2020.symbiote.model.cim.Observation;
+import eu.h2020.symbiote.resources.RapDefinitions;
 
 /**
  *
@@ -45,18 +46,14 @@ public abstract class PlatformPlugin {
     private final RabbitTemplate rabbitTemplate;
     private final TopicExchange exchange;
 
-    public RabbitTemplate getRabbitTemplate() {
-        return this.rabbitTemplate;
-    }
-    
     public PlatformPlugin(RabbitTemplate rabbitTemplate, TopicExchange exchange,
                           String platformId, boolean hasFilters, boolean hasNotifications) {
         this.rabbitTemplate = rabbitTemplate;
         this.exchange = exchange;
         registerPlugin(platformId, hasFilters, hasNotifications);
     }
-    
-    
+
+
     public String receiveMessage(String message) {
         ObjectMapper mapper = new ObjectMapper();
         String json = null;
@@ -69,11 +66,11 @@ public abstract class PlatformPlugin {
             mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
         } catch (IOException e) {
             log.error("Error parsing request from generic RAP", e);
-            return serializeResponse(mapper, 
+            return serializeResponse(mapper,
                     new RapPluginErrorResponse(500, "Bad request arrived in RAP plugin.\nCause: " + e.getMessage()));
         }
-            
-        try {            
+
+        try {
             switch(access) {
                 case GET: {
                     ResourceAccessGetMessage msgGet = (ResourceAccessGetMessage) msg;
@@ -146,9 +143,9 @@ public abstract class PlatformPlugin {
     private RapPluginResponse createOkResponse(ObjectMapper mapper, String jsonBody) {
         if(jsonBody == null)
             throw new RapPluginException(500, "RAP plugin when reading must not return null value.");
-        
+
         Object o = null;
-        
+
         try {
             o = mapper.readValue(jsonBody, new TypeReference<List<Observation>>() {});
         } catch (IOException e) {
@@ -171,7 +168,7 @@ public abstract class PlatformPlugin {
         }
         return json;
     }
-    
+
     /*
     *
     */
@@ -185,10 +182,11 @@ public abstract class PlatformPlugin {
             byte[] json = mapper.writeValueAsBytes(msg);
 
             rabbitTemplate.setReturnCallback(new ReturnCallback() {
-                
+
                 @Override
                 public void returnedMessage(Message message, int replyCode, String replyText, String exchange, String routingKey) {
                     log.debug("replyCode={}, replyText={}, Msg: {}", replyCode, replyText, message);
+                    log.info("Retrying to register plugin to platform");
                     sendRegisterPluginMessage(json, exchange);
                 }
             });
@@ -197,7 +195,7 @@ public abstract class PlatformPlugin {
             log.error("Error while registering plugin for platform " + platformId + "\n" + e);
         }
     }
-    
+
     private void sendRegisterPluginMessage(byte[] json, String exchange) {
         new Thread(() -> {
             try {
@@ -211,35 +209,35 @@ public abstract class PlatformPlugin {
         }).start();
     }
 
-    
+
     public void sendSubscriptionData(String json) {
-        rabbitTemplate.send(RapDefinitions.PLUGIN_NOTIFICATION_EXCHANGE_IN, 
-                RapDefinitions.PLUGIN_NOTIFICATION_KEY, 
+        rabbitTemplate.send(RapDefinitions.PLUGIN_NOTIFICATION_EXCHANGE_IN,
+                RapDefinitions.PLUGIN_NOTIFICATION_KEY,
                 new Message(json.getBytes(), new MessageProperties()));
     }
-    
-    /*  
+
+    /*
     *   OVERRIDE this, inserting the query to the platform with internal resource id
     */
     public abstract String readResource(String resourceId);
-    
-    /*  
+
+    /*
     *   OVERRIDE this, inserting here a call to the platform with internal resource id
     *   setting the actuator value
     */
     public abstract String writeResource(String resourceId, String body);
-        
-    /*  
+
+    /*
     *   OVERRIDE this, inserting the query to the platform with internal resource id
     */
     public abstract String readResourceHistory(String resourceId);
-    
-    /*  
+
+    /*
     *   OVERRIDE this, inserting the subscription of the resource
     */
     public abstract void subscribeResource(String resourceId);
-    
-    /*  
+
+    /*
     *   OVERRIDE this, inserting the unsubscription of the resource
     */
     public abstract void unsubscribeResource(String resourceId);

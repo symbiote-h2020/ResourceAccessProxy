@@ -126,8 +126,8 @@ public class RegisterResourcesTest {
         resourceRegistration.receiveL1UnregistrationMessage(b_json);
         
         // then
-        verify(accessPolicyRepository).delete(getStationarySensorSymbioteId());
-        verify(resourcesRepository).delete(getStationarySensorSymbioteId());
+        verify(accessPolicyRepository).deleteById(getStationarySensorSymbioteId());
+        verify(resourcesRepository).deleteById(getStationarySensorSymbioteId());
     }
     
     private String getPluginId(){

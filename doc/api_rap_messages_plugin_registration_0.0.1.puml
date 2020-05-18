@@ -1,0 +1,41 @@
+@startuml
+title Registration of Plugin
+
+interface "RAP Plugin Exchange" as RPE
+note top of RPE : exchange=symbIoTe.rapPluginExchange\nkey=symbIoTe.rapPluginExchange.add-plugin
+
+interface "Plugin"
+note bottom of Plugin : exchange=plugin-exchange\nkey=platform_01.*\n\nqueue=rap-platform-queue_platform_01
+
+interface "RAP Exchange" as RAPE
+note top of RAPE : exchange=symbIoTe.resourceAccessProxy\nkeys=\n  symbIoTe.rap.resource.access\n  symbIoTe.rap.btm.access
+
+interface "Bartering"
+note top of Bartering: exchange=symbIoTe.bartered\nkey=symbIoTe.bartered.access
+
+[RAP] - RPE
+[RAP] ..> Plugin
+RAPE <.. [RAP]
+Bartering <.. [RAP]
+
+Plugin - [<Internal> Plugin]
+note left on link #Orange: look at sidenote
+
+RPE <.. [<Internal> Plugin]
+note on link #LightBlue: eu.h2020.symbiote.messages.registration.\nPluginRegistrationMessage:\n  RegisterPluginMessage\n  UnregisterPluginMessage)
+
+
+note as N1 #Orange
+    <b>Side note</b>
+    keys=
+      {pluginId}.get (payload: eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessGetMessage)
+      {pluginId}.history (payload: eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessHistoryMessage)
+      {pluginId}.set - for:
+        actuation (payload: eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessSetMessage) body: Array(Capabilities)
+        invoke service (payload: eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessSetMessage) body: Object(Parameters)
+      {pluginId}.subscribe (payload: eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessSubscribeMessage)
+      {pluginId}.unsubscribe (payload: eu.h2020.symbiote.cloud.model.rap.access.ResourceAccessUnSubscribeMessage)
+end note
+
+
+@enduml

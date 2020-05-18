@@ -36,9 +36,6 @@ import org.springframework.context.annotation.DependsOn;
 @Configuration
 public class PlatformPluginQueueConfig {   
     
-    @Autowired
-    private RabbitTemplate rabbitTemplate;
-    
     @Value("${rabbit.replyTimeout}")
     private int messageExpirationDelta;
     

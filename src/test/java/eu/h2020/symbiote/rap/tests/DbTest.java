@@ -40,8 +40,6 @@ import org.springframework.test.context.junit4.SpringRunner;
  * @author Luca Tomaselli
  */
 @RunWith(SpringRunner.class)
-@SpringBootTest
-@TestConfiguration
 @DataMongoTest
 @ActiveProfiles("test")
 public class DbTest {
@@ -78,7 +76,7 @@ public class DbTest {
         assert(resourceInfoList != null);
         assert(!resourceInfoList.isEmpty());
         //delete
-        resourcesRepository.delete(resourceInfoList.get(0).getSymbioteId());
+        resourcesRepository.deleteById(resourceInfoList.get(0).getSymbioteId());
         resourceInfoList = resourcesRepository.findByInternalId(platformResourceId);
         assert(resourceInfoList == null || resourceInfoList.isEmpty());
     }
@@ -109,7 +107,7 @@ public class DbTest {
         platformInfoOptional = pluginRepository.findById(platformId+"2");
         assert(!platformInfoOptional.isPresent());
         //delete
-        pluginRepository.delete(platformId);
+        pluginRepository.deleteById(platformId);
         platformInfoOptional = pluginRepository.findById(platformId+"2");
         assert(!platformInfoOptional.isPresent());
     }
@@ -145,12 +143,12 @@ public class DbTest {
         accessPolicyOptional = accessPolicyRepository.findByInternalId(resourceId);
         assert(!accessPolicyOptional.isPresent());
         //delete
-        accessPolicyRepository.delete(resourceId);
+        accessPolicyRepository.deleteById(resourceId);
         accessPolicyOptional = accessPolicyRepository.findById(resourceId);
         assert(!accessPolicyOptional.isPresent());
         //delete resource
         //delete
-        resourcesRepository.delete(resourceId);
+        resourcesRepository.deleteById(resourceId);
         Optional<DbResourceInfo> resourceInfoOptional = resourcesRepository.findById(resourceId);
         assert(!resourceInfoOptional.isPresent());
     }
@@ -180,7 +178,7 @@ public class DbTest {
         registrationInfoOdataList = registrationInfoODataRepository.findByClassName(className+"2");
         assert(registrationInfoOdataList == null || registrationInfoOdataList.isEmpty());
         //delete
-        registrationInfoODataRepository.delete(rio.getId());
+        registrationInfoODataRepository.deleteById(rio.getId());
         registrationInfoOdataList = registrationInfoODataRepository.findByClassName(className);
         assert(registrationInfoOdataList == null || registrationInfoOdataList.isEmpty());
     }

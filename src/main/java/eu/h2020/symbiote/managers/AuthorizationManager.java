@@ -327,7 +327,7 @@ public class AuthorizationManager {
     private Set<String> getFederationMembers(String federationId) {
     	Set<String> fedMembersString = new HashSet<>();
     	
-    	Federation fed = fedRepo.findById(federationId);
+    	Federation fed = fedRepo.findById(federationId).get();
     	List<FederationMember> fedMembers = fed.getMembers();
     	for (int i = 0; i < fedMembers.size(); i++) {
 			fedMembersString.add(fedMembers.get(i).getPlatformId());

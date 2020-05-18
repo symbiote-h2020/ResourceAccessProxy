@@ -35,7 +35,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.apache.commons.lang.StringUtils;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.semanticweb.owlapi.apibinding.OWLManager;
@@ -233,6 +234,9 @@ public class OwlapiHelp {
                 type = ((ComplexDatatype) datatype).getBasedOnClass();
             } else if (datatype.getClass().equals(PrimitiveDatatype.class)) {
                 type = ((PrimitiveDatatype) datatype).getBaseDatatype();
+            }
+            if(datatype.isArray() && type != null){
+                type += "[]";
             }
             ParameterInfo parameterInfo = new ParameterInfo(type, p.getName(), p.isMandatory());
             parameterInfoList.add(parameterInfo);

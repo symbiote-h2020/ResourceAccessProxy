@@ -375,7 +375,7 @@ public class ResourceRegistration {
 			for (int i=0; i<resourceList.size(); i++) {
 				DbResourceInfo resource = resourceList.get(i);
 				if (resource.getFederationInfo()==null) {
-					resourcesRepository.delete(resource.getSymbioteId());
+					resourcesRepository.deleteById(resource.getSymbioteId());
 					log.info("Resource " + internalId + " unregistered");
 					break;
 				}
@@ -397,7 +397,7 @@ public class ResourceRegistration {
 			for (int i=0; i<resourceList.size(); i++) {
 				DbResourceInfo resource = resourceList.get(i);
 				if (resource.getFederationInfo()!=null) {
-					resourcesRepository.delete(resource.getSymbioteId());
+					resourcesRepository.deleteById(resource.getSymbioteId());
 					resourceList.remove(resource);
 					i--;
 					log.info("Resource " + internalId + " unregistered");
@@ -416,7 +416,7 @@ public class ResourceRegistration {
 		try {
 			Optional<DbResourceInfo> resource = resourcesRepository.findById(symbioteId);
 			if (resource.isPresent()) {
-				resourcesRepository.delete(symbioteId);;
+				resourcesRepository.deleteById(symbioteId);;
 			}
 			else {
 				log.error("Resource " + symbioteId + " not found");
@@ -447,7 +447,7 @@ public class ResourceRegistration {
 				return;
 			}
 
-			accessPolicyRepository.delete(accessPolicy.get().getResourceId());
+			accessPolicyRepository.deleteById(accessPolicy.get().getResourceId());
 			log.info("Policy removed for resource " + internalId);
 
 		} catch (Exception e) {

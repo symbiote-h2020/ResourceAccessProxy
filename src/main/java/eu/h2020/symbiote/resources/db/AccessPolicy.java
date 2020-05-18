@@ -6,6 +6,7 @@
 package eu.h2020.symbiote.resources.db;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.PersistenceConstructor;
 import org.springframework.data.mongodb.core.mapping.Document;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 
@@ -16,24 +17,25 @@ import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 @Document(collection="policies")
 public class AccessPolicy {
     @Id
-    private final String id;    
+    private final String resourceId;    
     private final String internalId;
     private final IAccessPolicy policy;
     
     public AccessPolicy() {
-        id = "";
+        resourceId = "";
         internalId = "";
         policy = null;
     }
     
+    @PersistenceConstructor
     public AccessPolicy(String resourceId, String internalId, IAccessPolicy policy) {
-        this.id = resourceId;
+        this.resourceId = resourceId;
         this.internalId = internalId;
         this.policy = policy;
     }
     
     public String getResourceId() {
-        return id;
+        return resourceId;
     }
     
     public String getInternalId() {

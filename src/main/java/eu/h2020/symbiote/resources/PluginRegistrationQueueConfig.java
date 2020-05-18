@@ -65,12 +65,9 @@ public class PluginRegistrationQueueConfig {
     }
     
     @Bean(name=RapDefinitions.PLUGIN_REGISTRATION_QUEUE + "Bindings")
-    List<Binding> pluginBindings(@Qualifier(RapDefinitions.PLUGIN_REGISTRATION_QUEUE) Queue queue,
+    Binding pluginBindings(@Qualifier(RapDefinitions.PLUGIN_REGISTRATION_QUEUE) Queue queue,
                                  @Qualifier(RapDefinitions.PLUGIN_REGISTRATION_EXCHANGE_IN) TopicExchange exchange) {
-        List<Binding> bindings = new ArrayList<>();
-        bindings.add(BindingBuilder.bind(queue).to(exchange).with(RapDefinitions.PLUGIN_REGISTRATION_KEY));
-
-        return bindings;
+        return BindingBuilder.bind(queue).to(exchange).with(RapDefinitions.PLUGIN_REGISTRATION_KEY);
     }
 
     @Bean

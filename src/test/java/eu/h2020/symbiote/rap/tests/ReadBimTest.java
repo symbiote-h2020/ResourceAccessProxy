@@ -1,23 +1,22 @@
 package eu.h2020.symbiote.rap.tests;
 
 
-import eu.h2020.symbiote.bim.OwlapiHelp;
-import eu.h2020.symbiote.service.CustomField;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 import java.util.Optional;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.semanticweb.owlapi.model.IRI;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
+
+import eu.h2020.symbiote.bim.OwlapiHelp;
+import eu.h2020.symbiote.service.CustomField;
 
 /*
  * To change this license header, choose License Headers in Project Properties.
@@ -30,16 +29,14 @@ import org.springframework.test.context.junit4.SpringRunner;
  * @author Luca Tomaselli
  */
 @RunWith(SpringRunner.class)
-@SpringBootTest
-@TestConfiguration
 @DataMongoTest
 @Import({OwlapiHelp.class})
 @ActiveProfiles("test")
 public class ReadBimTest {
-    
+
     @Autowired
     private OwlapiHelp owlApiHelp;
-    
+
     @Test
     public void readBim() {
         //map
@@ -73,7 +70,7 @@ public class ReadBimTest {
             assertThat(classOfActuator.get(key)).isEqualTo(classOfDevice.get(key));
         }
     }
-    
+
     private String getShortClassName(String type) {
         String simpleName = type.replace("[]", "");
         if (!CustomField.typeIsPrimitive(simpleName)) {

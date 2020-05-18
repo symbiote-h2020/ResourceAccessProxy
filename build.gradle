@@ -5,43 +5,40 @@
 // Note however, that you may define your own "run" and "debug" task if you
 // prefer. In this case NetBeans will not add these tasks but you may rely on
 // your own implementation.
+plugins {
+	// code
+	id 'org.springframework.boot' version '2.2.7.RELEASE'
+	id 'java'
+    id 'io.franzbecker.gradle-lombok' version '4.0.0'
+
+    // dependency management
+    id 'com.github.ben-manes.versions' version '0.28.0' // find new versions of dependency task: dependencyUpdates
+
+    // code quality
+    id "jacoco"
+    id "org.owasp.dependencycheck" version "5.3.2.1"
+
+    // IDEs
+    id "eclipse"
+    id "idea"
+    
+    // publishing
+    id "maven-publish"
+    id "com.cinnober.gradle.semver-git" version "2.4.0"  
+    
+    // docker images
+    id 'com.google.cloud.tools.jib' version '2.2.0'  
+}
+
+apply plugin: 'io.spring.dependency-management'
+
+ext {
+	set('springCloudVersion', 'Hoxton.SR4')
+}
+
 if (!hasProperty('mainClass')) {
     ext.mainClass = 'eu.h2020.symbiote.ResourceAccessProxyApplication'
 }
-
-// initial extensions to gradle
-buildscript {
-    ext {
-        springBootVersion = '1.5.18.RELEASE'
-        springCloudVersion = 'Dalston.SR5'
-    }
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath "io.spring.gradle:dependency-management-plugin:1.0.0.RELEASE"
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-        classpath group: 'com.cinnober.gradle', name: 'semver-git', version: '2.2.1'
-        classpath 'org.owasp:dependency-check-gradle:1.4.5.1'
-    }
-}
-
-// code
-apply plugin: "io.spring.dependency-management"
-apply plugin: 'java'
-apply plugin: 'org.springframework.boot'
-
-// code quality
-apply plugin: 'jacoco'
-apply plugin: 'org.owasp.dependencycheck'
-
-// IDEs
-apply plugin: 'eclipse'
-apply plugin: 'idea'
-
-// publishing
-apply plugin: 'com.cinnober.gradle.semver-git'
-apply plugin: 'maven-publish'
 
 // XXX please change with your commits according to http://semver.org/
 project.group = 'eu.h2020.symbiote'
@@ -72,8 +69,13 @@ Forces dependencies' cache invalidation for each build for dependencies marked w
 configurations.all {
     // check for updates every build
     resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
-    // exclude logging to log4j12
-    exclude group: "org.slf4j", module: "slf4j-log4j12"
+
+	exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+    resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+        if (details.requested.name == 'log4j') {
+            details.useTarget "org.slf4j:log4j-over-slf4j:1.7.5"
+        }
+    }
 }
 
 dependencies {
@@ -90,53 +92,55 @@ dependencies {
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
 
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:5.33+') { }
+    implementation('com.github.symbiote-h2020:SymbIoTeLibraries:6.0+') { changing = true }
     // localMaven
-    //compile('eu.h2020.symbiote:SymbIoTeLibraries:5.29.0-SNAPSHOT')
-
-    compile('com.github.symbiote-h2020:SymbIoTeSemantics:2.3.1')
+    //implementation('eu.h2020.symbiote:SymbIoTeLibraries:5.29.0-SNAPSHOT')
+    //implementation('com.github.symbiote-h2020:SymbIoTeSemantics:2.3.5')
+    //implementation('org.apache.httpcomponents:httpcore:4.4.11')
 
     // Spring
-    compile('org.springframework.cloud:spring-cloud-starter')
-    compile('org.springframework.cloud:spring-cloud-starter-config')
-    compile('org.springframework.retry:spring-retry')
-    compile('org.springframework.boot:spring-boot-starter-aop')
-    compile('org.springframework.cloud:spring-cloud-starter-eureka')
-    compile('org.springframework.cloud:spring-cloud-starter-zipkin')
-    compile('org.springframework.boot:spring-boot-starter-amqp')
-    compile('org.springframework.boot:spring-boot-starter-data-rest')
-    compile('org.springframework.boot:spring-boot-starter-web')
-    compile('org.springframework.boot:spring-boot-starter-data-mongodb')
+    implementation('org.springframework.cloud:spring-cloud-starter')
+    implementation('org.springframework.cloud:spring-cloud-starter-config')
+    implementation('org.springframework.retry:spring-retry')
+    implementation('org.springframework.boot:spring-boot-starter-aop')
+    //implementation('org.springframework.cloud:spring-cloud-starter-netflix-eureka-client')
+    implementation('org.springframework.cloud:spring-cloud-starter-zipkin')
+    implementation('org.springframework.boot:spring-boot-starter-amqp')
+    implementation('org.springframework.boot:spring-boot-starter-data-rest')
+    implementation('org.springframework.boot:spring-boot-starter-web')
+    implementation('org.springframework.boot:spring-boot-starter-data-mongodb')
 
+	implementation('org.apache.commons:commons-lang3:3.10')
+	
     // OData
-    compile("org.apache.olingo:odata-commons-api:${'4.3.0'}")
-    compile("org.apache.olingo:odata-commons-core:${'4.3.0'}")
+    implementation("org.apache.olingo:odata-commons-api:${'4.7.1'}")
+    implementation("org.apache.olingo:odata-commons-core:${'4.7.1'}")
     
-    compile("org.apache.olingo:odata-server-api:${'4.3.0'}")
-    compile("org.apache.olingo:odata-server-core:${'4.3.0'}")
+    implementation("org.apache.olingo:odata-server-api:${'4.7.1'}")
+    implementation("org.apache.olingo:odata-server-core:${'4.7.1'}")
   
     // Websocket
-    compile("org.springframework.boot:spring-boot-starter-websocket")
+    implementation("org.springframework.boot:spring-boot-starter-websocket")
 
     // Others
-    compile("com.jayway.jsonpath:json-path:2.4.0")
+    implementation("com.jayway.jsonpath:json-path:2.4.0")
 
     // test only
-    compile("org.springframework.boot:spring-boot-starter-web")
-    testCompile ("org.springframework.boot:spring-boot-starter-test")
+    implementation("org.springframework.boot:spring-boot-starter-web")
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
     
     // lombok
     compileOnly('org.projectlombok:lombok')
     
-    //Owlapi
-    //compile('net.sourceforge.owlapi:owlapi-distribution:5.1.1')
-    compile('net.sourceforge.owlapi:owlapi-contract:5.1.1')
-    compile('net.sourceforge.owlapi:owlapi-util:3.3')
+    //Owlapi do not push version later then 5.1.1 because it is not working
+    //implementation('net.sourceforge.owlapi:owlapi-distribution:5.1.1')
+    implementation('net.sourceforge.owlapi:owlapi-contract:5.1.1')
+    implementation('net.sourceforge.owlapi:owlapi-util:3.3')    
 }
 
 // publication
-bootRepackage {
-    classifier = 'run'
+bootJar {
+	classifier = 'run'
 }
 
 jar {
@@ -172,19 +176,19 @@ publishing {
 
             artifact javadocJar
 
-            artifact(file("$libsDir/$project.name-$project.version-${bootRepackage.classifier}.jar")) {
+            artifact(file("$libsDir/$project.name-$project.version-${bootJar.classifier}.jar")) {
                 classifier "run"
             }
         }
     }
 }
 
-publishToMavenLocal.dependsOn(bootRepackage)
+publishToMavenLocal.dependsOn(bootJar)
 
 // code quality below
 // jacoco configuration section
 jacoco {
-    toolVersion = "0.7.9"
+    toolVersion = "0.8.5"
 }
 
 jacocoTestReport {
@@ -201,3 +205,45 @@ dependencyCheck {
 
 // including code quality extensions into the build
 check.dependsOn(jacocoTestReport) //, 'dependencyCheck')
+
+// docker
+// gradle jibDockerBuild
+jib {
+  from {
+    //image = 'openjdk:alpine' // alpine java 8
+
+    // 11
+    //image = 'adoptopenjdk/openjdk11:jdk-11.0.3_7-alpine'
+    //image = 'adoptopenjdk/openjdk11-openj9:jdk-11.0.3_7_openj9-0.14.0-alpine' // JDK
+    image = 'adoptopenjdk/openjdk11-openj9:jre-11.0.3_7_openj9-0.14.0-alpine' // JRE
+
+    // 12
+    //image = 'adoptopenjdk/openjdk12-openj9:jdk-12.0.1_12_openj9-0.14.1-alpine' // JDK
+    //image = 'adoptopenjdk/openjdk12-openj9:jdk-12.0.1_12_openj9-0.14.1-alpine' // JRE
+  }
+  
+  to {
+  	image = "symbioteh2020/symbiote-rap:$project.version"
+  }
+  
+  container {
+  	appRoot = '/home'
+  	ports = ['8103']
+  	workingDirectory = '/home'
+  	jvmFlags = ['-DSPRING_BOOT_WAIT_FOR_SERVICES=symbiote_mongo:27017']
+
+  	// uncomment for standalone mode (without security)
+  	args = ['--spring.profiles.active=standalone']  	
+  }  
+}
+
+task generateStandaloneDockerCompose {
+    doLast {
+    	String contents = new File( 'src/main/docker/rap-standalone-compose.yml').getText( 'UTF-8' )
+    	contents = contents.replaceAll( /\{\{project\.version\}\}/, "$project.version" )
+    	mkdir "$buildDir/docker"
+    	new File( "$buildDir/docker/rap-standalone-compose.yml" ).write( contents, 'UTF-8' )
+    }
+}
+
+jibDockerBuild.dependsOn(generateStandaloneDockerCompose)

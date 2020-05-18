@@ -35,15 +35,14 @@ class AppConfig extends AbstractMongoConfiguration {
         return databaseName;
     }
 
-    @SuppressWarnings("deprecation")
     @Override
-    public Mongo mongo() throws Exception {
-        return new Mongo(mongoHost, mongoPort);
+    public MongoClient mongoClient() {
+        return new MongoClient(mongoHost, mongoPort);
     }
 
     @Bean
     @Override
     public MongoTemplate mongoTemplate() throws Exception {
-        return new MongoTemplate(new MongoClient(mongoHost), getDatabaseName());
+        return new MongoTemplate(mongoClient(), getDatabaseName());
     }
 }

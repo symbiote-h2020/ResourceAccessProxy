@@ -74,7 +74,7 @@ public class FederationInfoRegistration {
 	        String id = new String(message);
 	        log.info("Federation Unregistration message received: \n" + id + "");
 	        log.debug("Unregistering federation with Id " + id);
-	        fedRepo.delete(id);
+	        fedRepo.deleteById(id);
 	        log.info("Federation with id: " + id + " removed from repository.");   	
         } catch (Exception e) {
 			log.error("Error deleting federation info", e);
