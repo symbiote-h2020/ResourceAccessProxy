@@ -92,7 +92,7 @@ dependencies {
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
 
-    implementation('com.github.symbiote-h2020:SymbIoTeLibraries:6.0+') { changing = true }
+    implementation('com.github.symbiote-h2020:SymbIoTeLibraries:6.0.0+') { changing = true }
     // localMaven
     //implementation('eu.h2020.symbiote:SymbIoTeLibraries:5.29.0-SNAPSHOT')
     //implementation('com.github.symbiote-h2020:SymbIoTeSemantics:2.3.5')
@@ -146,6 +146,7 @@ bootJar {
 jar {
        baseName = 'ResourceAccessProxy'
        version = project.version
+       enabled = true
 }
     
 task generateJavaDocs(type: Javadoc) {
